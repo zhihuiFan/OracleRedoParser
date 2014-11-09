@@ -87,9 +87,6 @@ namespace databus {
 
   void tranDump(XID xid, uint32_t object_id, const char* optype,
                 std::list<Row> undos, std::list<Row> redos) {
-    if (object_id == 73864) {
-      std::cout << 73864 << std::endl;
-    }
     TabDef* table_def = metadata->getTabDefFromId(object_id);
     if (table_def == NULL) return;
     BOOST_LOG_TRIVIAL(fatal) << std::endl << std::endl << "Transaction ID "
