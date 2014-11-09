@@ -17,6 +17,7 @@ namespace databus {
 
   class TabDef {
    public:
+    std::string owner;
     std::string name;
     std::set<Ushort> pk;
     std::map<Ushort, std::string> col_names;
@@ -34,6 +35,8 @@ namespace databus {
     // 4. We should not init TableDef when needed, so modify getTabDefFromId
     // TODO:
     //  a. init TableDef when get a objid effectively
+    friend class Rules;
+
    public:
     MetadataManager(const std::string& username, const std::string& password,
                     const std::string& db);
@@ -42,10 +45,11 @@ namespace databus {
     TabDef* getTabDefFromId(uint32_t object_id);
     TabDef* initTabDefFromName(const std::string& owner,
                                const std::string& table);
-    // TODO: remove this method, instead with some Filter function object
-    bool deserveCapture(uint32_t object_id) const {
-      return oid2def_.find(object_id) != oid2def_.end();
-    };
+
+    std::string getLogfile(uint32_t seq);
+
+    // return -1 if the given seq is not the current logfile
+    uint32_t getOnlineLastBlock(uint32_t seq);
 
     Environment* getEnv() { return env_; }
 
@@ -70,10 +74,28 @@ namespace databus {
     Statement* objp2g_stmt_;
     Statement* obj2tab_stmt_;
     Statement* pk_stmt_;
-    std::map<uint32_t, TabDef*> oid2def_;
-    std::map<uint32_t, uint32_t> poid2goid;
+    static std::map<uint32_t, TabDef*> oid2def_;
+    static std::map<uint32_t, uint32_t> poid2goid_;
   };
 
-  extern MetadataManager* metadata;
+  class LogManager {
+   public:
+    LogManager(const std::string& user, const std::string& passwd,
+               const std::string& db);
+    ~LogManager();
+    std::string getLogfile(uint32_t seq);
+    uint32_t getOnlineLastBlock(uint32_t seq);
+
+   private:
+    // for re-connect
+    const std::string username;
+    const std::string password;
+    const std::string db;
+    Environment* env_;
+    Connection* conn_;
+    Statement* arch_log_stmt_;
+    Statement* online_log_stmt_;
+    Statement* log_last_blk_stmt_;
+  };
 }
 #endif

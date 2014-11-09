@@ -1,20 +1,3 @@
-/*
- * =====================================================================================
- *
- *       Filename:  redo_parse.cpp
- *
- *    Description:
- *
- *        Version:  1.0
- *        Created:  08/24/2014 18:31:36
- *       Revision:  none
- *       Compiler:  gcc
- *
- *         Author:  zhifan (Zhihui Fan), zhihuifan@163.com
- *   Organization:
- *
- * =====================================================================================
- */
 #include <boost/program_options.hpp>
 #include <string>
 #include <algorithm>
@@ -57,16 +40,15 @@ namespace databus {
   }
 
   void StreamConf::add_options() {
-    desc.add_options()("help", "show help message")(
+    desc.add_options()("help,h", "show help message")(
         "srcUser", po::value<std::string>()->default_value("dbstream"),
         "Username for source oracle instance")(
         "srcPass", po::value<std::string>(),
         "password for source oracle instance")(
         "srcDB", po::value<std::string>(), "connection string for source db")(
         "confFile", po::value<std::string>(), "configure file for data stream")(
-        "tableConf", po::value<std::string>(), "tables to capture changes")
-        // temp
-        ("archivelog", po::value<std::string>(), "archive log");
+        "tableConf", po::value<std::string>(), "tables to capture changes")(
+        "startSeq", po::value<uint32_t>(), "the log sequence to start with");
   }
 
   void StreamConf::validParams() {
@@ -77,12 +59,16 @@ namespace databus {
     util::dassert("srcUser/srcPass/srcHost/tableConf are must",
                   vm.count("srcUser") && vm.count("srcPass") &&
                       vm.count("srcDB") && vm.count("tableConf") &&
-                      vm.count("archivelog"));
+                      vm.count("startSeq"));
   };
 
   int StreamConf::getInt(const char* para, int default_value) {
     if (vm.count(para)) return vm[para].as<int>();
     return default_value;
+  }
+
+  uint32_t StreamConf::getUint32(const char* para) {
+    return vm[para].as<uint32_t>();
   }
 
   std::string StreamConf::getString(const char* para,
@@ -110,26 +96,8 @@ namespace databus {
     return cap_tables;
   }
 
-  namespace buffers {
-
-    List<const char*> record_start_positions;
-    List<RecordBuf*> record_buffer_list;
-    List<Transaction*> transaction_list;
-
-    // Monitor buffer usage every 60 seconds
-    void ReportBuffUsage() {
-      while (true) {
-        ReportList(record_start_positions, "RecordPosisions ");
-        ReportList(record_buffer_list, "RecordBuffers ");
-        ReportList(transaction_list, "TranactionList ");
-        std::this_thread::sleep_for(std::chrono::seconds(5));
-      }
-    }
-  }
-
   StreamConf* streamconf;
   std::list<std::string> captual_tables;
-  MetadataManager* metadata;
 
   void initStream(int ac, char** av) {
     streamconf = new StreamConf(ac, av);
@@ -146,6 +114,9 @@ namespace databus {
     metadata = new MetadataManager(streamconf->getString("srcUser"),
                                    streamconf->getString("srcPass"),
                                    streamconf->getString("srcDB"));
+    logmanager = new LogManager(streamconf->getString("srcUser"),
+                                streamconf->getString("srcPass"),
+                                streamconf->getString("srcDB"));
     for (auto table : captual_tables) {
       auto first = table.find_first_of('.');
       auto last = table.find_last_of('.');

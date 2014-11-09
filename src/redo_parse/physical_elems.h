@@ -87,7 +87,6 @@ namespace databus {
     SCN nextScn() { return SCN(next_scn_major_, next_scn_minor_); }
     Uchar getOraVersion() { return compatible_version_ >> 24; }
 
-   private:
     uint32_t db_version_;  // don't use this one
     uint32_t compatible_version_;
     uint32_t db_id_;

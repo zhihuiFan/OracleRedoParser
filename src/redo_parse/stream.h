@@ -1,21 +1,3 @@
-/*
- * =====================================================================================
- *
- *       Filename:  redo_parse.h
- *
- *    Description:
- *
- *        Version:  1.0
- *        Created:  08/24/2014 18:23:42
- *       Revision:  none
- *       Compiler:  gcc
- *
- *         Author:  zhifan (Zhihui Fan), zhihuifan@163.com
- *   Organization:
- *
- * =====================================================================================
- */
-
 #ifndef REDO_PARSE_INC
 #define REDO_PARSE_INC
 #include <string>
@@ -28,17 +10,10 @@
 #include <thread>
 
 #include "util/container.h"
-#include "workers.h"
 #include "stream.h"
 #include "metadata.h"
 
 namespace databus {
-  namespace buffers {
-    extern List<const char*> record_start_positions;
-    extern List<RecordBuf*> record_buffer_list;
-    extern List<Transaction*> transaction_list;
-  }
-
   namespace po = boost::program_options;
   class StreamConf {
    public:
@@ -46,6 +21,7 @@ namespace databus {
     int getInt(const char*, int default_value = -1);
     std::string getString(const char*, const char* default_value = "");
     bool getBool(const char*, bool default_value = false);
+    uint32_t getUint32(const char* para);
 
    private:
     void add_options();
@@ -58,6 +34,7 @@ namespace databus {
   };
 
   extern MetadataManager* metadata;
+  extern LogManager* logmanager;
   extern StreamConf* streamconf;
   extern std::list<std::string> captual_tables;
 

@@ -7,6 +7,7 @@
 #include "logical_elems.h"
 #include "metadata.h"
 #include "stream.h"
+#include "util/logger.h"
 
 namespace databus {
   using namespace oracle::occi;
@@ -71,7 +72,7 @@ namespace databus {
   static const char* convert(const char* input, std::string& type,
                              uint32_t len) {
     // TODO: why length is 0
-    if (len == 0) return NULL;
+    if (len == 0) return "";
     if (type == "VARCHAR2") return input;
     if (type == "NUMBER") {
       return numberAsStr(input, len)
@@ -81,41 +82,40 @@ namespace databus {
     if (type == "DATE") {
       return dateToStr(input, len).c_str();
     }
-    return NULL;
+    return "";
   }
 
   void tranDump(XID xid, uint32_t object_id, const char* optype,
                 std::list<Row> undos, std::list<Row> redos) {
     TabDef* table_def = metadata->getTabDefFromId(object_id);
     if (table_def == NULL) return;
-    std::cout << std::endl << std::endl << "Transaction ID " << xid
-              << std::endl;
-    std::cout << optype << " " << table_def->name << std::endl;
+    BOOST_LOG_TRIVIAL(fatal) << std::endl << std::endl << "Transaction ID "
+                             << xid << std::endl;
+    BOOST_LOG_TRIVIAL(fatal) << optype << " " << table_def->name << std::endl;
     if (strncmp(optype, "insert", strlen("insert")) != 0) {
-      std::cout << "Primary Keys:";
+      BOOST_LOG_TRIVIAL(fatal) << "Primary Keys:";
       for (auto undo : undos) {
         for (auto col : undo) {
           if (col->len_ > 0 &&
               table_def->pk.find(col->col_id_ + 1) != table_def->pk.end()) {
-            std::cout << "\t" << table_def->col_names[col->col_id_ + 1]
-                      << "----"
-                      << convert(col->content_,
-                                 table_def->col_types[col->col_id_ + 1],
-                                 col->len_);
+            BOOST_LOG_TRIVIAL(fatal)
+                << "\t" << table_def->col_names[col->col_id_ + 1] << "----"
+                << convert(col->content_,
+                           table_def->col_types[col->col_id_ + 1], col->len_);
           }
         }
       }
-      std::cout << std::endl;
+      BOOST_LOG_TRIVIAL(fatal) << std::endl;
     }
 
     if (strncmp(optype, "delete", strlen("delete")) != 0) {
-      std::cout << "New data: " << std::endl;
+      BOOST_LOG_TRIVIAL(fatal) << "New data: " << std::endl;
       for (auto redo : redos) {
         for (auto col : redo) {
-          std::cout << table_def->col_names[col->col_id_ + 1] << "----"
-                    << convert(col->content_,
-                               table_def->col_types[col->col_id_ + 1],
-                               col->len_) << std::endl;
+          BOOST_LOG_TRIVIAL(fatal)
+              << table_def->col_names[col->col_id_ + 1] << "----"
+              << convert(col->content_, table_def->col_types[col->col_id_ + 1],
+                         col->len_) << std::endl;
         }
       }
     }
