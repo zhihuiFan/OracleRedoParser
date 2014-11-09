@@ -59,7 +59,7 @@ namespace databus {
     p_redo_header_ = As<RedoHeader>(file_start_pos_ + block_size_ +
                                     constants::kBlockHeaderSize);
     lowscn_ = p_redo_header_->lowScn();
-    curr_record_pos_ = nextValid(firstRecord(), NULL);
+    curr_record_pos_ = firstRecord();
   }
 
   RedoFile::~RedoFile() {
