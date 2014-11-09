@@ -61,6 +61,7 @@ namespace databus {
     while ((buf = redofile.nextRecordBuf()) != NULL) {
       handleBuf(buf);
       ++c;
+      BOOST_LOG_TRIVIAL(fatal) << " c = " << c << std::endl;
     }
     BOOST_LOG_TRIVIAL(fatal) << " c = " << c << std::endl;
     return 100;

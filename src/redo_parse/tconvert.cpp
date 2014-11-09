@@ -72,7 +72,7 @@ namespace databus {
   static const char* convert(const char* input, std::string& type,
                              uint32_t len) {
     // TODO: why length is 0
-    if (len == 0) return NULL;
+    if (len == 0) return "";
     if (type == "VARCHAR2") return input;
     if (type == "NUMBER") {
       return numberAsStr(input, len)
@@ -82,7 +82,7 @@ namespace databus {
     if (type == "DATE") {
       return dateToStr(input, len).c_str();
     }
-    return NULL;
+    return "";
   }
 
   void tranDump(XID xid, uint32_t object_id, const char* optype,
