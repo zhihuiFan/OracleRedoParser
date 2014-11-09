@@ -1,23 +1,28 @@
-#include "redofile.h"
-#include "physical_elems.h"
-#include "util/dassert.h"
-
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/mman.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <string.h>
-
 #include <algorithm>
 #include <map>
 #include <iostream>
 #include <string>
+#include <assert.h>
+
+#include "redofile.h"
+#include "physical_elems.h"
+#include "util/dassert.h"
+#include "opcode_ops.h"
+#include "util/logger.h"
 
 namespace databus {
   using util::dassert;
 
-  RedoFile::RedoFile(const char* filename) {
+  void RedoFile::init(const char* filename) {
+    BOOST_LOG_TRIVIAL(fatal) << "init " << filename << std::endl;
+
+    if (file_start_pos_ != NULL) munmap(file_start_pos_, length_);
     int fd = open(filename, O_RDONLY, 0644);
 
     dassert(strerror(errno), fd != -1, errno);
@@ -35,29 +40,115 @@ namespace databus {
       case 9:
         block_size_ = As<FileHeaderV9>(file_start_pos_)->getBlockSize();
         last_block_id_ = As<FileHeaderV9>(file_start_pos_)->getLastBlockID();
+        p_block_header_ = file_start_pos_ + block_size_;
+        assert(log_sequence_ ==
+               ((BlockHeaderV9*)p_block_header_)->getSequenceNum());
         break;
       case 10:
       case 11:
         block_size_ = As<FileHeaderV10>(file_start_pos_)->getBlockSize();
         last_block_id_ = As<FileHeaderV10>(file_start_pos_)->getLastBlockID();
+        p_block_header_ = file_start_pos_ + block_size_;
+        dassert("", log_sequence_ ==
+                        ((BlockHeaderV10*)p_block_header_)->getSequenceNum());
         break;
       default:
         immature::notTestedVersionDie(ora_version_);
     }
 
-    RedoHeader* p_redo_header = As<RedoHeader>(file_start_pos_ + block_size_ +
-                                               constants::kBlockHeaderSize);
-    lowscn_ = p_redo_header->lowScn();
-    nextscn_ = p_redo_header->nextScn();
-    db_name_ = std::string(p_redo_header->DbName(), 8);
-    db_name_.append(1, '\0');
+    p_redo_header_ = As<RedoHeader>(file_start_pos_ + block_size_ +
+                                    constants::kBlockHeaderSize);
+    lowscn_ = p_redo_header_->lowScn();
+    curr_record_pos_ = nextValid(firstRecord());
   }
 
   RedoFile::~RedoFile() {
     if (file_start_pos_ != NULL) munmap(file_start_pos_, length_);
   }
 
-  bool RedoFile::isValid(const char* p_record) const {
+  void RedoFile::realCopyNBytes(char* from, char* to, uint32_t len) {
+    uint32_t this_block_space_left = spaceLeft(from);
+    if (this_block_space_left >= len) {
+      memcpy(to, from, len);
+      return;
+    }
+
+    uint32_t block_data_size = block_size_ - constants::kBlockHeaderSize;
+
+    memcpy(to, from, this_block_space_left);
+    len -= this_block_space_left;
+    to += this_block_space_left;
+    from = from + this_block_space_left + constants::kBlockHeaderSize;
+
+    while (len > block_data_size) {
+      memcpy(to, from, block_data_size);
+      len -= block_data_size;
+      to += block_data_size;
+      from = from + block_data_size + constants::kBlockHeaderSize;
+    }
+
+    memcpy(to, from, len);
+  }
+
+  RecordBuf* RedoFile::nextRecordBuf() {
+  again:
+    if (curr_record_pos_ == NULL) return NULL;  // eof
+    uint32_t record_len =
+        immature::recordLength(curr_record_pos_, ora_version_);
+    uint32_t change_length = 0;
+    char* change_pos = NULL;
+    SCN record_scn;
+    uint32_t epoch = 0;
+
+    if (ora_version_ == 9) {
+      change_length = record_len - constants::kMinRecordLen;
+      change_pos = curr_record_pos_ + constants::kMinRecordLen;
+      record_scn = As<RecordHeaderV9>(curr_record_pos_)->scn();
+    } else {
+      Uchar vld = immature::recordVld(curr_record_pos_, ora_version_);
+
+      if (immature::isMajor(vld)) {
+        change_length = record_len - constants::kMinMajRecordLen;
+        change_pos = curr_record_pos_ + constants::kMinMajRecordLen;
+        record_scn = As<RecordHeaderMajor>(curr_record_pos_)->scn();
+        epoch = As<RecordHeaderMajor>(curr_record_pos_)->getEpoch();
+      } else if (immature::isMinor(vld)) {
+        change_length = record_len - constants::kMinRecordLen;
+        change_pos = curr_record_pos_ + constants::kMinRecordLen;
+        record_scn = As<RecordHeaderMinor>(curr_record_pos_)->scn();
+      } else {
+        int ivld = vld;
+        std::stringstream ss;
+        ss << "unsupport vld " << ivld;
+        dassert(ss.str().c_str(), false);
+      }
+    }
+
+    if (change_length == 0) {
+      curr_record_pos_ = nextRecord(curr_record_pos_);
+      goto again;
+    }
+
+    if (spaceLeft(change_pos) == block_size_)
+      change_pos += constants::kBlockHeaderSize;
+    size_t offset = curr_record_pos_ - file_start_pos_;
+    char* change_buf = new char[change_length];
+    realCopyNBytes(change_pos, change_buf, change_length);
+    if (isOverWrite()) {
+      delete[] change_buf;
+      init(log_generator_(log_sequence_).c_str());
+      curr_record_pos_ = file_start_pos_ + offset;
+      goto again;
+    }
+
+    RecordBuf* record_buf =
+        new RecordBuf(record_scn, change_length, epoch, change_buf, offset);
+
+    curr_record_pos_ = nextRecord(curr_record_pos_);  // for next round
+    return record_buf;
+  }
+
+  bool RedoFile::isValid(char* p_record) {
     if (getBlockNo(p_record) > last_block_id_) return false;
 
     uint32_t left = spaceLeft((char*)p_record);
@@ -78,7 +169,7 @@ namespace databus {
     }
 
     SCN scn = immature::recordSCN(p_record, ora_version_);
-    if (!(scn < nextscn_) || scn < lowscn_) {
+    if (!(scn < p_redo_header_->nextScn()) || scn < lowscn_) {
       std::cout << "Invalid scn " << scn.toStr() << std::endl;
       return false;
     }
@@ -86,7 +177,7 @@ namespace databus {
     return true;
   }
 
-  Ushort RedoFile::recordOffset(const char* p) const {
+  Ushort RedoFile::recordOffset(char* p) {
     Ushort offset = 0;
     if (ora_version_ == 9)
       offset = As<BlockHeaderV9>(p)->getFirstOffset();
@@ -95,14 +186,61 @@ namespace databus {
     return offset;
   }
 
-  const char* RedoFile::firstRecord() const {
-    char* firstblock = file_start_pos_ + 2 * block_size_;
-    Ushort offset = recordOffset(firstblock);
-    return (char*)(file_start_pos_ + 2 * block_size_ + offset);
+  char* RedoFile::nextValid(char* pos) {
+    if (isOverWrite()) {
+      size_t offset = pos - file_start_pos_;
+      init(log_generator_(log_sequence_).c_str());
+      pos = file_start_pos_ + offset;
+    }
+
+    while (!isValid(pos)) {
+      uint32_t blk_id = getBlockNo(pos);
+      // std::cout << "Block id " << getBlockNo(pos) << " offset "
+      //        << block_size_ - spaceLeft(pos) << std::endl;
+
+      if (blk_id == last_block_id_) {
+        // last block already
+        return NULL;
+      }
+
+    tryagain:
+      if (p_redo_header_->next_scn_minor_ == 0xFFFFFFFF &&
+          p_redo_header_->next_scn_major_ == 0xFFFF) {
+        if (isOverRead(blk_id)) {
+          BOOST_LOG_TRIVIAL(fatal) << "blocking on the last block of online log"
+                                   << std::endl;
+          sleep(3);
+          goto tryagain;
+        }
+      }
+
+      if (blk_id > last_block_id_) {
+        /*
+         std::cout
+             << "impossible!!! the end of last record is out of this file, "
+             << "last record information " << std::endl
+             << "block : " << getBlockNo(curr_record_pos_)
+             << " offset : " << block_size_ - spaceLeft(p_record)
+             << "length : " << immature::recordLength(p_record, ora_version_)
+             << std::endl;
+        */
+        return NULL;
+      }
+
+      // std::cout << "skip to next block \n";
+      char* block_addr = (blk_id + 1) * block_size_ + file_start_pos_;
+      pos = block_addr + recordOffset(block_addr);
+    }
+    return pos;
   }
 
-  const char* RedoFile::_realAdvanceNBytes(const char* p_record,
-                                           size_t bytes_count) const {
+  char* RedoFile::firstRecord() {
+    char* firstblock = file_start_pos_ + 2 * block_size_;
+    Ushort offset = recordOffset(firstblock);
+    return (file_start_pos_ + 2 * block_size_ + offset);
+  }
+
+  char* RedoFile::_realAdvanceNBytes(char* p_record, size_t bytes_count) {
     dassert("p_record must be the begining of a block",
             (p_record - file_start_pos_) % block_size_ == 0);
     size_t block_data_size = block_size_ - constants::kBlockHeaderSize;
@@ -110,8 +248,7 @@ namespace databus {
            bytes_count % block_data_size + constants::kBlockHeaderSize;
   }
 
-  const char* RedoFile::realAdvanceNBytes(const char* p_record,
-                                          size_t bytes_count) const {
+  char* RedoFile::realAdvanceNBytes(char* p_record, size_t bytes_count) {
     size_t left = spaceLeft(p_record);
     if (bytes_count < left) return p_record + bytes_count;
 
@@ -121,33 +258,10 @@ namespace databus {
     return _realAdvanceNBytes(p_record + left, bytes_count - left);
   }
 
-  const char* RedoFile::nextRecord(const char* p_record) const {
-    const char* pos = realAdvanceNBytes(
+  // p_record is a valid record
+  char* RedoFile::nextRecord(char* p_record) {
+    char* pos = realAdvanceNBytes(
         p_record, immature::recordLength(p_record, ora_version_));
-    while (!isValid(pos)) {
-      // std::cout << "Block id " << getBlockNo(pos) << " offset "
-      //        << block_size_ - spaceLeft(pos) << std::endl;
-      if (getBlockNo(pos) == last_block_id_) {
-        // last block already
-        return NULL;
-      }
-
-      if (getBlockNo(pos) > last_block_id_) {
-        std::cout
-            << "impossible!!! the end of last record is out of this file, "
-            << "last record information " << std::endl
-            << "block : " << getBlockNo(p_record)
-            << " offset : " << block_size_ - spaceLeft(p_record)
-            << "length : " << immature::recordLength(p_record, ora_version_)
-            << std::endl;
-        return NULL;
-      }
-
-      // std::cout << "skip to next block \n";
-      char* block_addr = (getBlockNo(pos) + 1) * block_size_ + file_start_pos_;
-      pos = block_addr + recordOffset(block_addr);
-    }
-
-    return pos;
+    return nextValid(pos);
   }
 }

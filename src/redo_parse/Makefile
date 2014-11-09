@@ -1,4 +1,4 @@
-CXXFLAGS=-I. -I.. -std=c++11 -g -O0 -I${OCCI_HOME}/sdk/include
+CXXFLAGS_BASE=-I. -I.. -std=c++11 -g -O0 -DBOOST_LOG_DYN_LINK
 CC=g++
 DEPS=metadata.h \
 	 logical_elems.h \
@@ -11,32 +11,31 @@ DEPS=metadata.h \
 
 OCI_FLAGS=
 
-LDFLAGS=-lpthread -lboost_program_options
+LDFLAGS_BASE=-lpthread -lboost_program_options -DBOOST_LOG_DYN_LINK  -locci -lclntsh
 
 PLATFORM=$(shell uname)
 ifeq ($(PLATFORM),SunOS)
-    CXXFLAGS=-I. -I.. -g -O0 -std=c++11 
-	LD_SIMPLE=-static-libstdc++ -static-libgcc
-	LDFLAGS=-L${OCCI_HOME} -lpthread ${LD_SIMPLE}
+	LDFLAGS=-L${OCCI_HOME} -static-libstdc++ -static-libgcc ${LDFLAGS_BASE}
 endif
 
 ifeq ($(PLATFORM), Darwin)
 	OCI_FALGS=-DMAC_OSX -D_GNU_SOURCE -D_REENTRANT -mmacosx-version-min=10.10
-	LDFLAGS=-lpthread -lboost_program_options -L/Users/zhifan/Downloads/instantclient_11_2 -locci -lclntsh -lpthread
+	CXXFLAGS = ${CXXFLAGS_BASE} -I/Users/zhifan/Downloads/instantclient_11_2/sdk/include/
+	LDFLAGS= ${LDFLAGS_BASE} -L/Users/zhifan/Downloads/instantclient_11_2 -lnnz11 -lboost_log-mt
 endif
 
 ifeq ($(PLATFORM), Linux)
-	OCI_FALGS=-L/home/oracle/instantclient_11_2 -L/home/oracle/app/oracle/product/11.2.0/dbhome_1 -locci -lclntsh -lpthread -lnnz11
-	LDFLAGS=-lpthread -lboost_program_options -L/Users/zhifan/Downloads/instantclient_11_2 -locci -lclntsh -lpthread
+	CXXFLAGS = ${CXXFLAGS_BASE} -I/home/oracle/instantclient_11_2/sdk/include/ 
+	LDFLAGS=${LDFLAGS_BASE} -L/home/oracle/instantclient_11_2 -L/home/oracle/app/oracle/product/11.2.0/dbhome_1 -lnnz11 -lboost_log
 endif
 
 %.o: %.cpp $(DEPS)
 	$(CC) -c -o $@ $< $(CXXFLAGS)
 
-datastream: stream.o logical_elems.o physical_elems.o redofile.o workers.o worker_test.o opcode_ops.o stream.o metadata.o tconvert.o
+datastream: stream.o logical_elems.o physical_elems.o redofile.o worker_test.o opcode_ops.o stream.o metadata.o tconvert.o
 	${CC} ${CXXFLAGS} $(OCI_FALGS) -o $@ $^ ${LDFLAGS} 
 
-dumpop: logical_elems.o physical_elems.o redofile.o workers.o opcode_ops.o dump_op.o
+dumpop: logical_elems.o physical_elems.o redofile.o opcode_ops.o dump_op.o
 	${CC} ${CXXFLAGS} -o $@ $^ ${LD_SIMPLE}
 
 metadata.o: metadata.cpp $(DEPS)
