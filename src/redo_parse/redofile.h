@@ -46,7 +46,13 @@ namespace databus {
     bool isValid(char *p_record);
     Ushort recordOffset(char *p);
 
-    char *nextValid(char *);
+    char *resetPosition(char *pos) {
+      size_t offset = pos - file_start_pos_;
+      init(log_generator_(log_sequence_).c_str());
+      return file_start_pos_ + offset;
+    }
+
+    char *nextValid(char *, char *);
     char *firstRecord();
     // NULL if the end of file
     // switch to archive log file if overwrited
@@ -80,7 +86,7 @@ namespace databus {
         return false;
       else
         latest_blk_ = online_last_blk_(log_sequence_);
-      return latest_blk_ <= blk;
+      return latest_blk_ < blk;
     }
 
     bool isOverWrite() {

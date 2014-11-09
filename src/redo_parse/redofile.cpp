@@ -59,7 +59,7 @@ namespace databus {
     p_redo_header_ = As<RedoHeader>(file_start_pos_ + block_size_ +
                                     constants::kBlockHeaderSize);
     lowscn_ = p_redo_header_->lowScn();
-    curr_record_pos_ = nextValid(firstRecord());
+    curr_record_pos_ = nextValid(firstRecord(), NULL);
   }
 
   RedoFile::~RedoFile() {
@@ -186,13 +186,13 @@ namespace databus {
     return offset;
   }
 
-  char* RedoFile::nextValid(char* pos) {
+  char* RedoFile::nextValid(char* pos, char* from) {
+    bool online_log = false;
+  tryagain:
+    pos = realAdvanceNBytes(from, immature::recordLength(from, ora_version_));
     if (isOverWrite()) {
-      size_t offset = pos - file_start_pos_;
-      init(log_generator_(log_sequence_).c_str());
-      pos = file_start_pos_ + offset;
+      pos = resetPosition(pos);
     }
-
     while (!isValid(pos)) {
       uint32_t blk_id = getBlockNo(pos);
       // std::cout << "Block id " << getBlockNo(pos) << " offset "
@@ -203,14 +203,21 @@ namespace databus {
         return NULL;
       }
 
-    tryagain:
       if (p_redo_header_->next_scn_minor_ == 0xFFFFFFFF &&
           p_redo_header_->next_scn_major_ == 0xFFFF) {
+        online_log = true;
         if (isOverRead(blk_id)) {
           BOOST_LOG_TRIVIAL(fatal) << "blocking on the last block of online log"
-                                   << std::endl;
+                                   << "blk_id " << blk_id << " latest_blk "
+                                   << latest_blk_ << std::endl;
           sleep(3);
+          pos = from;
           goto tryagain;
+        }
+      } else {
+        if (online_log) {
+          pos = resetPosition(pos);
+          blk_id = getBlockNo(pos);
         }
       }
 
@@ -262,6 +269,6 @@ namespace databus {
   char* RedoFile::nextRecord(char* p_record) {
     char* pos = realAdvanceNBytes(
         p_record, immature::recordLength(p_record, ora_version_));
-    return nextValid(pos);
+    return nextValid(pos, p_record);
   }
 }

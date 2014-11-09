@@ -23,9 +23,6 @@ namespace databus {
         case opcode::kUndo: {
           xid = Ops0501::getXID(i);
           object_id = Ops0501::getObjId(i);
-          if (object_id == 73864) {
-            std::cout << 73864 << std::endl;
-          }
           data_object_id = Ops0501::getDataObjId(i);
           undo = Ops0501::makeUpUndo(i);
         } break;
@@ -61,7 +58,6 @@ namespace databus {
     while ((buf = redofile.nextRecordBuf()) != NULL) {
       handleBuf(buf);
       ++c;
-      BOOST_LOG_TRIVIAL(fatal) << " c = " << c << std::endl;
     }
     BOOST_LOG_TRIVIAL(fatal) << " c = " << c << std::endl;
     return 100;
