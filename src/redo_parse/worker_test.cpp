@@ -43,8 +43,8 @@ namespace databus {
     if (optype != NULL) tranDump(xid, object_id, optype, undo, redo);
   }
 
-  MetadataManager* metadata;
-  LogManager* logmanager;
+  MetadataManager* metadata = NULL;
+  LogManager* logmanager = NULL;
 
   int main(int ac, char** av) {
     initStream(ac, av);
