@@ -68,7 +68,7 @@ namespace databus {
     Environment::terminateEnvironment(env_);
     // let's leak memory here, doesn't matter,
     // TODO: fix this leak
-    // for (auto i : oid2def_) delete i.second;
+    for (auto i : oid2def_) delete i.second;
   }
 
   uint32_t MetadataManager::getGlobalObjId(uint32_t objid) {

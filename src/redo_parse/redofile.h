@@ -24,7 +24,9 @@ namespace databus {
         : log_generator_(log_generator),
           log_sequence_(log_seq),
           online_last_blk_(last_blk),
-          latest_blk_(0) {
+          latest_blk_(0),
+          file_start_pos_(NULL),
+          length_(0) {
       std::string filename = log_generator_(log_seq);
       init(filename.c_str());
     };
