@@ -6,6 +6,7 @@
 #include "opcode_ops.h"
 #include "opcode.h"
 #include "util/dtypes.h"
+#include "util/logger.h"
 
 namespace databus {
   bool validOp(Ushort op) {
@@ -148,119 +149,115 @@ namespace databus {
         }
       } break;
       case opcode::kMultiInsert & 0xff: {
-        OpCodeKdoqm* qm = (OpCodeKdoqm*)opkdo;
-        Ushort* length = (Ushort*)change0501->part(5);
-        Uchar* data = (Uchar*)change0501->part(6);
-        for (int row = 0; row < qm->nrow_; ++row) {
-          Uchar flag, col_count = 'x';
-          Ushort len;
-
-          flag = *data;
-          data += 2;
-          if (!(flag & 0x10) || (flag & 0x40)) {
-            col_count = *data++;
-            if (flag & 0x08 && ~flag & 0x20) {
-              data += sizeof(RedoRid);
-            }
-            for (int i = 0; i < col_count; i++) {
-              Row row;
-              len = *data++;
-
-              // TODO:  Wed Sep 24 06:34:39 2014
-              // I want to change list to vector/deque now, but need to
-              // change workers.cpp acorrdingly, does constexpr works for this?
-              // Fix way:
-              // Use vector in outer level,  use vector[n] in inner
-              // return with std::move @update: std:move is no need
-              if (len == 255) {
-                len = 0;
-                row.push_back(new ColumnChange(i, len, NULL));
-                continue;
-              } else if (len == 254) {
-                len = *((Ushort*)data);  // TODO: TEST here. the first byte is
-                                         // discarded here!
-                data += 2;
-              }
-
-              char* col_data = new char[len + 1];
-              memcpy(col_data, data, len);
-              col_data[len] = '\0';
-              row.push_back(new ColumnChange(i, len, col_data));
-              data += len;
-            }
-          }
-        }
-      } break;
-
-      case opcode::kRowChain & 0xff:
-        return rows;
-      case opcode::kUpdate & 0xff: {
-        OpCodeKdourp* urp = (OpCodeKdourp*)change0501->part(4);
-        int total_colums = urp->ncol_;
-        Ushort total_changes = urp->nchanged_;
-        row = makeUpCols((Ushort*)change0501->part(5), total_changes,
-                         change0501, 6, urp->xtype_);
-
-        Ushort part_num = 6 + total_changes;
-
-        if (urp->opcode_ & 0x40) ++part_num;
-        if (urp->opcode_ & 0x20) {
-          OpCodeSupplemental* suplemental_op_header =
-              (OpCodeSupplemental*)change0501->part(part_num++);
-          Row suplemental_cols =
-              _makeUpNoLenPrefixCols((Ushort*)change0501->part(part_num),
-                                     suplemental_op_header->total_cols_,
-                                     change0501, part_num + 2, true);
-          row.splice(row.end(), suplemental_cols);
-        }
-      } break;
-      case opcode::kDelete & 0xff: {
-        // Seems this code will be never used, not for simple delete at least
-        OpCodeKdodrp* drp = (OpCodeKdodrp*)change0501->part(4);
-        if (drp->opcode_ & 0x20) {
-          OpCodeSupplemental* sup = (OpCodeSupplemental*)change0501->part(5);
-          if (sup->total_cols_ > 0) {
-            row = _makeUpNoLenPrefixCols((Ushort*)change0501->part(6),
-                                         sup->total_cols_, change0501, 8, true);
-          }
-        }
-      } break;
-      case opcode::kMultiDelete & 0xff:
-        return rows;
-      case opcode::kLmn & 0xff:
-        return rows;
-      case opcode::kMfc & 0xff:
-        return rows;
-      case opcode::kCfa & 0xff:
-        return rows;
-      default:
-        return rows;
+        BOOST_LOG_TRIVIAL(fatal) << "seems run into mulit-delete op "
+                                 << std::endl;
+        std::exit(100);
+      }
     }
+    break;
 
-    rows.push_back(std::move(row));
-    return rows;
+    case opcode::kUpdate & 0xff: {
+      OpCodeKdourp* urp = (OpCodeKdourp*)change0501->part(4);
+      int total_colums = urp->ncol_;
+      Ushort total_changes = urp->nchanged_;
+      row = makeUpCols((Ushort*)change0501->part(5), total_changes, change0501,
+                       6, urp->xtype_);
+
+      Ushort part_num = 6 + total_changes;
+
+      if (urp->opcode_ & 0x40) ++part_num;
+      if (urp->opcode_ & 0x20) {
+        OpCodeSupplemental* suplemental_op_header =
+            (OpCodeSupplemental*)change0501->part(part_num++);
+        Row suplemental_cols = _makeUpNoLenPrefixCols(
+            (Ushort*)change0501->part(part_num),
+            suplemental_op_header->total_cols_, change0501, part_num + 2, true);
+        row.splice(row.end(), suplemental_cols);
+      }
+    } break;
+    case opcode::kDelete & 0xff: {
+      // Seems this code will be never used, not for simple delete at least
+      OpCodeKdodrp* drp = (OpCodeKdodrp*)change0501->part(4);
+      if (drp->opcode_ & 0x20) {
+        OpCodeSupplemental* sup = (OpCodeSupplemental*)change0501->part(5);
+        if (sup->total_cols_ > 0) {
+          row = _makeUpNoLenPrefixCols((Ushort*)change0501->part(6),
+                                       sup->total_cols_, change0501, 8, true);
+        }
+      }
+    } break;
+    case opcode::kMultiDelete & 0xff:
+    // mulit_insert will go here, we should be able to find out the pks which
+    // are inserted
+    case opcode::kRowChain & 0xff:
+    case opcode::kLmn & 0xff:
+    case opcode::kMfc & 0xff:
+    case opcode::kCfa & 0xff:
+    default:
+      return rows;
   }
 
-  std::list<Row> OpsDML::makeUpRedoCols(const ChangeHeader* change) {
-    OpCodeKdo* kdo = (OpCodeKdo*)change->part(2);
-    std::list<Row> redo_rows;
-    Row redo_row;
-    switch (change->opCode()) {
-      case opcode::kInsert:
-        redo_row = makeUpCols(NULL, ((OpCodeKdoirp*)kdo)->column_count_, change,
-                              3, ((OpCodeKdoirp*)kdo)->xtype_, false);
-        break;
-      case opcode::kUpdate:
-        redo_row = makeUpCols((Ushort*)change->part(3),
-                              ((OpCodeKdourp*)kdo)->nchanged_, change, 4,
-                              kdo->xtype_, false);
-        break;
-      case opcode::kMultiInsert:
-        break;
-      default:
-        break;
-    }
+  rows.push_back(std::move(row));
+  return rows;
+}
+
+std::list<Row> OpsDML::makeUpRedoCols(const ChangeHeader* change) {
+  OpCodeKdo* kdo = (OpCodeKdo*)change->part(2);
+  std::list<Row> redo_rows;
+  Row redo_row;
+  switch (change->opCode()) {
+    case opcode::kInsert:
+      redo_row = makeUpCols(NULL, ((OpCodeKdoirp*)kdo)->column_count_, change,
+                            3, ((OpCodeKdoirp*)kdo)->xtype_, false);
+      break;
+    case opcode::kUpdate:
+      redo_row =
+          makeUpCols((Ushort*)change->part(3), ((OpCodeKdourp*)kdo)->nchanged_,
+                     change, 4, kdo->xtype_, false);
+      break;
+    case opcode::kMultiInsert: {
+      OpCodeKdoqm* qm = (OpCodeKdoqm*)change->part(2);
+      Uchar* data = (Uchar*)change->part(4);
+      for (int row = 0; row < qm->nrow_; ++row) {
+        Uchar flag, col_count = 'x';
+        Ushort len;
+
+        flag = *data;
+        data += 2;
+        if (!(flag & 0x10) || (flag & 0x40)) {
+          col_count = *data++;
+          if (flag & 0x08 && ~flag & 0x20) {
+            data += sizeof(RedoRid);
+          }
+          Row temp_row;
+          for (int i = 0; i < col_count; i++) {
+            len = *data++;
+
+            if (len == 255) {
+              len = 0;
+              temp_row.push_back(new ColumnChange(i, len, NULL));
+              continue;
+            } else if (len == 254) {
+              len = *((Ushort*)data);  // TODO: TEST here. the first byte is
+                                       // discarded here!
+              data += 2;
+            }
+
+            char* col_data = new char[len + 1];
+            memcpy(col_data, data, len);
+            col_data[len] = '\0';
+            temp_row.push_back(new ColumnChange(i, len, col_data));
+            data += len;
+          }
+          redo_rows.push_back(std::move(temp_row));
+        }
+      }
+    } break;
+    default:
+      break;
+  }
+  if (change->opCode() != opcode::kMultiInsert)
     redo_rows.push_back(std::move(redo_row));
-    return redo_rows;
-  }
+  return redo_rows;
+}
 }
