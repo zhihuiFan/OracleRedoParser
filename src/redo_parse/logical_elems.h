@@ -35,6 +35,7 @@ namespace databus {
               size_t offset);
 
     std::list<ChangeHeader*> change_vectors;
+    size_t offset() const { return offset_; }
 
     ~RecordBuf() { delete[] change_buffers_; }
 
