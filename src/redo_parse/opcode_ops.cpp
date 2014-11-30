@@ -124,6 +124,7 @@ namespace databus {
     switch (opkdo->opcode_ & 0x1f) {
       case opcode::kInsert & 0xff: {
         // common delete will go to here
+        BOOST_LOG_TRIVIAL(fatal) << "Normal Delete " << std::endl;
         OpCodeKdoirp* irp = (OpCodeKdoirp*)opkdo;
         if (irp->column_count_ != 0) {
           Row undo_cols = makeUpCols((Ushort*)NULL, irp->column_count_,
@@ -205,15 +206,18 @@ namespace databus {
     Row redo_row;
     switch (change->opCode()) {
       case opcode::kInsert:
+        BOOST_LOG_TRIVIAL(fatal) << "Normal Insert " << std::endl;
         redo_row = makeUpCols(NULL, ((OpCodeKdoirp*)kdo)->column_count_, change,
                               3, ((OpCodeKdoirp*)kdo)->xtype_, false);
         break;
       case opcode::kUpdate:
+        BOOST_LOG_TRIVIAL(fatal) << "Normal Update" << std::endl;
         redo_row = makeUpCols((Ushort*)change->part(3),
                               ((OpCodeKdourp*)kdo)->nchanged_, change, 4,
                               kdo->xtype_, false);
         break;
       case opcode::kMultiInsert: {
+        BOOST_LOG_TRIVIAL(fatal) << "Mulit Insert" << std::endl;
         OpCodeKdoqm* qm = (OpCodeKdoqm*)change->part(2);
         Uchar* data = (Uchar*)change->part(4);
         for (int row = 0; row < qm->nrow_; ++row) {
