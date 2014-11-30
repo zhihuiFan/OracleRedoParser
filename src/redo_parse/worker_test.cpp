@@ -31,7 +31,7 @@ namespace databus {
           data_object_id = Ops0501::getDataObjId(i);
           undo = Ops0501::makeUpUndo(i);
           // why some undo is empty? check seq 211
-          if (undo.empty()) return;
+          // if (undo.empty()) return;
         } break;
         case opcode::kUpdate:
           redo = OpsDML::makeUpRedoCols(i);
