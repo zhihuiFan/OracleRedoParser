@@ -86,9 +86,15 @@ namespace databus {
   void tranDump(XID xid, uint32_t object_id, const char* optype,
                 std::list<Row> undos, std::list<Row> redos) {
     TabDef* table_def = metadata->getTabDefFromId(object_id);
-    if (table_def == NULL) return;
-    BOOST_LOG_TRIVIAL(fatal) << std::endl << std::endl << "Transaction ID "
-                             << xid << std::endl;
+    if (table_def == NULL) {
+      BOOST_LOG_TRIVIAL(fatal) << "Obj (" << object_id
+                               << ") doesn't exist or don't have PK"
+                               << std::endl;
+
+      return;
+    }
+    BOOST_LOG_TRIVIAL(fatal) << "Transaction ID " << xid << std::endl;
+
     BOOST_LOG_TRIVIAL(fatal) << optype << " " << table_def->name << std::endl;
     if (strncmp(optype, "insert", strlen("insert")) != 0) {
       BOOST_LOG_TRIVIAL(fatal) << "Primary Keys:";

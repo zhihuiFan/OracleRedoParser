@@ -35,7 +35,7 @@ insert all
    into test(a,c) values(-3, sysdate-1)
 select * from dual;
 commit;
--- all the Test passed @ d27167f93825c15629c789f464d0c534b5b6cce5
+-- all the Test passed @ 9e29ca333d14c799af32ed4d5a69e64449037822
 
 
 -- Row Chaining, not support so far

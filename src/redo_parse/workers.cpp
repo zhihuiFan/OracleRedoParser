@@ -16,41 +16,6 @@
 namespace databus {
   using util::dassert;
 
-  static void tranDump(XID xid, uint32_t object_id, const char* optype,
-                       std::list<Row> undos, std::list<Row> redos) {
-    return;  // temp disable the metadata dependency
-             /*
-           if (optype == NULL) return;
-           TabDef* table_def = metadata->getTabDefFromId(object_id);
-           std::cout << std::endl << std::endl << "Transaction ID " << xid
-                     << std::endl;
-           std::cout << optype << " " << table_def->name << std::endl;
-           if (strncmp(optype, "insert", strlen("insert")) != 0) {
-             std::cout << "Primary Keys:";
-             for (auto undo : undos) {
-               for (auto col : undo) {
-                 if (col->len_ > 0 &&
-                     table_def->pk.find(col->col_id_ + 1) != table_def->pk.end()) {
-                   std::cout << "\t" << table_def->col_names[col->col_id_ + 1]
-                             << "----" << col->content_;
-                 }
-               }
-             }
-             std::cout << std::endl;
-           }
-         
-           if (strncmp(optype, "delete", strlen("delete")) != 0) {
-             std::cout << "New data: " << std::endl;
-             for (auto redo : redos) {
-               for (auto col : redo) {
-                 std::cout << table_def->col_names[col->col_id_ + 1] << "----"
-                           << col->content_ << std::endl;
-               }
-             }
-           }
-           */
-  }
-
   Reader::Reader(SList* record_pos_buf)
       : cur_redo_file_(NULL),
         record_pos_buf_(record_pos_buf),
