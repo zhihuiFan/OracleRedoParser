@@ -149,13 +149,10 @@ namespace databus {
         }
       } break;
       case opcode::kMultiInsert & 0xff: {
-        BOOST_LOG_TRIVIAL(fatal) << "seems run into op mulit-delete, exiting"
+        BOOST_LOG_TRIVIAL(fatal) << "seems run into mulit-delete op "
                                  << std::endl;
         std::exit(100);
       } break;
-
-      case opcode::kRowChain & 0xff:
-        return rows;
       case opcode::kUpdate & 0xff: {
         OpCodeKdourp* urp = (OpCodeKdourp*)change0501->part(4);
         int total_colums = urp->ncol_;
@@ -188,13 +185,12 @@ namespace databus {
         }
       } break;
       case opcode::kMultiDelete & 0xff:
-        return rows;
+      // mulit_insert will go here, we should be able to find out the pks which
+      // are inserted
+      case opcode::kRowChain & 0xff:
       case opcode::kLmn & 0xff:
-        return rows;
       case opcode::kMfc & 0xff:
-        return rows;
       case opcode::kCfa & 0xff:
-        return rows;
       default:
         return rows;
     }
@@ -217,12 +213,49 @@ namespace databus {
                               ((OpCodeKdourp*)kdo)->nchanged_, change, 4,
                               kdo->xtype_, false);
         break;
-      case opcode::kMultiInsert:
-        break;
+      case opcode::kMultiInsert: {
+        OpCodeKdoqm* qm = (OpCodeKdoqm*)change->part(2);
+        Uchar* data = (Uchar*)change->part(4);
+        for (int row = 0; row < qm->nrow_; ++row) {
+          Uchar flag, col_count = 'x';
+          Ushort len;
+
+          flag = *data;
+          data += 2;
+          if (!(flag & 0x10) || (flag & 0x40)) {
+            col_count = *data++;
+            if (flag & 0x08 && ~flag & 0x20) {
+              data += sizeof(RedoRid);
+            }
+            Row temp_row;
+            for (int i = 0; i < col_count; i++) {
+              len = *data++;
+
+              if (len == 255) {
+                len = 0;
+                temp_row.push_back(new ColumnChange(i, len, NULL));
+                continue;
+              } else if (len == 254) {
+                len = *((Ushort*)data);  // TODO: TEST here. the first byte is
+                                         // discarded here!
+                data += 2;
+              }
+
+              char* col_data = new char[len + 1];
+              memcpy(col_data, data, len);
+              col_data[len] = '\0';
+              temp_row.push_back(new ColumnChange(i, len, col_data));
+              data += len;
+            }
+            redo_rows.push_back(std::move(temp_row));
+          }
+        }
+      } break;
       default:
         break;
     }
-    redo_rows.push_back(std::move(redo_row));
+    if (change->opCode() != opcode::kMultiInsert)
+      redo_rows.push_back(std::move(redo_row));
     return redo_rows;
   }
 }
