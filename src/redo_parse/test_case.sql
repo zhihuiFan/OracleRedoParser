@@ -38,9 +38,10 @@ commit;
 -- all the Test passed @ 9e29ca333d14c799af32ed4d5a69e64449037822
 
 
--- Row Chaining, not support so far
+-- Row Chaining
 insert into target values(-1, lpad('a', 4000, 'a'),  sysdate, lpad('b', 4000, 'b'), lpad('c', 4000, 'c'));
 commit;
+-- All the above test are passwd @ 516af28076bfb59e1d3bd415492fcc26606b9501
 
 
 
