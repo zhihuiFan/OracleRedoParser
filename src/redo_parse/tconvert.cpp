@@ -75,7 +75,7 @@ namespace databus {
     if (type == "VARCHAR2") return input;
     if (type == "NUMBER") {
       return numberAsStr(input, len)
-          .toText(metadata->getEnv(), "999,999,999,999,999,999.99999");
+          .toText(metadata->getEnv(), "99999999999999999999999999999999999999");
     }
     if (type == "DATE") {
       return dateToStr(input, len);
