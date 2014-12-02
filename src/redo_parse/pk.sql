@@ -11,7 +11,7 @@ and  con.CONSTRAINT_NAME= col.CONSTRAINT_NAME
 and  con.CONSTRAINT_TYPE='P' 
 and  con.owner=upper('&1') 
 and  con.table_name=upper('&2') 
-and  con.column_name = tc.column_name 
+and  col.column_name = tc.column_name 
 and  tc.table_name = upper('&2') 
 and  tc.owner = upper('&1')
 /

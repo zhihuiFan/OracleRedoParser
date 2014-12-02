@@ -52,7 +52,7 @@ namespace databus {
         " and  con.table_name=upper(:y) "
         " and  col.column_name = tc.column_name "
         " and  tc.table_name = upper(:y) "
-        " and  tc.owner = upper(:x) ";
+        " and  tc.owner = upper(:x) ");
     objp2g_stmt_ = conn_->createStatement(
         " select object_id from dba_objects"
         " where subobject_name is null and"
