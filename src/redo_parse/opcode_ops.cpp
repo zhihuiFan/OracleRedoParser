@@ -205,11 +205,31 @@ namespace databus {
     std::list<Row> redo_rows;
     Row redo_row;
     switch (change->opCode()) {
-      case opcode::kInsert:
+      case opcode::kInsert: {
         BOOST_LOG_TRIVIAL(fatal) << "Normal Insert " << std::endl;
-        redo_row = makeUpCols(NULL, ((OpCodeKdoirp*)kdo)->column_count_, change,
-                              3, ((OpCodeKdoirp*)kdo)->xtype_, false);
-        break;
+        OpCodeKdoirp* irp = (OpCodeKdoirp*)kdo;
+        if (irp->flag_ & 0x80 || irp->flag_ & 0x40) {
+          BOOST_LOG_TRIVIAL(fatal) << "Found cluster op, bypass it"
+                                   << std::endl;
+          break;
+        }
+        redo_row =
+            makeUpCols(NULL, irp->column_count_, change, 3, irp->xtype_, false);
+        static Row row_chain_row;
+        if (irp->flag_ != 0x2c) {
+          std::cout << std::hex << "0x" << (Ushort)irp->flag_ << std::endl;
+          BOOST_LOG_TRIVIAL(fatal) << "Run into row chain now" << std::endl;
+          if (!row_chain_row.empty() and irp->column_count_ > 0) {
+            for (auto i : row_chain_row) {
+              i->col_id_ += irp->column_count_;
+            }
+          }
+          row_chain_row.splice(row_chain_row.end(), redo_row);
+          if (irp->flag_ == 0x28) {
+            redo_row = std::move(row_chain_row);
+          }
+        }
+      } break;
       case opcode::kUpdate:
         BOOST_LOG_TRIVIAL(fatal) << "Normal Update" << std::endl;
         redo_row = makeUpCols((Ushort*)change->part(3),
@@ -258,7 +278,7 @@ namespace databus {
       default:
         break;
     }
-    if (change->opCode() != opcode::kMultiInsert)
+    if (change->opCode() != opcode::kMultiInsert && !redo_row.empty())
       redo_rows.push_back(std::move(redo_row));
     return redo_rows;
   }
