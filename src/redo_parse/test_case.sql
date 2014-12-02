@@ -3,7 +3,7 @@
 --- Created:  2014/11/29
 set echo on
 drop table target;
-create table target (a int primary key, b varchar2(4000), c date, d varchar2(4000), e varchar2(4000));
+create table target (b varchar2(4000), a int primary key, c date, d varchar2(4000), e varchar2(4000));
 alter system switch logfile;
 
 insert into target(a, b, c) values(1, 'abcdef',  sysdate);
@@ -44,6 +44,19 @@ commit;
 -- All the above test are passwd @ 516af28076bfb59e1d3bd415492fcc26606b9501
 
 
+-- Row Migration
+insert into target(a) values(623);
+update target set b=lpad('9',4000,'9'), d=lpad('1', 4000, '1'), e=lpad('2', 4000, '2') where a=623;
+
+---
+--- 5.2 -> 5.1 -> 11.2 (pk only)
+--- 5.1 -> 11.2 (col_e only)
+--- 5.1 -> 11.2 (col_d only)
+--- 5.1 -> 11.6 (col_b only) 11.6 is row chained
+--- if row_chain is must:  ==> 11.2 ==> (0,e)
+---                       pk is first, take 1 11.2
+
+commit;
 
 alter system switch logfile;
 !sleep 5
