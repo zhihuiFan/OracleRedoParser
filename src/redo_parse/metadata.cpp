@@ -42,14 +42,17 @@ namespace databus {
         "owner=upper(:x) and table_name=upper(:y) "
         "and column_id is not null");
     pk_stmt_ = conn_->createStatement(
-        "select position "
-        " from dba_cons_columns col, dba_constraints con "
+        "select column_id "
+        " from dba_cons_columns col, dba_constraints con, dba_tab_cols tc "
         " where con.owner=col.owner "
         " and  con.table_name = col.table_name "
-        " and con.CONSTRAINT_NAME= col.CONSTRAINT_NAME "
+        " and  con.CONSTRAINT_NAME= col.CONSTRAINT_NAME "
         " and  con.CONSTRAINT_TYPE='P' "
         " and  con.owner=upper(:x) "
-        " and  con.table_name=upper(:y) ");
+        " and  con.table_name=upper(:y) "
+        " and  col.column_name = tc.column_name "
+        " and  tc.table_name = upper(:y) "
+        " and  tc.owner = upper(:x) ";
     objp2g_stmt_ = conn_->createStatement(
         " select object_id from dba_objects"
         " where subobject_name is null and"
