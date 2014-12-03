@@ -20,7 +20,7 @@ namespace databus {
   using util::dassert;
 
   void RedoFile::init(const char* filename) {
-    BOOST_LOG_TRIVIAL(fatal) << "init " << filename << std::endl;
+    BOOST_LOG_TRIVIAL(debug) << "init " << filename << std::endl;
 
     if (file_start_pos_ != NULL) munmap(file_start_pos_, length_);
     int fd = open(filename, O_RDONLY, 0644);
@@ -207,7 +207,7 @@ namespace databus {
           p_redo_header_->next_scn_major_ == 0xFFFF) {
         online_log = true;
         if (isOverRead(blk_id)) {
-          BOOST_LOG_TRIVIAL(fatal) << "blocking on the last block of online log"
+          BOOST_LOG_TRIVIAL(debug) << "blocking on the last block of online log"
                                    << "blk_id " << blk_id << " latest_blk "
                                    << latest_blk_ << std::endl;
           sleep(3);

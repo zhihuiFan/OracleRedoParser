@@ -87,36 +87,36 @@ namespace databus {
                 std::list<Row> undos, std::list<Row> redos) {
     TabDef* table_def = metadata->getTabDefFromId(object_id);
     if (table_def == NULL) {
-      BOOST_LOG_TRIVIAL(fatal) << "Obj (" << object_id
+      BOOST_LOG_TRIVIAL(debug) << "Obj (" << object_id
                                << ") doesn't exist or don't have PK"
                                << std::endl;
 
       return;
     }
-    BOOST_LOG_TRIVIAL(fatal) << "Transaction ID " << xid << std::endl;
+    BOOST_LOG_TRIVIAL(info) << "Transaction ID " << xid << std::endl;
 
-    BOOST_LOG_TRIVIAL(fatal) << optype << " " << table_def->name << std::endl;
+    BOOST_LOG_TRIVIAL(info) << optype << " " << table_def->name << std::endl;
     if (strncmp(optype, "insert", strlen("insert")) != 0) {
-      BOOST_LOG_TRIVIAL(fatal) << "Primary Keys:";
+      BOOST_LOG_TRIVIAL(info) << "Primary Keys:";
       for (auto undo : undos) {
         for (auto col : undo) {
           if (col->len_ > 0 &&
               table_def->pk.find(col->col_id_ + 1) != table_def->pk.end()) {
-            BOOST_LOG_TRIVIAL(fatal)
+            BOOST_LOG_TRIVIAL(info)
                 << "\t" << table_def->col_names[col->col_id_ + 1] << "----"
                 << convert(col->content_,
                            table_def->col_types[col->col_id_ + 1], col->len_);
           }
         }
       }
-      BOOST_LOG_TRIVIAL(fatal) << std::endl;
+      BOOST_LOG_TRIVIAL(info) << std::endl;
     }
 
     if (strncmp(optype, "delete", strlen("delete")) != 0) {
-      BOOST_LOG_TRIVIAL(fatal) << "New data: " << std::endl;
+      BOOST_LOG_TRIVIAL(info) << "New data: " << std::endl;
       for (auto redo : redos) {
         for (auto col : redo) {
-          BOOST_LOG_TRIVIAL(fatal)
+          BOOST_LOG_TRIVIAL(info)
               << table_def->col_names[col->col_id_ + 1] << "----"
               << convert(col->content_, table_def->col_types[col->col_id_ + 1],
                          col->len_) << std::endl;

@@ -20,6 +20,7 @@ namespace databus {
   inline void setLogLevel(short log_level) {
     if (log_level > 5) log_level = 5;
     if (log_level < 0) log_level = 0;
-    logging::core::get()->set_filter(logging::trivial::severity >= log_level);
+    logging::core::get()->set_filter(logging::trivial::severity >=
+                                     5 - log_level);
   }
 }

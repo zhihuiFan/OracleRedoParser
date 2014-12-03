@@ -1,6 +1,7 @@
 #include <string>
 #include <iostream>
 #include "metadata.h"
+#include "util/logger.h"
 
 namespace databus {
 
@@ -124,8 +125,8 @@ namespace databus {
       tab_def->pk.insert(pk_ret->getNumber(1));
     }
     if (tab_def->pk.empty()) {
-      std::cout << "either " << owner << "." << table
-                << " not exits or not primary key" << std::endl;
+      BOOST_LOG_TRIVIAL(debug) << "either " << owner << "." << table
+                               << " not exits or not primary key" << std::endl;
       return NULL;
     }
     assert(!tab_def->pk.empty());

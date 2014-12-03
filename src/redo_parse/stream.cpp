@@ -4,6 +4,7 @@
 #include <iostream>
 
 #include "util/dassert.h"
+#include "util/logger.h"
 #include "stream.h"
 #include "metadata.h"
 namespace databus {
@@ -35,6 +36,13 @@ namespace databus {
       std::cout << desc << std::endl;
       std::exit(1);
     }
+
+    if (vm.count("loglevel")) {
+      setLogLevel(vm["loglevel"].as<unsigned short>());
+    } else {
+      setLogLevel(2);
+    }
+
     po::notify(vm);
     validParams();
   }
@@ -48,7 +56,9 @@ namespace databus {
         "srcDB", po::value<std::string>(), "connection string for source db")(
         "confFile", po::value<std::string>(), "configure file for data stream")(
         "tableConf", po::value<std::string>(), "tables to capture changes")(
-        "startSeq", po::value<uint32_t>(), "the log sequence to start with");
+        "startSeq", po::value<uint32_t>(), "the log sequence to start with")(
+        "loglevel,v", po::value<unsigned short>(),
+        "loger level, the higher the more details, default 3");
   }
 
   void StreamConf::validParams() {

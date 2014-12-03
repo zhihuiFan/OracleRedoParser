@@ -15,7 +15,7 @@ namespace databus {
   void handleBuf(RecordBuf* record_buf) {
     XID xid = 0;
     static size_t buf_seq = 0;
-    BOOST_LOG_TRIVIAL(fatal)
+    BOOST_LOG_TRIVIAL(debug)
         << " offset = " << std::hex << record_buf->offset() / 512 << ":"
         << record_buf->offset() % 512 << std::dec << "(" << ++buf_seq << ")"
         << std::endl;
@@ -70,7 +70,7 @@ namespace databus {
       ++c;
     }
     delete last_buf;
-    BOOST_LOG_TRIVIAL(fatal) << " c = " << c << std::endl;
+    BOOST_LOG_TRIVIAL(debug) << " total record found  = " << c << std::endl;
     return 0;
   }
 }
