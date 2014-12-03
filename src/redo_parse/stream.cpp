@@ -40,7 +40,7 @@ namespace databus {
     if (vm.count("loglevel")) {
       setLogLevel(vm["loglevel"].as<unsigned short>());
     } else {
-      setLogLevel(2);
+      setLogLevel(3);
     }
 
     po::notify(vm);

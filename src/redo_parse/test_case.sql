@@ -39,7 +39,7 @@ commit;
 
 
 -- Row Chaining
-insert into target values(-1, lpad('a', 4000, 'a'),  sysdate, lpad('b', 4000, 'b'), lpad('c', 4000, 'c'));
+insert into target values(lpad('a', 4000, 'a'), -1, sysdate, lpad('b', 4000, 'b'), lpad('c', 4000, 'c'));
 commit;
 -- All the above test are passwd @ 516af28076bfb59e1d3bd415492fcc26606b9501
 
