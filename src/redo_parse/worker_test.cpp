@@ -82,7 +82,7 @@ namespace databus {
     }
     delete last_buf;
     BOOST_LOG_TRIVIAL(debug) << " total record found  = " << c << std::endl;
-    MetadataManager::destory();
+    //    MetadataManager::destory();
     return 0;
   }
 }

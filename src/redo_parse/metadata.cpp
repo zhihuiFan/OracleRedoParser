@@ -23,7 +23,7 @@ namespace databus {
     init(user, passwd, db);
   }
 
-  std::map<uint32_t, TabDef*> MetadataManager::oid2def_;
+  std::map<uint32_t, std::shared_ptr<TabDef> > MetadataManager::oid2def_;
   std::map<uint32_t, uint32_t> MetadataManager::poid2goid_;
 
   void MetadataManager::init(const std::string& user, const std::string& passwd,
@@ -92,7 +92,7 @@ namespace databus {
     }
   }
 
-  TabDef* MetadataManager::getTabDefFromId(uint32_t object_id) {
+  std::shared_ptr<TabDef> MetadataManager::getTabDefFromId(uint32_t object_id) {
     // may be null
     // a). not init   b). object_id is a partition obj id
     if (haveDef(object_id)) return oid2def_[object_id];
@@ -108,10 +108,10 @@ namespace databus {
     return oid2def_[goid];
   }
 
-  TabDef* MetadataManager::initTabDefFromName(const std::string& owner,
-                                              const std::string& table) {
+  std::shared_ptr<TabDef> MetadataManager::initTabDefFromName(
+      const std::string& owner, const std::string& table) {
 
-    TabDef* tab_def = new TabDef();
+    std::shared_ptr<TabDef> tab_def(new TabDef());
     tab_def->owner = owner;
     tab_def->name = table;
 

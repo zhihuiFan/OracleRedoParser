@@ -133,7 +133,7 @@ namespace databus {
       if (first == last && first != table.npos) {
         std::string owner = table.substr(0, first);
         std::string tablename = table.substr(first + 1, table.npos - first - 1);
-        TabDef* tabdef = metadata->initTabDefFromName(owner, tablename);
+        metadata->initTabDefFromName(owner, tablename);
         // if (tabdef) tabdef->dump();
       } else {
         // TODO: why?

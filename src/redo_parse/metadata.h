@@ -10,6 +10,7 @@
 #include <assert.h>
 #include <sstream>
 #include <iostream>
+#include <memory>
 #include "util/dtypes.h"
 
 namespace databus {
@@ -42,9 +43,9 @@ namespace databus {
                     const std::string& db);
     ~MetadataManager();
     // re-connect if needed
-    TabDef* getTabDefFromId(uint32_t object_id);
-    TabDef* initTabDefFromName(const std::string& owner,
-                               const std::string& table);
+    std::shared_ptr<TabDef> getTabDefFromId(uint32_t object_id);
+    std::shared_ptr<TabDef> initTabDefFromName(const std::string& owner,
+                                               const std::string& table);
 
     std::string getLogfile(uint32_t seq);
 
@@ -62,13 +63,6 @@ namespace databus {
     }
     void initFromId(uint32_t object_id);
 
-   public:
-    static void destory() {
-      for (auto i : oid2def_) {
-        delete i.second;
-      }
-    }
-
    private:
     // for re-connect
     const std::string username;
@@ -81,7 +75,7 @@ namespace databus {
     Statement* objp2g_stmt_;
     Statement* obj2tab_stmt_;
     Statement* pk_stmt_;
-    static std::map<uint32_t, TabDef*> oid2def_;
+    static std::map<uint32_t, std::shared_ptr<TabDef> > oid2def_;
     static std::map<uint32_t, uint32_t> poid2goid_;
   };
 
