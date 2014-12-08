@@ -62,6 +62,13 @@ namespace databus {
     }
     void initFromId(uint32_t object_id);
 
+   public:
+    static void destory() {
+      for (auto i : oid2def_) {
+        delete i.second;
+      }
+    }
+
    private:
     // for re-connect
     const std::string username;

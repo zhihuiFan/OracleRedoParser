@@ -48,6 +48,17 @@ namespace databus {
       }  // end switch
     }
     if (optype != NULL) tranDump(xid, object_id, optype, undo, redo);
+    for (auto ur : undo) {
+      for (ColumnChange* uc : ur) {
+        delete uc;
+      }
+    }
+
+    for (auto rr : redo) {
+      for (ColumnChange* rc : rr) {
+        delete rc;
+      }
+    }
   }
 
   MetadataManager* metadata = NULL;
@@ -71,6 +82,7 @@ namespace databus {
     }
     delete last_buf;
     BOOST_LOG_TRIVIAL(debug) << " total record found  = " << c << std::endl;
+    MetadataManager::destory();
     return 0;
   }
 }

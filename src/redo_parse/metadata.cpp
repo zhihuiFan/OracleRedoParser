@@ -70,9 +70,6 @@ namespace databus {
     conn_->terminateStatement(tab2def_stmt_);
     env_->terminateConnection(conn_);
     Environment::terminateEnvironment(env_);
-    // let's leak memory here, doesn't matter,
-    // TODO: fix this leak
-    for (auto i : oid2def_) delete i.second;
   }
 
   uint32_t MetadataManager::getGlobalObjId(uint32_t objid) {
@@ -152,10 +149,17 @@ namespace databus {
     int object_id;
     while (oid_ret->next()) {
       object_id = oid_ret->getNumber(1).operator unsigned long();
+      if (oid2def_.find(object_id) != oid2def_.end()) {
+        BOOST_LOG_TRIVIAL(warning) << "logical error old def exist already"
+                                   << oid2def_[object_id]->name << ":"
+                                   << oid2def_[object_id]->owner << " new def "
+                                   << tab_def->owner << ":" << tab_def->name
+                                   << std::endl;
+      }
       oid2def_[object_id] = tab_def;
     }
     tab2oid_stmt_->closeResultSet(oid_ret);
-    return tab_def;
+    return oid2def_[object_id];
   }
 
   LogManager::LogManager(const std::string& user, const std::string& passwd,
