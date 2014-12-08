@@ -5,10 +5,6 @@
 #include "logical_elems.h"
 
 namespace databus {
-  /*
-     * ktudh redo: slt: 0x001f sqn: 0x00000304 flg: 0x0012 siz: 176 fbi: 0
-     *             uba: 0x00c000df.007e.23    pxid:  0x0000.000.00000000
-   */
 
   namespace opcode {
     const Ushort kOther = 0x0005;
@@ -17,17 +13,21 @@ namespace databus {
     const Ushort kCommit = 0x0504;
     const Ushort kNewSession = 0x0513;
     const Ushort kSwitchSession = 0x0514;
+    // Row Operation
     const Ushort kInsert = 0x0b02;
     const Ushort kDelete = 0x0b03;
+    const Ushort kLock = 0x0b04;
     const Ushort kUpdate = 0x0b05;
     const Ushort kRowChain = 0x0b06;
     const Ushort kMfc = 0x0b07;
     const Ushort kCfa = 0x0b08;
+    const Ushort kCki = 0x0b09;  // Cluster Key Index
+    const Ushort kSkl = 0x0b0a;  // Set cluster key pointer
     const Ushort kMultiInsert = 0x0b0b;
     const Ushort kMultiDelete = 0x0b0c;
     const Ushort kLmn = 0x0b10;
     const Ushort kDdl = 0x1801;
-  }
+  };
 
   struct OpCode0501 {
     Ushort size_;
