@@ -5,6 +5,7 @@
 #include <sstream>
 #include <stdint.h>
 #include <map>
+#include <memory>
 #include <list>
 #include "util/dtypes.h"
 
@@ -62,7 +63,7 @@ namespace databus {
     char* content_;
   };
 
-  typedef std::list<ColumnChange*> Row;
+  typedef std::list<std::shared_ptr<ColumnChange> > Row;
   class RowChange {
    public:
     ~RowChange();

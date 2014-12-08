@@ -11,7 +11,6 @@
 namespace databus {
   using util::dassert;
   using util::strange;
-  typedef std::list<ColumnChange*> Row;
 
   bool validOp(Ushort op);
 

@@ -62,11 +62,4 @@ namespace databus {
     std::cout << "col# " << col_id_ << "  " << content_ << "(" << len_ << ")"
               << std::endl;
   }
-
-  RowChange::~RowChange() {
-    for (auto i : primary_key) delete i;
-    for (auto i : undo_changes) delete i;
-    for (auto i : redo_changes) delete i;
-    for (auto i : redo_migration_changes) delete i;
-  }
 }

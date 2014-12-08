@@ -2,6 +2,7 @@
 #include <string.h>
 #include <set>
 #include <utility>
+#include <memory>
 
 #include "opcode_ops.h"
 #include "opcode.h"
@@ -51,7 +52,7 @@ namespace databus {
       content[len] = '\0';
       start += len;
       ColumnChange* col_change = new ColumnChange(col_id, len, content);
-      changes.push_back(col_change);
+      changes.push_back(std::shared_ptr<ColumnChange>(col_change));
     }
     return changes;
   }
@@ -67,7 +68,7 @@ namespace databus {
       memcpy(data, src + sizeof(Ushort), len);
       data[len] = '\0';
       ColumnChange* col_change = new ColumnChange(*(col_num + i), len, data);
-      row.push_back(col_change);
+      row.push_back(std::shared_ptr<ColumnChange>(col_change));
     }
     return row;
   }
@@ -101,7 +102,7 @@ namespace databus {
         col_change = new ColumnChange(i, *(col_len + i), data);
       else
         col_change = new ColumnChange(*(col_num + i), *(col_len + i), data);
-      row.push_back(col_change);
+      row.push_back(std::shared_ptr<ColumnChange>(col_change));
     }
     return row;
   }
@@ -224,7 +225,7 @@ namespace databus {
             makeUpCols(NULL, irp->column_count_, change, 3, irp->xtype_, false);
         static Row row_chain_row;
         if (irp->flag_ != 0x2c) {
-          std::cout << std::hex << "0x" << (Ushort)irp->flag_ << std::endl;
+          // std::cout << std::hex << "0x" << (Ushort)irp->flag_ << std::endl;
           BOOST_LOG_TRIVIAL(debug) << "Run into row chain now" << std::endl;
           if (!row_chain_row.empty() and irp->column_count_ > 0) {
             for (auto i : row_chain_row) {
@@ -264,7 +265,8 @@ namespace databus {
 
               if (len == 255) {
                 len = 0;
-                temp_row.push_back(new ColumnChange(i, len, NULL));
+                temp_row.push_back(std::shared_ptr<ColumnChange>(
+                    new ColumnChange(i, len, NULL)));
                 continue;
               } else if (len == 254) {
                 len = *((Ushort*)data);  // TODO: TEST here. the first byte is
@@ -275,7 +277,8 @@ namespace databus {
               char* col_data = new char[len + 1];
               memcpy(col_data, data, len);
               col_data[len] = '\0';
-              temp_row.push_back(new ColumnChange(i, len, col_data));
+              temp_row.push_back(std::shared_ptr<ColumnChange>(
+                  new ColumnChange(i, len, col_data)));
               data += len;
             }
             redo_rows.push_back(std::move(temp_row));
