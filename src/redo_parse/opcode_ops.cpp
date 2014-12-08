@@ -85,6 +85,13 @@ namespace databus {
     for (Ushort i = 0; i < total_cols; ++i) {
       const char* src = change->part(data_offset + i);
       char* data = new char[*(col_len + i) + 1];
+      if (*(change->partLen(data_offset + i)) < *(col_len + i)) {
+        BOOST_LOG_TRIVIAL(warning) << "column_len( " << *(col_len + i)
+                                   << ") is bigger than data part length("
+                                   << *(change->partLen(data_offset + i)) << ")"
+                                   << std::endl;
+        *(col_len + i) = *(change->partLen(data_offset + i));
+      }
       memcpy(data, src, *(col_len + i));
       data[*(col_len + i)] = '\0';
       ColumnChange* col_change = NULL;
