@@ -15,7 +15,8 @@ LDFLAGS_BASE=-lpthread -lboost_program_options -DBOOST_LOG_DYN_LINK  -locci -lcl
 
 PLATFORM=$(shell uname)
 ifeq ($(PLATFORM),SunOS)
-	LDFLAGS=-L${OCCI_HOME} -static-libstdc++ -static-libgcc ${LDFLAGS_BASE}
+	LDFLAGS=-L${OCCI_HOME} -static-libstdc++ -static-libgcc ${LDFLAGS_BASE} -pthread /usr/local/lib/libboost_log.a /usr/local/lib/libboost_log_setup.a  /usr/local/lib/libboost_thread.a /usr/local/lib/libboost_system.a -lrt
+	CXXFLAGS = ${CXXFLAGS_BASE} 
 endif
 
 ifeq ($(PLATFORM), Darwin)
@@ -36,7 +37,7 @@ datastream: stream.o logical_elems.o physical_elems.o redofile.o worker_test.o o
 	${CC} ${CXXFLAGS} $(OCI_FALGS) -o $@ $^ ${LDFLAGS} 
 
 dumpop: logical_elems.o physical_elems.o redofile.o opcode_ops.o dump_op.o
-	${CC} ${CXXFLAGS} -o $@ $^ ${LD_SIMPLE}
+	${CC} ${CXXFLAGS} -o $@ $^ ${LD_SIMPLE} -lboost_log
 
 metadata.o: metadata.cpp $(DEPS)
 	$(CC) -c -o $@ $< $(CXXFLAGS) $(OCI_FALGS)
