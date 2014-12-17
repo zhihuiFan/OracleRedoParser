@@ -41,6 +41,9 @@ namespace databus {
         block_size_ = As<FileHeaderV9>(file_start_pos_)->getBlockSize();
         last_block_id_ = As<FileHeaderV9>(file_start_pos_)->getLastBlockID();
         p_block_header_ = file_start_pos_ + block_size_;
+        if (log_sequence_ == -1) {
+          log_sequence_ = ((BlockHeaderV9*)p_block_header_)->getSequenceNum();
+        }
         assert(log_sequence_ ==
                ((BlockHeaderV9*)p_block_header_)->getSequenceNum());
         break;
@@ -49,6 +52,9 @@ namespace databus {
         block_size_ = As<FileHeaderV10>(file_start_pos_)->getBlockSize();
         last_block_id_ = As<FileHeaderV10>(file_start_pos_)->getLastBlockID();
         p_block_header_ = file_start_pos_ + block_size_;
+        if (log_sequence_ == -1) {
+          log_sequence_ = ((BlockHeaderV10*)p_block_header_)->getSequenceNum();
+        }
         dassert("", log_sequence_ ==
                         ((BlockHeaderV10*)p_block_header_)->getSequenceNum());
         break;
@@ -119,8 +125,10 @@ namespace databus {
       } else {
         int ivld = vld;
         std::stringstream ss;
-        ss << "unsupport vld " << ivld;
-        dassert(ss.str().c_str(), false);
+        BOOST_LOG_TRIVIAL(fatal) << "unsupport vld " << ivld << " offset "
+                                 << curr_record_pos_ - file_start_pos_;
+        curr_record_pos_ = nextRecord(curr_record_pos_);
+        goto again;
       }
     }
 
