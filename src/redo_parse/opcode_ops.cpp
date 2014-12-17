@@ -183,7 +183,8 @@ namespace databus {
         }
       } break;
       case opcode::kDelete & 0xff: {
-        // Seems this code will be never used, not for simple delete at least
+        /*
+         * no need to parse this part
         OpCodeKdodrp* drp = (OpCodeKdodrp*)change0501->part(4);
         if (drp->opcode_ & 0x20) {
           OpCodeSupplemental* sup = (OpCodeSupplemental*)change0501->part(5);
@@ -192,6 +193,7 @@ namespace databus {
                                          sup->total_cols_, change0501, 8, true);
           }
         }
+        */
       } break;
       case opcode::kMultiDelete & 0xff:
       // mulit_insert will go here, we should be able to find out the pks which
