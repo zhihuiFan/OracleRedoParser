@@ -33,7 +33,7 @@ namespace databus {
   class RecordBuf {
    public:
     RecordBuf(const SCN& scn, uint32_t len, uint32_t epoch, char* change_buf,
-              size_t offset);
+              size_t offset, bool allop = false);
 
     std::list<ChangeHeader*> change_vectors;
     size_t offset() const { return offset_; }
@@ -41,7 +41,8 @@ namespace databus {
     ~RecordBuf() { delete[] change_buffers_; }
 
    private:
-    void initChangeVectors();
+    // allop:  if true, capatural all opocde. or else only captual valid op
+    void initChangeVectors(bool allop);
 
    private:
     SCN scn_;
@@ -67,25 +68,15 @@ namespace databus {
   class RowChange {
    public:
     ~RowChange();
-
-    std::string optype;
+    bool operator<(const RowChange& other) const { return scn_ < other.scn_; };
+    SCN scn_;
+    std::string optype_;
     uint32_t object_id_;
     uint32_t data_object_id_;
-    Row primary_key;
-    Row undo_changes;
-    Row redo_changes;
-    Row redo_migration_changes;
-  };
-
-  class Transaction {
-   public:
-    ~Transaction() {
-      for (auto i : trans_changes_) delete i;
-    }
-
-   private:
-    XID xid_;
-    std::list<RowChange*> trans_changes_;
+    Row primary_key_;
+    Row undo_changes_;
+    Row redo_changes_;
+    // Row redo_migration_changes_;
   };
 }  // databus
 #endif

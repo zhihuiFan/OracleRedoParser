@@ -31,16 +31,16 @@ namespace databus {
     return ss.str();
   }
   RecordBuf::RecordBuf(const SCN& scn, uint32_t len, uint32_t epoch,
-                       char* change_buf, size_t offset)
+                       char* change_buf, size_t offset, bool allop)
       : scn_(scn),
         change_length_(len),
         epoch_(epoch),
         change_buffers_(change_buf),
         offset_(offset) {
-    initChangeVectors();
+    initChangeVectors(allop);
   }
 
-  void RecordBuf::initChangeVectors() {
+  void RecordBuf::initChangeVectors(bool allop) {
     // TODO:  bypass all the changes whose SEQ=0
     ChangeHeader* ch = (ChangeHeader*)(change_buffers_);
     uint32_t parsed_change_size = 0;
@@ -50,7 +50,10 @@ namespace databus {
         std::cout << "lol is 0, Diag offset ! " << offset_ << std::endl;
         return;
       }
-      if (validOp(ch->opCode())) change_vectors.push_back(ch);
+      if (validOp(ch->opCode()))
+        change_vectors.push_back(ch);
+      else if (allop)
+        change_vectors.push_back(ch);
       parsed_change_size += change_size;
       unsigned int seq = ch->seq_;
       // std::cout << seq << ":" << std::hex << ch->opCode() << std::endl;
