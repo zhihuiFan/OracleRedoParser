@@ -149,8 +149,8 @@ namespace databus {
       goto again;
     }
 
-    RecordBuf* record_buf =
-        new RecordBuf(record_scn, change_length, epoch, change_buf, offset);
+    RecordBuf* record_buf = new RecordBuf(record_scn, change_length, epoch,
+                                          change_buf, offset, allop_);
 
     curr_record_pos_ = nextRecord(curr_record_pos_);  // for next round
     return record_buf;

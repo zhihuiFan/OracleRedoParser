@@ -26,10 +26,23 @@ namespace databus {
           online_last_blk_(last_blk),
           latest_blk_(0),
           file_start_pos_(NULL),
-          length_(0) {
+          length_(0),
+          allop_(false) {
       std::string filename = log_generator_(log_seq);
       init(filename.c_str());
     };
+
+    // this is just for some test purposes, works for archivelog only
+    RedoFile(const char *filename)
+        : latest_blk_(0xFFFFFFFF),
+          file_start_pos_(NULL),
+          length_(0),
+          log_sequence_(-1),
+          allop_(true) {
+      log_generator_ = [&filename](uint32_t) { return filename; };
+      online_last_blk_ = [](uint32_t) { return 0xFFFFFF; };
+      init(filename);
+    }
 
     // should return NULL if current logfile reach to
     // end.
@@ -120,6 +133,7 @@ namespace databus {
     uint32_t block_size_;
     uint32_t last_block_id_;
     Uchar ora_version_;
+    bool allop_;
 
     char *curr_record_pos_;
   };
