@@ -122,9 +122,11 @@ namespace databus {
         change_length = record_len - constants::kMinRecordLen;
         change_pos = curr_record_pos_ + constants::kMinRecordLen;
         record_scn = As<RecordHeaderMinor>(curr_record_pos_)->scn();
+      } else if (vld == 0) {
+        curr_record_pos_ = nextRecord(curr_record_pos_);
+        goto again;
       } else {
         int ivld = vld;
-        std::stringstream ss;
         BOOST_LOG_TRIVIAL(fatal) << "unsupport vld " << ivld << " offset "
                                  << curr_record_pos_ - file_start_pos_;
         curr_record_pos_ = nextRecord(curr_record_pos_);
