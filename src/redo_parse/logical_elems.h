@@ -63,8 +63,9 @@ namespace databus {
     Ushort len_;
     char* content_;
   };
+  typedef std::shared_ptr<ColumnChange> ColumnChange_Ptr;
 
-  typedef std::list<std::shared_ptr<ColumnChange> > Row;
+  typedef std::list<std::shared_ptr<ColumnChange>> Row;
   class RowChange {
    public:
     ~RowChange();

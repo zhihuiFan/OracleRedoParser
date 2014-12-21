@@ -27,6 +27,7 @@ namespace databus {
     void dump();
   };
 
+  typedef std::shared_ptr<TabDef> TabDef_Ptr;
   class MetadataManager {
     // the fucntion of MetadataManager should be like this:
     // 1. init all the tableDef from a configure file

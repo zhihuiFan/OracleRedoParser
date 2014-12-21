@@ -1,6 +1,7 @@
 #include <iostream>
 #include <vector>
 #include <list>
+#include <memory>
 #include "util/container.h"
 #include "stream.h"
 #include "metadata.h"
@@ -52,8 +53,8 @@ namespace databus {
     if (optype != NULL) tranDump(xid, object_id, optype, undo, redo);
   }
 
-  MetadataManager* metadata = NULL;
-  LogManager* logmanager = NULL;
+  std::shared_ptr<MetadataManager> metadata = NULL;
+  std::shared_ptr<LogManager> logmanager = NULL;
 
   int main(int ac, char** av) {
     initStream(ac, av);

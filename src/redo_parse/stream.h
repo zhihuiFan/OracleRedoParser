@@ -8,6 +8,7 @@
 #include <string>
 #include <chrono>
 #include <thread>
+#include <memory>
 
 #include "util/container.h"
 #include "stream.h"
@@ -33,8 +34,10 @@ namespace databus {
     po::variables_map vm;
   };
 
-  extern MetadataManager* metadata;
-  extern LogManager* logmanager;
+  std::shared_ptr<MetadataManager> makeMetadataManager();
+
+  extern std::shared_ptr<MetadataManager> metadata;
+  extern std::shared_ptr<LogManager> logmanager;
   extern StreamConf* streamconf;
   extern std::list<std::string> captual_tables;
 

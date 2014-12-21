@@ -1,6 +1,7 @@
 #include <boost/program_options.hpp>
 #include <string>
 #include <algorithm>
+#include <memory>
 #include <iostream>
 
 #include "util/dassert.h"
@@ -8,6 +9,9 @@
 #include "stream.h"
 #include "metadata.h"
 namespace databus {
+  StreamConf* streamconf;
+  std::list<std::string> captual_tables;
+
   static void normalFile(std::ifstream& inf, std::stringstream& ss) {
     std::string s;
     const int max_line_size = 1024;
@@ -106,8 +110,11 @@ namespace databus {
     return cap_tables;
   }
 
-  StreamConf* streamconf;
-  std::list<std::string> captual_tables;
+  std::shared_ptr<MetadataManager> makeMetadataManager() {
+    return std::shared_ptr<MetadataManager>(new MetadataManager(
+        streamconf->getString("srcUser"), streamconf->getString("srcPass"),
+        streamconf->getString("srcDB")));
+  }
 
   void initStream(int ac, char** av) {
     streamconf = new StreamConf(ac, av);
@@ -120,10 +127,8 @@ namespace databus {
       std::cout << i << std::endl;
     }
     */
+    metadata = makeMetadataManager();
 
-    metadata = new MetadataManager(streamconf->getString("srcUser"),
-                                   streamconf->getString("srcPass"),
-                                   streamconf->getString("srcDB"));
     logmanager = new LogManager(streamconf->getString("srcUser"),
                                 streamconf->getString("srcPass"),
                                 streamconf->getString("srcDB"));
