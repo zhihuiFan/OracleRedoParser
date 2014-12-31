@@ -69,8 +69,9 @@ namespace databus {
     return NULL;
   }
 
-  static std::string convert(const char* input, std::string& type, Ushort len) {
-    // TODO: why length is 0 A: NULL ?
+  std::string convert(const char* input, std::string& type, Ushort len) {
+    // TODO: why length is 0 A: NULL ? Confirm: Yes,  TODO: in real case, we
+    // need a NULL here
     if (len == 0) return "";
     if (type == "VARCHAR2") return input;
     if (type == "NUMBER") {
@@ -88,12 +89,11 @@ namespace databus {
     auto table_def = metadata->getTabDefFromId(object_id);
     if (table_def == NULL) {
       BOOST_LOG_TRIVIAL(debug) << "Obj (" << object_id
-                               << ") doesn't exist or don't have PK"
-                               << std::endl;
+                               << ") doesn't exist or don't have PK";
 
       return;
     }
-    BOOST_LOG_TRIVIAL(info) << "Transaction ID " << xid << std::endl;
+    BOOST_LOG_TRIVIAL(info) << "Transaction ID " << xid;
 
     BOOST_LOG_TRIVIAL(info) << optype << " " << table_def->name << std::endl;
     if (strncmp(optype, "insert", strlen("insert")) != 0) {
@@ -109,17 +109,16 @@ namespace databus {
           }
         }
       }
-      BOOST_LOG_TRIVIAL(info) << std::endl;
     }
 
     if (strncmp(optype, "delete", strlen("delete")) != 0) {
-      BOOST_LOG_TRIVIAL(info) << "New data: " << std::endl;
+      BOOST_LOG_TRIVIAL(info) << "New data: ";
       for (auto redo : redos) {
         for (auto col : redo) {
           BOOST_LOG_TRIVIAL(info)
               << table_def->col_names[col->col_id_ + 1] << "----"
               << convert(col->content_, table_def->col_types[col->col_id_ + 1],
-                         col->len_) << std::endl;
+                         col->len_);
         }
       }
     }
