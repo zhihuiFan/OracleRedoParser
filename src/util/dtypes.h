@@ -7,6 +7,8 @@ namespace databus {
   typedef unsigned short Ushort;
   typedef unsigned int Uint;
   typedef uint64_t XID;
+  typedef uint32_t DBA;
+  typedef Ushort USN;
 }
 
 #endif /* ----- #ifndef DTYPES_INC  ----- */
