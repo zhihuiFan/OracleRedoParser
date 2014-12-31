@@ -27,7 +27,8 @@ namespace databus {
 
   std::string SCN::toStr() const {
     std::stringstream ss;
-    ss << major_ << ":" << minor_ << ":" << subscn_ << ":" << noffset_;
+    ss << std::hex << major_ << ":" << minor_ << ":" << subscn_ << ":"
+       << noffset_;
     return ss.str();
   }
   RecordBuf::RecordBuf(const SCN& scn, uint32_t len, uint32_t epoch,

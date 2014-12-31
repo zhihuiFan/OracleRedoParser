@@ -6,7 +6,7 @@ drop table target;
 create table target (b varchar2(4000), a int primary key, c date, d varchar2(4000), e varchar2(4000));
 alter system switch logfile;
 
-insert into target(a, b, c) values(1, 'abcdef',  sysdate);
+insert into target(a, b, c) values(1, 'FANZHIHUI',  sysdate);
 commit;
 insert into target(a, b, c)  values(2, 'abcdef',  sysdate);
 commit;
@@ -26,6 +26,7 @@ insert all
     into target(a) values(-101)
     into target(a, c) values(-102, sysdate-2)
 select * from dual;
+commit;
 drop table test;
 create table test (a int primary key, b varchar2(40), c date, d varchar2(40), e varchar2(40));
 -- This will generate Mulit-Insert
@@ -42,8 +43,6 @@ commit;
 insert into target values(lpad('a', 4000, 'a'), -1, sysdate, lpad('b', 4000, 'b'), lpad('c', 4000, 'c'));
 commit;
 -- All the above test are passwd @ 516af28076bfb59e1d3bd415492fcc26606b9501
-
-
 -- Row Migration
 insert into target(a) values(623);
 update target set b=lpad('9',4000,'9'), d=lpad('1', 4000, '1'), e=lpad('2', 4000, '2') where a=623;

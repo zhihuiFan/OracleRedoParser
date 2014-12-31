@@ -123,7 +123,7 @@ namespace databus {
     }
     if (tab_def->pk.empty()) {
       BOOST_LOG_TRIVIAL(debug) << "either " << owner << "." << table
-                               << " not exits or not primary key" << std::endl;
+                               << " not exits or not primary key";
       return NULL;
     }
     assert(!tab_def->pk.empty());
@@ -153,8 +153,7 @@ namespace databus {
         BOOST_LOG_TRIVIAL(warning) << "logical error old def exist already"
                                    << oid2def_[object_id]->name << ":"
                                    << oid2def_[object_id]->owner << " new def "
-                                   << tab_def->owner << ":" << tab_def->name
-                                   << std::endl;
+                                   << tab_def->owner << ":" << tab_def->name;
       }
       oid2def_[object_id] = tab_def;
     }

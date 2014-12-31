@@ -52,8 +52,9 @@ namespace databus {
     size_t offset_;  // debug only
   };                 // RecordBuf
 
-  class ColumnChange {
-   public:
+  typedef std::shared_ptr<RecordBuf> RecordBufPtr;
+
+  struct ColumnChange {
     ColumnChange(Ushort col_id, Ushort len, char* content)
         : col_id_(col_id), len_(len), content_(content) {}
     ~ColumnChange() { delete[] content_; }
@@ -63,21 +64,7 @@ namespace databus {
     Ushort len_;
     char* content_;
   };
-  typedef std::shared_ptr<ColumnChange> ColumnChange_Ptr;
-
-  typedef std::list<std::shared_ptr<ColumnChange>> Row;
-  class RowChange {
-   public:
-    ~RowChange();
-    bool operator<(const RowChange& other) const { return scn_ < other.scn_; };
-    SCN scn_;
-    std::string optype_;
-    uint32_t object_id_;
-    uint32_t data_object_id_;
-    Row primary_key_;
-    Row undo_changes_;
-    Row redo_changes_;
-    // Row redo_migration_changes_;
-  };
+  typedef std::shared_ptr<ColumnChange> ColumnChangePtr;
+  typedef std::list<ColumnChangePtr> Row;
 }  // databus
 #endif

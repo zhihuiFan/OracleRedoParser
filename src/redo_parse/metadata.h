@@ -27,7 +27,7 @@ namespace databus {
     void dump();
   };
 
-  typedef std::shared_ptr<TabDef> TabDef_Ptr;
+  typedef std::shared_ptr<TabDef> TabDefPtr;
   class MetadataManager {
     // the fucntion of MetadataManager should be like this:
     // 1. init all the tableDef from a configure file
@@ -79,6 +79,7 @@ namespace databus {
     static std::map<uint32_t, std::shared_ptr<TabDef> > oid2def_;
     static std::map<uint32_t, uint32_t> poid2goid_;
   };
+  extern std::shared_ptr<MetadataManager> metadata;
 
   class LogManager {
    public:
