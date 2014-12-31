@@ -36,7 +36,6 @@ namespace databus {
 
   std::shared_ptr<MetadataManager> makeMetadataManager();
 
-  extern std::shared_ptr<MetadataManager> metadata;
   extern std::shared_ptr<LogManager> logmanager;
   extern StreamConf* streamconf;
   extern std::list<std::string> captual_tables;

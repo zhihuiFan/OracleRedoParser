@@ -129,9 +129,9 @@ namespace databus {
     */
     metadata = makeMetadataManager();
 
-    logmanager = new LogManager(streamconf->getString("srcUser"),
-                                streamconf->getString("srcPass"),
-                                streamconf->getString("srcDB"));
+    logmanager = std::shared_ptr<LogManager>(new LogManager(
+        streamconf->getString("srcUser"), streamconf->getString("srcPass"),
+        streamconf->getString("srcDB")));
     for (auto table : captual_tables) {
       auto first = table.find_first_of('.');
       auto last = table.find_last_of('.');
