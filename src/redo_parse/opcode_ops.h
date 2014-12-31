@@ -2,11 +2,13 @@
 #define OPCODE_OPS_INC
 
 #include <list>
+#include <memory>
 
 #include "opcode.h"
 #include "physical_elems.h"
 #include "logical_elems.h"
 #include "util/dassert.h"
+#include "util/dtypes.h"
 
 namespace databus {
   using util::dassert;
@@ -46,5 +48,4 @@ namespace databus {
   Row makeUpCols(Ushort* col_num, Ushort total_cols, const ChangeHeader* change,
                  Ushort data_offset, Ushort xtype, bool supplemental = false);
 }
-
 #endif /* ----- #ifndef OPCODE_OPS_INC  ----- */

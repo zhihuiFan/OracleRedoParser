@@ -20,7 +20,7 @@ namespace databus {
   using util::dassert;
 
   void RedoFile::init(const char* filename) {
-    BOOST_LOG_TRIVIAL(debug) << "init " << filename << std::endl;
+    BOOST_LOG_TRIVIAL(debug) << "init " << filename;
 
     if (file_start_pos_ != NULL) munmap(file_start_pos_, length_);
     int fd = open(filename, O_RDONLY, 0644);
@@ -96,7 +96,7 @@ namespace databus {
     memcpy(to, from, len);
   }
 
-  RecordBuf* RedoFile::nextRecordBuf() {
+  RecordBufPtr RedoFile::nextRecordBuf() {
   again:
     if (curr_record_pos_ == NULL) return NULL;  // eof
     uint32_t record_len =
@@ -151,8 +151,8 @@ namespace databus {
       goto again;
     }
 
-    RecordBuf* record_buf = new RecordBuf(record_scn, change_length, epoch,
-                                          change_buf, offset, allop_);
+    RecordBufPtr record_buf(new RecordBuf(record_scn, change_length, epoch,
+                                          change_buf, offset, allop_));
 
     curr_record_pos_ = nextRecord(curr_record_pos_);  // for next round
     return record_buf;
@@ -219,7 +219,7 @@ namespace databus {
         if (isOverRead(blk_id)) {
           BOOST_LOG_TRIVIAL(debug) << "blocking on the last block of online log"
                                    << "blk_id " << blk_id << " latest_blk "
-                                   << latest_blk_ << std::endl;
+                                   << latest_blk_;
           sleep(3);
           pos = from;
           goto tryagain;

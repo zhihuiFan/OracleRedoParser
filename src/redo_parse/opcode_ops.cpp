@@ -1,4 +1,5 @@
 #include <iostream>
+#include <sstream>
 #include <string.h>
 #include <set>
 #include <utility>
@@ -8,6 +9,7 @@
 #include "opcode.h"
 #include "util/dtypes.h"
 #include "util/logger.h"
+#include "stream_error.h"
 
 namespace databus {
   bool validOp(Ushort op) {
@@ -89,8 +91,8 @@ namespace databus {
       if (*(change->partLen(data_offset + i)) < *(col_len + i)) {
         BOOST_LOG_TRIVIAL(warning) << "column_len( " << *(col_len + i)
                                    << ") is bigger than data part length("
-                                   << *(change->partLen(data_offset + i)) << ")"
-                                   << std::endl;
+                                   << *(change->partLen(data_offset + i))
+                                   << ")";
         *(col_len + i) = *(change->partLen(data_offset + i));
       }
       memcpy(data, src, *(col_len + i));
@@ -132,7 +134,7 @@ namespace databus {
     switch (opkdo->opcode_ & 0x1f) {
       case opcode::kInsert & 0xff: {
         // common delete will go to here
-        BOOST_LOG_TRIVIAL(debug) << "Normal Delete " << std::endl;
+        BOOST_LOG_TRIVIAL(debug) << "Normal Delete ";
         OpCodeKdoirp* irp = (OpCodeKdoirp*)opkdo;
         if (irp->column_count_ != 0) {
           Row undo_cols = makeUpCols((Ushort*)NULL, irp->column_count_,
@@ -158,8 +160,7 @@ namespace databus {
         }
       } break;
       case opcode::kMultiInsert & 0xff: {
-        BOOST_LOG_TRIVIAL(debug) << "seems run into mulit-delete op "
-                                 << std::endl;
+        BOOST_LOG_TRIVIAL(debug) << "seems run into mulit-delete op ";
         std::exit(100);
       } break;
       case opcode::kUpdate & 0xff: {
@@ -216,11 +217,10 @@ namespace databus {
     Row redo_row;
     switch (change->opCode()) {
       case opcode::kInsert: {
-        BOOST_LOG_TRIVIAL(debug) << "Normal Insert " << std::endl;
+        BOOST_LOG_TRIVIAL(debug) << "Normal Insert ";
         OpCodeKdoirp* irp = (OpCodeKdoirp*)kdo;
         if (irp->flag_ & 0x80 || irp->flag_ & 0x40) {
-          BOOST_LOG_TRIVIAL(debug) << "Found cluster op, bypass it"
-                                   << std::endl;
+          BOOST_LOG_TRIVIAL(debug) << "Found cluster op, bypass it";
           break;
         }
         redo_row =
@@ -228,7 +228,7 @@ namespace databus {
         static Row row_chain_row;
         if (irp->flag_ != 0x2c) {
           // std::cout << std::hex << "0x" << (Ushort)irp->flag_ << std::endl;
-          BOOST_LOG_TRIVIAL(debug) << "Run into row chain now" << std::endl;
+          BOOST_LOG_TRIVIAL(debug) << "Run into row chain now";
           if (!row_chain_row.empty() and irp->column_count_ > 0) {
             for (auto i : row_chain_row) {
               i->col_id_ += irp->column_count_;
@@ -241,13 +241,13 @@ namespace databus {
         }
       } break;
       case opcode::kUpdate:
-        BOOST_LOG_TRIVIAL(debug) << "Normal Update" << std::endl;
+        BOOST_LOG_TRIVIAL(debug) << "Normal Update";
         redo_row = makeUpCols((Ushort*)change->part(3),
                               ((OpCodeKdourp*)kdo)->nchanged_, change, 4,
                               kdo->xtype_, false);
         break;
       case opcode::kMultiInsert: {
-        BOOST_LOG_TRIVIAL(debug) << "Mulit Insert" << std::endl;
+        BOOST_LOG_TRIVIAL(debug) << "Mulit Insert";
         OpCodeKdoqm* qm = (OpCodeKdoqm*)change->part(2);
         Uchar* data = (Uchar*)change->part(4);
         for (int row = 0; row < qm->nrow_; ++row) {

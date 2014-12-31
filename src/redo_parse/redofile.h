@@ -3,6 +3,7 @@
 
 #include <string>
 #include <map>
+#include <memory>
 #include <stdint.h>
 #include <functional>
 #include "logical_elems.h"
@@ -50,7 +51,7 @@ namespace databus {
     // the online logfile was re-write(switch logfile)
     // just turn to the archive log. Be sure to return
     // a valid RecordBuf with this call!
-    RecordBuf *nextRecordBuf();
+    std::shared_ptr<RecordBuf> nextRecordBuf();
 
     ~RedoFile();
 

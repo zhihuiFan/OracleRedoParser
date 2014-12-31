@@ -164,17 +164,17 @@ namespace databus {
   struct OpCodeKdoqm {
     uint32_t bdba_;
     uint32_t hdba_;
-    unsigned short maxfr_;
-    unsigned char opcode_;
-    unsigned char xtype_;
-    unsigned char itli_;
-    unsigned char ispac_;
-    unsigned short unknown1_;
-    unsigned char tabn_;
-    unsigned char lock_;
-    unsigned char nrow_;
-    unsigned char unknown_;
-    unsigned short slot_[1];
+    Ushort maxfr_;
+    Uchar opcode_;
+    Uchar xtype_;
+    Uchar itli_;
+    Uchar ispac_;
+    Ushort unknown1_;
+    Uchar tabn_;
+    Uchar lock_;
+    Uchar nrow_;
+    Uchar unknown_;
+    Ushort slot_[1];
   };
 
   struct RedoRid {
@@ -193,8 +193,8 @@ namespace databus {
 
   struct OpCode0502 {
     Ushort slot_;
-    Ushort u1_;
-    uint32_t sequence_;
+    Ushort unknow_;
+    uint32_t sqn_;
     uint32_t uba_high_;
     Ushort uba_mid_;
     Uchar uba_low_;     /* 0x2e */
@@ -207,6 +207,26 @@ namespace databus {
     Ushort pxid_major_;
     Ushort pxid_minor_;
     uint32_t pxid_micro_;
+  };
+
+  struct OpCode0504_ucm {
+    Ushort slt_;
+    Ushort unknown2;
+    uint32_t sqn_;
+    Uchar srt;
+    Uchar unknown1[3];
+    uint32_t sta;
+    Uchar flg_;
+  };
+  struct OpCode0504_ucf {
+    uint32_t uba_blk_;
+    Ushort uba_seq_;
+    Uchar uba_slt_;
+    Uchar padding_;
+    Ushort ext_;
+    Ushort spc_;
+    Uchar fbi_;
+    Uchar unknown_[3];
   };
 }
 
