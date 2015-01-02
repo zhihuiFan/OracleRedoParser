@@ -17,7 +17,8 @@ namespace databus {
 
   std::string Transaction::toString() const {
     std::stringstream ss;
-    ss << std::endl << "start_scn : " << start_scn_.toStr() << std::endl
+    ss << std::endl << "XID " << std::hex << xid_ << std::endl
+       << "start_scn : " << start_scn_.toStr() << std::endl
        << "commit_scn: " << commit_scn_.toStr() << std::endl
        << "commited  : " << (int)commited_ << std::endl;
     for (auto rc : changes_) {
@@ -113,6 +114,7 @@ namespace databus {
               }
               xidmap[xid] = TransactionPtr(new Transaction());
               xidmap[xid]->start_scn_ = record_scn;
+              xidmap[xid]->xid_ = xid;
             }
           }
           undo = Ops0501::makeUpUndo(change);

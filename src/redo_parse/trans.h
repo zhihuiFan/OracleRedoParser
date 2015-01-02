@@ -37,7 +37,8 @@ namespace databus {
   typedef std::map<DBA, USN>& DBAMap;
 
   struct Transaction {
-    Transaction() : commited_(0) {}
+    Transaction() : commited_(0), xid_(0) {}
+    XID xid_;
     SCN start_scn_;
     SCN commit_scn_;
     char commited_;  // 2=commited  4=rollbacked
