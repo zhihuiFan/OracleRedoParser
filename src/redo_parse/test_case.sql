@@ -1,6 +1,7 @@
 --- Purpose:  Gather all the test cases for log mining 
 --- Author :  Fan Zhihui
 --- Created:  2014/11/29
+conn andy/andy
 set echo on
 drop table target;
 create table target (b varchar2(4000), a int primary key, c date, d varchar2(4000), e varchar2(4000));
