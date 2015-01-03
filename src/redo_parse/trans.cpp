@@ -4,6 +4,7 @@
 #include "metadata.h"
 #include "tconvert.h"
 #include "util/logger.h"
+#include "stream.h"
 
 namespace databus {
   DBAMap Transaction::getDBAMap() {
@@ -40,7 +41,7 @@ namespace databus {
       : scn_(), op_(Op::NA), object_id_(0), pk_{}, new_data_{} {}
   std::string RowChange::toString() const {
     std::stringstream ss;
-    TabDefPtr tab_def = metadata->getTabDefFromId(object_id_);
+    TabDefPtr tab_def = getMetadata().getTabDefFromId(object_id_);
     ss << std::endl << "Change SCN " << scn_.toStr() << std::endl
        << opmap.at(op_) << tab_def->owner << "." << tab_def->name << std::endl;
     switch (op_) {
@@ -206,7 +207,7 @@ namespace databus {
           << " info was missed when I want to add a change to it";
       return;
     }
-    auto table_def = metadata->getTabDefFromId(object_id);
+    auto table_def = getMetadata().getTabDefFromId(object_id);
     if (table_def == NULL) {
       BOOST_LOG_TRIVIAL(warning) << "Can't get table definition for object_id "
                                  << object_id << " ignore this change ";

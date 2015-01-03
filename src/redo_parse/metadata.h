@@ -79,7 +79,6 @@ namespace databus {
     static std::map<uint32_t, std::shared_ptr<TabDef> > oid2def_;
     static std::map<uint32_t, uint32_t> poid2goid_;
   };
-  extern std::shared_ptr<MetadataManager> metadata;
 
   class LogManager {
    public:

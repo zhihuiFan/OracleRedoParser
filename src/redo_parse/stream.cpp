@@ -110,12 +110,6 @@ namespace databus {
     return cap_tables;
   }
 
-  std::shared_ptr<MetadataManager> makeMetadataManager() {
-    return std::shared_ptr<MetadataManager>(new MetadataManager(
-        streamconf->getString("srcUser"), streamconf->getString("srcPass"),
-        streamconf->getString("srcDB")));
-  }
-
   void initStream(int ac, char** av) {
     streamconf = new StreamConf(ac, av);
     captual_tables =
@@ -127,8 +121,6 @@ namespace databus {
       std::cout << i << std::endl;
     }
     */
-    metadata = makeMetadataManager();
-
     logmanager = std::shared_ptr<LogManager>(new LogManager(
         streamconf->getString("srcUser"), streamconf->getString("srcPass"),
         streamconf->getString("srcDB")));
@@ -138,7 +130,7 @@ namespace databus {
       if (first == last && first != table.npos) {
         std::string owner = table.substr(0, first);
         std::string tablename = table.substr(first + 1, table.npos - first - 1);
-        metadata->initTabDefFromName(owner, tablename);
+        getMetadata().initTabDefFromName(owner, tablename);
         // if (tabdef) tabdef->dump();
       } else {
         // TODO: why?

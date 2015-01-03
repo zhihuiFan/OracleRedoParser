@@ -134,7 +134,7 @@ namespace databus {
     uint32_t block_size_;
     uint32_t last_block_id_;
     Uchar ora_version_;
-    bool allop_;
+    bool allop_;  // log all op in RecordBuf, not only 11.x
 
     char *curr_record_pos_;
   };

@@ -56,13 +56,12 @@ namespace databus {
     }
     */
 
-  std::shared_ptr<MetadataManager> metadata = NULL;
   std::shared_ptr<LogManager> logmanager = NULL;
 
   int main(int ac, char** av) {
     initStream(ac, av);
     RedoFile redofile(
-        streamconf->getUint32("startSeq"),
+        getStreamConf().getUint32("startSeq"),
         [](uint32_t seq) -> std::string { return logmanager->getLogfile(seq); },
         [](uint32_t seq)
             -> uint32_t { return logmanager->getOnlineLastBlock(seq); });

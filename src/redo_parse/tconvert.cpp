@@ -75,8 +75,8 @@ namespace databus {
     if (len == 0) return "";
     if (type == "VARCHAR2") return input;
     if (type == "NUMBER") {
-      return numberAsStr(input, len)
-          .toText(metadata->getEnv(), "99999999999999999999999999999999999999");
+      return numberAsStr(input, len).toText(
+          getMetadata().getEnv(), "99999999999999999999999999999999999999");
     }
     if (type == "DATE") {
       return dateToStr(input, len);
@@ -86,7 +86,7 @@ namespace databus {
 
   void tranDump(XID xid, uint32_t object_id, const char* optype,
                 std::list<Row> undos, std::list<Row> redos) {
-    auto table_def = metadata->getTabDefFromId(object_id);
+    auto table_def = getMetadata().getTabDefFromId(object_id);
     if (table_def == NULL) {
       BOOST_LOG_TRIVIAL(debug) << "Obj (" << object_id
                                << ") doesn't exist or don't have PK";

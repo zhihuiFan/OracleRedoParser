@@ -11,7 +11,6 @@
 #include <memory>
 
 #include "util/container.h"
-#include "stream.h"
 #include "metadata.h"
 
 namespace databus {
@@ -34,11 +33,18 @@ namespace databus {
     po::variables_map vm;
   };
 
-  std::shared_ptr<MetadataManager> makeMetadataManager();
-
-  extern std::shared_ptr<LogManager> logmanager;
   extern StreamConf* streamconf;
+  extern std::shared_ptr<LogManager> logmanager;
   extern std::list<std::string> captual_tables;
+
+  inline MetadataManager& getMetadata() {
+    static MetadataManager metadata(streamconf->getString("srcUser"),
+                                    streamconf->getString("srcPass"),
+                                    streamconf->getString("srcDB"));
+    return metadata;
+  }
+
+  inline StreamConf& getStreamConf() { return *streamconf; }
 
   void initStream(int ac, char** av);
 }
