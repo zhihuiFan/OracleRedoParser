@@ -20,7 +20,7 @@ namespace databus {
   using util::dassert;
 
   void RedoFile::init(const char* filename) {
-    BOOST_LOG_TRIVIAL(debug) << "init " << filename;
+    BOOST_LOG_TRIVIAL(info) << "RedoFile::init " << filename;
 
     if (file_start_pos_ != NULL) munmap(file_start_pos_, length_);
     int fd = open(filename, O_RDONLY, 0644);
