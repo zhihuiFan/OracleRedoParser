@@ -37,6 +37,18 @@ namespace databus {
     // 4. We should not init TableDef when needed, so modify getTabDefFromId
     // TODO:
     //  a. init TableDef when get a objid effectively
+    //  b. since db connection is not thread-safe, so this function is not
+    //  thread-safe.
+    //     need to verify only 1 thread use db connection,  all the others are
+    //     read from static
+    //     member only,
+    //  c. With the mode stated in b,  this read/write mode doesn't need a
+    //  mutex?
+    //     A: on a given time, getTabDefFromId to get a TabDef, the object_id
+    //     must be
+    //        inited or not before, so when read this id, there is no changes
+    //        for this
+    //        id during the time. so doesn't need a mutex in this case?
     friend class Rules;
 
    public:
@@ -53,16 +65,19 @@ namespace databus {
     // return -1 if the given seq is not the current logfile
     uint32_t getOnlineLastBlock(uint32_t seq);
 
+    // TODO: thread-safe? only called in NumberAsStr
     Environment* getEnv() { return env_; }
 
    private:
     void init(const std::string& username, const std::string& password,
               const std::string& db);
     uint32_t getGlobalObjId(uint32_t obj);
-    bool haveDef(uint32_t object_id) {
+    void initFromId(uint32_t object_id);
+
+   public:
+    static bool haveDef(uint32_t object_id) {
       return oid2def_.find(object_id) != oid2def_.end();
     }
-    void initFromId(uint32_t object_id);
 
    private:
     // for re-connect

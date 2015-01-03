@@ -57,8 +57,9 @@ namespace databus {
     objp2g_stmt_ = conn_->createStatement(
         " select object_id from dba_objects"
         " where subobject_name is null and"
-        " object_name = (select object_name "
-        " from dba_objects where object_id = :x)");
+        " (object_name, owner) in (select "
+        " object_name, owner from dba_objects "
+        " where object_id = :x)");
     obj2tab_stmt_ = conn_->createStatement(
         " select owner, object_name from dba_objects"
         " where object_id = :x");
