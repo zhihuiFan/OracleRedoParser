@@ -39,6 +39,7 @@ namespace databus {
     size_t offset() const { return offset_; }
 
     ~RecordBuf() { delete[] change_buffers_; }
+    SCN& scn() { return scn_; }
 
    private:
     // allop:  if true, capatural all opocde. or else only captual valid op

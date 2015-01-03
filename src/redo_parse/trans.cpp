@@ -81,7 +81,7 @@ namespace databus {
     XID xid = 0;
     std::list<Row> undo, redo;
     uint32_t object_id;
-    SCN record_scn = ((RecordHeaderMinor*)(record.get()))->scn();
+    SCN record_scn = record->scn();
     SCN trans_start_scn;
     SCN zeroSCN;
     Op op = Op::NA;
