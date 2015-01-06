@@ -1,4 +1,4 @@
-CXXFLAGS_BASE=-I. -I.. -std=c++11 -g -O0  -pthread
+CXXFLAGS_BASE=-I. -I.. -std=c++11 -g -O0  -pthread -D__STREAM_DEBUG__
 CC=g++
 DEPS=metadata.h \
 	 logical_elems.h \

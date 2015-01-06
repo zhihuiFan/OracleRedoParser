@@ -203,6 +203,7 @@ namespace databus {
     uint32_t headerSize() const { return sizeof(ChangeHeader) + align4(lol()); }
     // size of opCode_xxxx
     uint32_t changeSize() const;
+    const SCN scn() const { return SCN(high_scn_, low_scn_, seq_); }
 
     // return the pointer of the part_n
     const char *part(int part_no) const;

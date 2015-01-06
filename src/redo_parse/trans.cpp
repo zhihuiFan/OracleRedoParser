@@ -1,3 +1,4 @@
+#include <map>
 #include "trans.h"
 #include "opcode.h"
 #include "opcode_ops.h"
@@ -83,6 +84,7 @@ namespace databus {
     uint32_t object_id;
     SCN record_scn = record->scn();
     SCN trans_start_scn;
+    SCN change_scn;
     SCN zeroSCN;
     Op op = Op::NA;
     for (auto change : record->change_vectors) {
@@ -91,6 +93,7 @@ namespace databus {
           dba = change->dba();
           {
             if (((OpCode0502*)change->part(1))->sqn_ > 0) {
+              // sqn_ == 0 is not a start of transaction
               trans_start_scn = record_scn;
             }
           }
@@ -121,15 +124,18 @@ namespace databus {
           undo = Ops0501::makeUpUndo(change);
           break;
         case opcode::kUpdate:
+          change_scn = change->scn();
           redo = OpsDML::makeUpRedoCols(change);
           op = Op::UPDATE;
           break;
         case opcode::kInsert:
         case opcode::kMultiInsert:
+          change_scn = change->scn();
           redo = OpsDML::makeUpRedoCols(change);
           op = Op::INSERT;
           break;
         case opcode::kDelete:
+          change_scn = change->scn();
           op = Op::DELETE;
           break;
         case opcode::kCommit:
@@ -175,7 +181,7 @@ namespace databus {
       }  // end switch
     }
     if (op != Op::NA)
-      makeTranRecord(xid, object_id, op, undo, redo, record_scn);
+      makeTranRecord(xid, object_id, op, undo, redo, change_scn);
   }
 
   static int findPk(std::shared_ptr<TabDef> table_def, const Row& undo,
@@ -209,8 +215,8 @@ namespace databus {
     }
     auto table_def = getMetadata().getTabDefFromId(object_id);
     if (table_def == NULL) {
-      BOOST_LOG_TRIVIAL(warning) << "Can't get table definition for object_id "
-                                 << object_id << " ignore this change ";
+      BOOST_LOG_TRIVIAL(debug) << "Can't get table definition for object_id "
+                               << object_id << " ignore this change ";
       return;
     }
     switch (op) {
@@ -258,5 +264,29 @@ namespace databus {
         BOOST_LOG_TRIVIAL(fatal) << "Unknown Op " << (int)op;
         break;
     }
+  }
+
+  bool verifyTrans(TransactionPtr trans_ptr) {
+    bool dup = false;
+#ifdef __STREAM_DEBUG__
+    // we use scn to order changes, so we don't want 2 exactly same
+    // scn in a given transaction
+    std::map<SCN, uint32_t> scn_count;
+    for (auto i : trans_ptr->changes_) {
+      scn_count[i->scn_]++;
+    }
+    for (auto i : scn_count) {
+      if (i.second > 1) {
+        dup = true;
+        break;
+      }
+    }
+
+    if (dup) {
+      BOOST_LOG_TRIVIAL(warning) << "FOUND duplicated SCN in this transaction";
+      BOOST_LOG_TRIVIAL(warning) << trans_ptr->toString();
+    }
+#endif
+    return ~dup;
   }
 }

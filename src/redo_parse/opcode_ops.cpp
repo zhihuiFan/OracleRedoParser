@@ -89,10 +89,9 @@ namespace databus {
       const char* src = change->part(data_offset + i);
       char* data = new char[*(col_len + i) + 1];
       if (*(change->partLen(data_offset + i)) < *(col_len + i)) {
-        BOOST_LOG_TRIVIAL(warning) << "column_len( " << *(col_len + i)
-                                   << ") is bigger than data part length("
-                                   << *(change->partLen(data_offset + i))
-                                   << ")";
+        BOOST_LOG_TRIVIAL(debug) << "column_len( " << *(col_len + i)
+                                 << ") is bigger than data part length("
+                                 << *(change->partLen(data_offset + i)) << ")";
         *(col_len + i) = *(change->partLen(data_offset + i));
       }
       memcpy(data, src, *(col_len + i));
@@ -234,6 +233,7 @@ namespace databus {
               i->col_id_ += irp->column_count_;
             }
           }
+          // for incompleted row chain, return null list here
           row_chain_row.splice(row_chain_row.end(), redo_row);
           if (irp->flag_ == 0x28) {
             redo_row = std::move(row_chain_row);

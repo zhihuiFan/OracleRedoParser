@@ -55,6 +55,8 @@ namespace databus {
   void makeTranRecord(XID xid, uint32_t object_id, Op op, std::list<Row>& undo,
                       std::list<Row>& redo, const SCN& scn);
 
+  bool verifyTrans(TransactionPtr trans_ptr);
+
   void dump(TransactionPtr trans);
 }
 #endif /* ----- #ifndef TRANS_INC  ----- */
