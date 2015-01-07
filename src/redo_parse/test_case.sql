@@ -7,12 +7,14 @@ drop table target;
 create table target (b varchar2(4000), a int primary key, c date, d varchar2(4000), e varchar2(4000));
 alter system switch logfile;
 
+-- insert part of columns
 insert into target(a, b, c) values(1, 'FANZHIHUI',  sysdate);
 commit;
 insert into target(a, b, c)  values(2, 'abcdef',  sysdate);
 commit;
 update target set b='ABCDEF' where a=1;
 commit;
+-- delete rows, which only parts of column have value
 delete from target where a=2;
 delete from target where a=1;
 commit;

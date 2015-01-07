@@ -55,28 +55,26 @@ namespace databus {
     ss << tab_def->owner << "." << tab_def->name;
     std::string table_name = ss.str();
 
-    std::vector<std::string> old_pk(pk_.size());
     switch (op_) {
       case Op::INSERT:
       case Op::MINSERT: {
         std::vector<std::string> new_data(new_data_.size());
         std::vector<std::string> col_names(new_data_.size());
+        int i = 0;
         for (auto col : new_data_) {
-          new_data.push_back(std::move(convert(
-              col->content_, tab_def->col_types[col->col_id_ + 1], col->len_)));
-          col_names.push_back(std::move(tab_def->col_names[col->col_id_ + 1]));
+          new_data[i] = std::move(convert(
+              col->content_, tab_def->col_types[col->col_id_ + 1], col->len_));
+          col_names[i++] = std::move(tab_def->col_names[col->col_id_ + 1]);
         }
 
         if (scn) {
 
           return scn_.toStr() + " " +
-                 (format_insert % table_name %
-                  boost::join_if(col_names, ", ", not_empty) %
+                 (format_insert % table_name % boost::join(col_names, ", ") %
                   boost::join_if(new_data, ", ", not_empty)).str();
         } else {
-          return (format_insert % table_name %
-                  boost::join_if(col_names, ", ", not_empty) %
-                  boost::join_if(new_data, ",", not_empty)).str();
+          return (format_insert % table_name % boost::join(col_names, ", ") %
+                  boost::join_if(new_data, ", ", not_empty)).str();
         }
 
       } break;
@@ -281,7 +279,11 @@ namespace databus {
       case Op::INSERT: {
         for (auto row : redos) {
           RowChangePtr rcp(new RowChange());
-          rcp->new_data_ = std::move(row);
+          for (auto col : row) {
+            if (col->len_ > 0) {
+              rcp->new_data_.push_back(col);
+            }
+          }
           rcp->scn_ = scn;
           rcp->op_ = op;
           rcp->object_id_ = object_id;
