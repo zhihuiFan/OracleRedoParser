@@ -27,9 +27,9 @@ commit;
 insert all
     into target(a, b, c) values(-100, 'ab', sysdate-1)
     into target(a) values(-101)
-    into target(a, c) values(-102, sysdate-2)
+    into target(a, c) values(-102.22, sysdate-2)
 select * from dual;
-commit;
+commit
 delete from target where a=-100;
 delete from target where a=-101;
 rollback;
