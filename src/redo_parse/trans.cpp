@@ -1,4 +1,7 @@
+#include <boost/algorithm/string.hpp>
+#include <boost/format.hpp>
 #include <map>
+#include <vector>
 #include "trans.h"
 #include "opcode.h"
 #include "opcode_ops.h"
@@ -19,12 +22,12 @@ namespace databus {
 
   std::string Transaction::toString() const {
     std::stringstream ss;
-    ss << std::endl << "XID " << std::hex << xid_ << std::endl
-       << "start_scn : " << start_scn_.toStr() << std::endl
-       << "commit_scn: " << commit_scn_.toStr() << std::endl
-       << "commited  : " << (int)commited_ << std::endl;
+    ss << std::endl << "XID " << std::hex << xid_
+       << " start_scn : " << start_scn_.toStr()
+       << " commit_scn: " << commit_scn_.toStr()
+       << " commited  : " << (int)commited_ << std::endl;
     for (auto rc : changes_) {
-      ss << rc->toString();
+      ss << rc->toString() << std::endl;
     }
     return ss.str();
   }
@@ -40,41 +43,81 @@ namespace databus {
 
   RowChange::RowChange()
       : scn_(), op_(Op::NA), object_id_(0), pk_{}, new_data_{} {}
-  std::string RowChange::toString() const {
-    std::stringstream ss;
+  std::string RowChange::toString(bool scn) const {
+    static auto format_insert = boost::format("insert into %s(%s) values(%s)");
+    static auto format_update = boost::format("update %s set %s where %s");
+    static auto format_delete = boost::format("delete from %s where %s");
+    static auto not_empty = [](const std::string& s)
+                                -> bool { return !s.empty(); };
+
     TabDefPtr tab_def = getMetadata().getTabDefFromId(object_id_);
-    ss << std::endl << "Change SCN " << scn_.toStr() << std::endl
-       << opmap.at(op_) << tab_def->owner << "." << tab_def->name << std::endl;
+    std::stringstream ss;
+    ss << tab_def->owner << "." << tab_def->name;
+    std::string table_name = ss.str();
+
+    std::vector<std::string> old_pk(pk_.size());
     switch (op_) {
       case Op::INSERT:
-      case Op::MINSERT:
+      case Op::MINSERT: {
+        std::vector<std::string> new_data(new_data_.size());
+        std::vector<std::string> col_names(new_data_.size());
         for (auto col : new_data_) {
-          ss << colAsStr(col, tab_def, '=') << std::endl;
+          new_data.push_back(std::move(convert(
+              col->content_, tab_def->col_types[col->col_id_ + 1], col->len_)));
+          col_names.push_back(std::move(tab_def->col_names[col->col_id_ + 1]));
         }
-        ss << "\n";
-        break;
-      case Op::UPDATE:
-        ss << " SET ";
+
+        if (scn) {
+
+          return scn_.toStr() + " " +
+                 (format_insert % table_name %
+                  boost::join_if(col_names, ", ", not_empty) %
+                  boost::join_if(new_data, ", ", not_empty)).str();
+        } else {
+          return (format_insert % table_name %
+                  boost::join_if(col_names, ", ", not_empty) %
+                  boost::join_if(new_data, ",", not_empty)).str();
+        }
+
+      } break;
+      case Op::UPDATE: {
+        std::vector<std::string> new_data(new_data_.size());
+        std::vector<std::string> where_conds(new_data_.size());
         for (auto col : new_data_) {
-          ss << colAsStr(col, tab_def, '=') << std::endl;
+          new_data.push_back(std::move(colAsStr(col, tab_def, '=')));
         }
-        ss << "WHERE ";
         for (auto col : pk_) {
-          ss << colAsStr(col, tab_def, '=') << std::endl << " AND ";
+          where_conds.push_back(std::move(colAsStr(col, tab_def, '=')));
         }
-        ss << " 1=1; ";
-        break;
-      case Op::DELETE:
-        ss << "WHERE ";
+        if (scn) {
+          return scn_.toStr() + " " +
+                 (format_update % table_name %
+                  boost::join_if(new_data, ", ", not_empty) %
+                  boost::join_if(where_conds, ", ", not_empty)).str();
+        } else {
+          return (format_update % table_name %
+                  boost::join_if(new_data, ", ", not_empty) %
+                  boost::join_if(where_conds, ", ", not_empty)).str();
+        }
+      } break;
+      case Op::DELETE: {
+        std::vector<std::string> where_conds(new_data_.size());
         for (auto col : pk_) {
-          ss << colAsStr(col, tab_def, '=') << std::endl << " AND ";
+          where_conds.push_back(std::move(colAsStr(col, tab_def, '=')));
         }
-        ss << " 1=1; ";
-        break;
+        if (scn) {
+          return scn_.toStr() + " " +
+                 (format_delete % table_name %
+                  boost::join_if(where_conds, ", ", not_empty)).str();
+        } else {
+          return (format_delete % table_name %
+                  boost::join_if(where_conds, ", ", not_empty)).str();
+        }
+      } break;
       default:
         BOOST_LOG_TRIVIAL(fatal) << "Unknown Op " << (int)op_;
     }
-    return ss.str();
+    return "";
   }
 
   void buildTransaction(RecordBufPtr record) {
@@ -203,6 +246,7 @@ namespace databus {
       return -1;
     }
   }
+
   void makeTranRecord(XID xid, uint32_t object_id, Op op, std::list<Row>& undos,
                       std::list<Row>& redos, const SCN& scn) {
     XIDMap xidmap = Transaction::getXIDMap();

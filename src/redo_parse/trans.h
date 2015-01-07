@@ -16,7 +16,7 @@ namespace databus {
   struct RowChange {
     RowChange();
     bool operator<(const RowChange& other) const { return scn_ < other.scn_; }
-    std::string toString() const;
+    std::string toString(bool scn = false) const;
 
     SCN scn_;
     Op op_;

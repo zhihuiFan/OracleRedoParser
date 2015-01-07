@@ -1,3 +1,4 @@
+#include <boost/algorithm/string.hpp>
 #include <list>
 #include <string>
 #include <sstream>
@@ -75,8 +76,8 @@ namespace databus {
     if (len == 0) return "";
     if (type == "VARCHAR2") return input;
     if (type == "NUMBER") {
-      return numberAsStr(input, len).toText(
-          getMetadata().getEnv(), "99999999999999999999999999999999999999");
+      return boost::trim_left_copy(numberAsStr(input, len).toText(
+          getMetadata().getEnv(), "99999999999999999999999999999999999999"));
     }
     if (type == "DATE") {
       return dateToStr(input, len);

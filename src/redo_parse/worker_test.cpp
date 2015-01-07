@@ -33,7 +33,9 @@ namespace databus {
     BOOST_LOG_TRIVIAL(info) << "Dump Transaction now";
     for (auto tran : Transaction::getXIDMap()) {
       verifyTrans(tran.second);
-      BOOST_LOG_TRIVIAL(info) << tran.second->toString();
+      if (!tran.second->changes_.empty()) {
+        BOOST_LOG_TRIVIAL(info) << tran.second->toString();
+      }
     }
     //    MetadataManager::destory();
     return 0;
