@@ -62,9 +62,9 @@ namespace databus {
       if (ora_date->decade_ < 100 || ora_date->century_ < 100) year = -year;
 
       std::stringstream ss;
-      ss << year << "-" << (int)ora_date->month_ << "-" << (int)ora_date->day_
-         << " " << (int)ora_date->hour_ << ":" << (int)ora_date->minute_ << ":"
-         << (int)ora_date->second_;
+      ss << "'" << year << "-" << (int)ora_date->month_ << "-"
+         << (int)ora_date->day_ << " " << (int)ora_date->hour_ << ":"
+         << (int)ora_date->minute_ << ":" << (int)ora_date->second_ << "'";
       return ss.str();
     }
     return NULL;
@@ -74,7 +74,11 @@ namespace databus {
     // TODO: why length is 0 A: NULL ? Confirm: Yes,  TODO: in real case, we
     // need a NULL here
     if (len == 0) return "";
-    if (type == "VARCHAR2") return input;
+    if (type == "VARCHAR2") {
+      std::stringstream ss;
+      ss << "'" << input << "'";
+      return ss.str();
+    }
     if (type == "NUMBER") {
       return boost::trim_left_copy(numberAsStr(input, len).toText(
           getMetadata().getEnv(), "99999999999999999999999999999999999999"));
