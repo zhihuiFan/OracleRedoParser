@@ -29,6 +29,13 @@ namespace databus {
     for (auto rc : changes_) {
       ss << rc->toString() << std::endl;
     }
+
+    if (commited_ & 4)
+      ss << "rollback" << std::endl;
+    else if (commited_ & 2)
+      ss << "commit" << std::endl;
+    else
+      ss << "Unknow commit flag " << (int)commited_ << std::endl;
     return ss.str();
   }
 
