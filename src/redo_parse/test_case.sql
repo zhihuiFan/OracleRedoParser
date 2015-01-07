@@ -30,6 +30,9 @@ insert all
     into target(a, c) values(-102, sysdate-2)
 select * from dual;
 commit;
+delete from target where a=-100;
+delete from target where a=-101;
+rollback;
 drop table test;
 create table test (a int primary key, b varchar2(40), c date, d varchar2(40), e varchar2(40));
 -- This will generate Mulit-Insert
