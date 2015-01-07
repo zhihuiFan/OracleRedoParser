@@ -64,7 +64,7 @@ namespace databus {
         for (auto col : new_data_) {
           new_data[i] = std::move(convert(
               col->content_, tab_def->col_types[col->col_id_ + 1], col->len_));
-          col_names[i++] = std::move(tab_def->col_names[col->col_id_ + 1]);
+          col_names[i++] = tab_def->col_names[col->col_id_ + 1];
         }
 
         if (scn) {
