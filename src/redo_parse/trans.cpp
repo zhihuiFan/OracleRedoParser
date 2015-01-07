@@ -37,7 +37,7 @@ namespace databus {
     std::stringstream ss;
     ss << tab_def->col_names[col->col_id_ + 1] << seperator
        << convert(col->content_, tab_def->col_types[col->col_id_ + 1],
-                  col->len_) << ",";
+                  col->len_);
     return ss.str();
   }
 
