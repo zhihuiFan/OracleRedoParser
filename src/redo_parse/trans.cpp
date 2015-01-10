@@ -153,7 +153,7 @@ namespace databus {
             Transaction::getDBAMap()[dba] =
                 ((OpCode0501*)change->part(1))->xid_high_;
             dba = 0;
-            if (zeroSCN < trans_start_scn) {
+            if (!trans_start_scn.empty()) {
               XIDMap xidmap = Transaction::getXIDMap();
               auto it = xidmap.find(xid);
               if (it != xidmap.end()) {

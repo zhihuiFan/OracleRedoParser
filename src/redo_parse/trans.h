@@ -25,11 +25,6 @@ namespace databus {
     Row new_data_;
   };
 
-  // const std::map<Op, const char*> opmap{{Op::INSERT, " INSERT INTO "},
-  const std::map<Op, const char*> opmap{{Op::INSERT, "INSERT INTO "},
-                                        {Op::UPDATE, "UPDATE "},
-                                        {Op::DELETE, "DELETE FROM "}};
-
   typedef std::shared_ptr<RowChange> RowChangePtr;
 
   struct Transaction;
