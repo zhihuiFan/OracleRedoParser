@@ -133,7 +133,7 @@ namespace databus {
     SCN record_scn = record->scn();
     SCN trans_start_scn;
     SCN change_scn;
-    SCN zeroSCN;
+    OpCodeSupplemental* opsup = NULL;
     Op op = Op::NA;
     for (auto change : record->change_vectors) {
       switch (change->opCode()) {
@@ -169,7 +169,12 @@ namespace databus {
               xidmap[xid]->xid_ = xid;
             }
           }
-          undo = Ops0501::makeUpUndo(change);
+          {
+            undo = Ops0501::makeUpUndo(change, opsup);
+            BOOST_LOG_TRIVIAL(info)
+                << "Sup start_col_offset " << record->offset() << ":"
+                << opsup->start_column_ << ":" << opsup->start_column2_;
+          }
           break;
         case opcode::kUpdate:
           change_scn = change->scn();

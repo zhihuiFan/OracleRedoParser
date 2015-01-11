@@ -21,7 +21,8 @@ namespace databus {
     // too many construct and Destruction, that will be too ineffecitve
    public:
     // In c++11, return std::list is effective
-    static std::list<Row> makeUpUndo(const ChangeHeader* change0501);
+    static std::list<Row> makeUpUndo(const ChangeHeader* change0501,
+                                     OpCodeSupplemental*& sup);
     static bool enabledSuppmentalLog(const ChangeHeader* change0501);
 
     static XID getXID(const ChangeHeader* change0501);
@@ -44,7 +45,8 @@ namespace databus {
                              const ChangeHeader* change, Ushort data_offset,
                              bool supplemental = false);
   Row _makeUpLenPrefixCols(Ushort* col_num, Ushort total_cols,
-                           const ChangeHeader* change, Ushort data_offset);
+                           const ChangeHeader* change,
+                           OpCodeSupplemental** sup);
   Row makeUpCols(Ushort* col_num, Ushort total_cols, const ChangeHeader* change,
                  Ushort data_offset, Ushort xtype, bool supplemental = false);
 }

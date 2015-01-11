@@ -29,7 +29,7 @@ insert all
     into target(a) values(-101)
     into target(a, c) values(-102.22, sysdate-2)
 select * from dual;
-commit
+commit;
 delete from target where a=-100;
 delete from target where a=-101;
 rollback;

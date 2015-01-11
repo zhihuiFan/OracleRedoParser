@@ -123,7 +123,8 @@ namespace databus {
               << " data_object_id: " << getDataObjId(change0501) << std::endl;
   }
 
-  std::list<Row> Ops0501::makeUpUndo(const ChangeHeader* change0501) {
+  std::list<Row> Ops0501::makeUpUndo(const ChangeHeader* change0501,
+                                     OpCodeSupplemental*& opsup) {
     std::list<Row> rows;
     Row row;
     OpCodeKdo* opkdo = (OpCodeKdo*)change0501->part(4);
@@ -147,8 +148,7 @@ namespace databus {
           part_no = 6 + irp->column_count_;
         }
         if (irp->xtype_ & 0x20) {
-          OpCodeSupplemental* opsup =
-              (OpCodeSupplemental*)change0501->part(part_no++);
+          opsup = (OpCodeSupplemental*)change0501->part(part_no++);
           Row suplemental_cols = _makeUpNoLenPrefixCols(
               (Ushort*)change0501->part(part_no), opsup->total_cols_,
               change0501, part_no + 2, true);
