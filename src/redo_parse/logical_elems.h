@@ -15,7 +15,8 @@ namespace databus {
   class SCN {
    public:
     SCN() : major_(0), minor_(0), subscn_(0), noffset_(0) {}
-    SCN(Ushort maj, uint32_t minor, unsigned int subscn = 0, int noffset = 0)
+    SCN(Ushort maj, uint32_t minor, unsigned int subscn = 0,
+        uint32_t noffset = 0)
         : major_(maj), minor_(minor), subscn_(subscn), noffset_(noffset) {}
 
     bool operator<(const SCN& other) const;
@@ -27,7 +28,7 @@ namespace databus {
     Ushort major_;
     uint32_t minor_;
     unsigned int subscn_;
-    int noffset_;
+    uint32_t noffset_;
 
    private:
     uint64_t toNum() const;

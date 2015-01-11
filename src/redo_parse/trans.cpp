@@ -177,18 +177,15 @@ namespace databus {
           }
           break;
         case opcode::kUpdate:
-          change_scn = change->scn();
           redo = OpsDML::makeUpRedoCols(change);
           op = Op::UPDATE;
           break;
         case opcode::kInsert:
         case opcode::kMultiInsert:
-          change_scn = change->scn();
           redo = OpsDML::makeUpRedoCols(change);
           op = Op::INSERT;
           break;
         case opcode::kDelete:
-          change_scn = change->scn();
           op = Op::DELETE;
           break;
         case opcode::kCommit:
@@ -234,7 +231,7 @@ namespace databus {
       }  // end switch
     }
     if (op != Op::NA)
-      makeTranRecord(xid, object_id, op, undo, redo, change_scn);
+      makeTranRecord(xid, object_id, op, undo, redo, record_scn);
   }
 
   static int findPk(std::shared_ptr<TabDef> table_def, const Row& undo,

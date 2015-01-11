@@ -224,6 +224,7 @@ namespace databus {
         }
         redo_row =
             makeUpCols(NULL, irp->column_count_, change, 3, irp->xtype_, false);
+        /*
         static Row row_chain_row;
         if (irp->flag_ != 0x2c) {
           // std::cout << std::hex << "0x" << (Ushort)irp->flag_ << std::endl;
@@ -239,6 +240,7 @@ namespace databus {
             redo_row = std::move(row_chain_row);
           }
         }
+        */
       } break;
       case opcode::kUpdate:
         BOOST_LOG_TRIVIAL(debug) << "Normal Update";

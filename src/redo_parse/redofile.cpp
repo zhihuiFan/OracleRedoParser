@@ -151,6 +151,8 @@ namespace databus {
       goto again;
     }
 
+    record_scn.noffset_ = offset;
+    // TODO: remove noffset in record_buf since we can knows this from SCN
     RecordBufPtr record_buf(new RecordBuf(record_scn, change_length, epoch,
                                           change_buf, offset, allop_));
 
