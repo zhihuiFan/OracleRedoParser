@@ -54,8 +54,8 @@ namespace databus {
   };
 
   struct OpCodeKdo {
-    uint32_t bdba_;
-    uint32_t hdba_;
+    uint32_t bdba_;  // block address
+    uint32_t hdba_;  // segment header block address
     Ushort maxfr_;
     Uchar opcode_;
     Uchar xtype_;

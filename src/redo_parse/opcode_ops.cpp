@@ -124,11 +124,13 @@ namespace databus {
   }
 
   std::list<Row> Ops0501::makeUpUndo(const ChangeHeader* change0501,
+                                     Ushort& uflag_,
                                      OpCodeSupplemental*& opsup) {
     std::list<Row> rows;
     Row row;
     OpCodeKdo* opkdo = (OpCodeKdo*)change0501->part(4);
     OpCode0501Sec* sec = (OpCode0501Sec*)(change0501->part(2));
+    uflag_ = (((OpCode0501*)change0501)->part(1))->flag_;
     // printTransBase(change0501);
     // if there any exception if opkdo->opcode_ = 0501
     switch (opkdo->opcode_ & 0x1f) {
@@ -210,7 +212,8 @@ namespace databus {
     return rows;
   }
 
-  std::list<Row> OpsDML::makeUpRedoCols(const ChangeHeader* change) {
+  std::list<Row> OpsDML::makeUpRedoCols(const ChangeHeader* change,
+                                        Uchar& iflag_) {
     OpCodeKdo* kdo = (OpCodeKdo*)change->part(2);
     std::list<Row> redo_rows;
     Row redo_row;
@@ -224,6 +227,7 @@ namespace databus {
         }
         redo_row =
             makeUpCols(NULL, irp->column_count_, change, 3, irp->xtype_, false);
+        iflag_ = irp->flag_;
         /*
         static Row row_chain_row;
         if (irp->flag_ != 0x2c) {

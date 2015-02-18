@@ -49,7 +49,35 @@ namespace databus {
   }
 
   RowChange::RowChange()
-      : scn_(), op_(Op::NA), object_id_(0), pk_{}, new_data_{} {}
+      : scn_(),
+        object_id_(0),
+        op_(0),
+        uflag_(0),
+        iflag_(0),
+        pk_{},
+        new_data_{} {}
+  RowChange::RowChange(SCN& scn, uint32_t obj_id, Ushort op, Ushort uflag,
+                       Ushort iflag, Row& undo, Row& redo)
+      : scn_(scn), object_id_(obj_id), op_(op), uflag_(uflag), iflag_(iflag) {
+    switch (op_) {
+      case opcode::kDelete: {
+        Row pk;
+        int ret = findPk(table_def, undo, pk);
+        if (ret > 0) {
+          pk_ = std::move(pk);
+        }
+      } break;
+      case opcode::kInsert: {
+        for (auto col : redo) {
+          if (col->len_ > 0) {
+            new_data_.push_back(col);
+          }
+        }
+      } break;
+      case opcode::kUpdate: {
+      }
+    }
+  }
   std::string RowChange::toString(bool scn) const {
     static auto format_insert = boost::format("insert into %s(%s) values(%s)");
     static auto format_update = boost::format("update %s set %s where %s");
@@ -132,9 +160,10 @@ namespace databus {
     uint32_t object_id;
     SCN record_scn = record->scn();
     SCN trans_start_scn;
-    SCN change_scn;
     OpCodeSupplemental* opsup = NULL;
-    Op op = Op::NA;
+    Ushort uflag = 0;
+    Uchar iflag = 0;
+    Ushort op;
     for (auto change : record->change_vectors) {
       switch (change->opCode()) {
         case opcode::kBeginTrans:
@@ -178,15 +207,15 @@ namespace databus {
           break;
         case opcode::kUpdate:
           redo = OpsDML::makeUpRedoCols(change);
-          op = Op::UPDATE;
+          op = opcode:: : kUndo;
           break;
         case opcode::kInsert:
         case opcode::kMultiInsert:
+          op = opcode::kInsert;
           redo = OpsDML::makeUpRedoCols(change);
-          op = Op::INSERT;
           break;
         case opcode::kDelete:
-          op = Op::DELETE;
+          op = opcode::kDelete;
           break;
         case opcode::kCommit:
           dba = change->dba();
@@ -231,7 +260,7 @@ namespace databus {
       }  // end switch
     }
     if (op != Op::NA)
-      makeTranRecord(xid, object_id, op, undo, redo, record_scn);
+      makeTranRecord(xid, object_id, op, undo, redo, record_scn, uflag, iflag);
   }
 
   static int findPk(std::shared_ptr<TabDef> table_def, const Row& undo,

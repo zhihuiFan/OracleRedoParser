@@ -22,7 +22,7 @@ namespace databus {
    public:
     // In c++11, return std::list is effective
     static std::list<Row> makeUpUndo(const ChangeHeader* change0501,
-                                     OpCodeSupplemental*& sup);
+                                     Ushort& uflag_, OpCodeSupplemental*& sup);
     static bool enabledSuppmentalLog(const ChangeHeader* change0501);
 
     static XID getXID(const ChangeHeader* change0501);
@@ -36,7 +36,8 @@ namespace databus {
 
   class OpsDML {
    public:
-    static std::list<Row> makeUpRedoCols(const ChangeHeader* change);
+    static std::list<Row> makeUpRedoCols(const ChangeHeader* change,
+                                         Uchar& iflag);
   };
 
   // TODO:when to relase the heap memory ??

@@ -15,12 +15,16 @@ namespace databus {
 
   struct RowChange {
     RowChange();
+    RowChange(SCN& scn, uint32_t obj_id, Ushort op, Ushort uflag, Ushort, iflag,
+              Row& undo, Row& redo);
     bool operator<(const RowChange& other) const { return scn_ < other.scn_; }
     std::string toString(bool scn = false) const;
 
     SCN scn_;
-    Op op_;
     uint32_t object_id_;
+    Ushort op_;
+    Ushort uflag_;
+    Ushort iflag_;
     Row pk_;
     Row new_data_;
   };
