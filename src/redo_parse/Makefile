@@ -20,8 +20,8 @@ PLATFORM=$(shell uname)
 ifeq ($(PLATFORM),SunOS)
 	BOOST_LIB_DIR='/export/home/oracle/zhifan/boost/lib'
 	CC=/opt/csw/bin/g++
-	LDFLAGS=-L${ORACLE_HOME}/rdbms/public/ -static-libstdc++ -static-libgcc -pthread  -lboost_log -lprogram_options -DBOOST_LOG_DYN_LINK -lo
-	CXXFLAGS = ${CXXFLAGS_BASE} -static-libstdc++ -static-libgcc -m64 -locci -lclntsh
+	LDFLAGS=-L/oracle/VIKING/home/products/11203/lib -static-libstdc++ -static-libgcc -pthread  -lboost_log -lprogram_options -DBOOST_LOG_DYN_LINK -lo
+	CXXFLAGS = ${CXXFLAGS_BASE} -static-libstdc++ -static-libgcc -m64 -locci -lclntsh -I/oracle/VIKING/home/products/11203/rdbms/public -I${HOME}/zhifan/boost/include
 endif
 
 ifeq ($(PLATFORM), Darwin)
