@@ -48,10 +48,30 @@ namespace databus {
     return ss.str();
   }
 
+  static int findPk(std::shared_ptr<TabDef> table_def, const Row& undo,
+                    Row& pk) {
+    for (auto col : undo) {
+      if (col->len_ > 0 &&
+          table_def->pk.find(col->col_id_ + 1) != table_def->pk.end()) {
+        pk.push_back(col);
+      }
+    }
+    int npk = pk.size();
+    if (npk == table_def->pk.size()) {
+      return npk;
+    } else {
+      BOOST_LOG_TRIVIAL(fatal) << "Number of PK mismatched\n Object Name "
+                               << table_def->owner << "." << table_def->name
+                               << "\nNum of PK " << table_def->pk.size()
+                               << "\nNo. of PK in Redo " << pk.size();
+      return -1;
+    }
+  }
+
   RowChange::RowChange()
       : scn_(),
         object_id_(0),
-        op_(0),
+        op_(),
         uflag_(0),
         iflag_(0),
         pk_{},
@@ -59,6 +79,7 @@ namespace databus {
   RowChange::RowChange(SCN& scn, uint32_t obj_id, Ushort op, Ushort uflag,
                        Ushort iflag, Row& undo, Row& redo)
       : scn_(scn), object_id_(obj_id), op_(op), uflag_(uflag), iflag_(iflag) {
+    auto table_def = getMetadata().getTabDefFromId(object_id_);
     switch (op_) {
       case opcode::kDelete: {
         Row pk;
@@ -91,8 +112,8 @@ namespace databus {
     std::string table_name = ss.str();
 
     switch (op_) {
-      case Op::INSERT:
-      case Op::MINSERT: {
+      case opcode::kInsert:
+      case opcode::kMultiInsert: {
         std::vector<std::string> new_data(new_data_.size());
         std::vector<std::string> col_names(new_data_.size());
         int i = 0;
@@ -103,7 +124,6 @@ namespace databus {
         }
 
         if (scn) {
-
           return scn_.toStr() + " " +
                  (format_insert % table_name % boost::join(col_names, ", ") %
                   boost::join_if(new_data, ", ", not_empty)).str();
@@ -113,7 +133,7 @@ namespace databus {
         }
 
       } break;
-      case Op::UPDATE: {
+      case opcode::kUpdate: {
         std::vector<std::string> new_data(new_data_.size());
         std::vector<std::string> where_conds(new_data_.size());
         for (auto col : new_data_) {
@@ -133,7 +153,7 @@ namespace databus {
                   boost::join_if(where_conds, ", ", not_empty)).str();
         }
       } break;
-      case Op::DELETE: {
+      case opcode::kDelete: {
         std::vector<std::string> where_conds(new_data_.size());
         for (auto col : pk_) {
           where_conds.push_back(std::move(colAsStr(col, tab_def, '=')));
@@ -163,7 +183,7 @@ namespace databus {
     OpCodeSupplemental* opsup = NULL;
     Ushort uflag = 0;
     Uchar iflag = 0;
-    Ushort op;
+    Ushort op = 0;
     for (auto change : record->change_vectors) {
       switch (change->opCode()) {
         case opcode::kBeginTrans:
@@ -199,23 +219,20 @@ namespace databus {
             }
           }
           {
-            undo = Ops0501::makeUpUndo(change, opsup);
+            undo = Ops0501::makeUpUndo(change, uflag, opsup);
             BOOST_LOG_TRIVIAL(info)
                 << "Sup start_col_offset " << record->offset() << ":"
                 << opsup->start_column_ << ":" << opsup->start_column2_;
           }
           break;
         case opcode::kUpdate:
-          redo = OpsDML::makeUpRedoCols(change);
-          op = opcode:: : kUndo;
-          break;
         case opcode::kInsert:
         case opcode::kMultiInsert:
-          op = opcode::kInsert;
-          redo = OpsDML::makeUpRedoCols(change);
+          op = change->opCode();
+          redo = OpsDML::makeUpRedoCols(change, iflag);
           break;
         case opcode::kDelete:
-          op = opcode::kDelete;
+          op = change->opCode();
           break;
         case opcode::kCommit:
           dba = change->dba();
@@ -240,51 +257,16 @@ namespace databus {
             }
             xidit->second->commit_scn_ = record_scn;
             xidit->second->commited_ = ucm->flg_;
-            /*
-            switch (ucm->flg_) {
-              case 4:
-                xidit->commited_ = 2;
-                break;
-              case 2:
-                xidit->commited_ = 1;
-                break;
-              default:
-                BOOST_LOG_TRIVIAL(warning)
-                    << "Found known commit flg at offset: " << record->offset()
-                    << std:: : endl;
-                return;
-            }
-            */
           }
-
       }  // end switch
     }
-    if (op != Op::NA)
+    if (op)
       makeTranRecord(xid, object_id, op, undo, redo, record_scn, uflag, iflag);
   }
 
-  static int findPk(std::shared_ptr<TabDef> table_def, const Row& undo,
-                    Row& pk) {
-    for (auto col : undo) {
-      if (col->len_ > 0 &&
-          table_def->pk.find(col->col_id_ + 1) != table_def->pk.end()) {
-        pk.push_back(col);
-      }
-    }
-    int npk = pk.size();
-    if (npk == table_def->pk.size()) {
-      return npk;
-    } else {
-      BOOST_LOG_TRIVIAL(fatal) << "Number of PK mismatched\n Object Name "
-                               << table_def->owner << "." << table_def->name
-                               << "\nNum of PK " << table_def->pk.size()
-                               << "\nNo. of PK in Redo " << pk.size();
-      return -1;
-    }
-  }
-
-  void makeTranRecord(XID xid, uint32_t object_id, Op op, std::list<Row>& undos,
-                      std::list<Row>& redos, const SCN& scn) {
+  void makeTranRecord(XID xid, uint32_t object_id, Ushort op,
+                      std::list<Row>& undos, std::list<Row>& redos,
+                      const SCN& scn, Ushort uflag, Ushort iflag) {
     XIDMap xidmap = Transaction::getXIDMap();
     auto transit = xidmap.find(xid);
     if (transit == xidmap.end()) {
@@ -300,7 +282,7 @@ namespace databus {
       return;
     }
     switch (op) {
-      case Op::DELETE: {
+      case opcode::kDelete: {
         for (auto row : undos) {
           RowChangePtr rcp(new RowChange());
           Row pk;
@@ -314,7 +296,8 @@ namespace databus {
           }
         }
       } break;
-      case Op::INSERT: {
+      case opcode::kMultiInsert:
+      case opcode::kInsert: {
         for (auto row : redos) {
           RowChangePtr rcp(new RowChange());
           for (auto col : row) {
@@ -328,7 +311,8 @@ namespace databus {
           transit->second->changes_.insert(std::move(rcp));
         }
       } break;
-      case Op::UPDATE: {
+
+      case opcode::kUpdate: {
         // this is no mulitUpdate, so there is 1 elems in undo and redo at most
         Row pk;
         auto undo_iter = undos.begin();

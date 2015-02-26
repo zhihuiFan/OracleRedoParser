@@ -11,11 +11,9 @@
 
 namespace databus {
 
-  enum class Op { NA, INSERT, UPDATE, DELETE, MINSERT };
-
   struct RowChange {
     RowChange();
-    RowChange(SCN& scn, uint32_t obj_id, Ushort op, Ushort uflag, Ushort, iflag,
+    RowChange(SCN& scn, uint32_t obj_id, Ushort op, Ushort uflag, Ushort iflag,
               Row& undo, Row& redo);
     bool operator<(const RowChange& other) const { return scn_ < other.scn_; }
     std::string toString(bool scn = false) const;
@@ -51,8 +49,9 @@ namespace databus {
   typedef std::shared_ptr<Transaction> TransactionPtr;
 
   void buildTransaction(RecordBufPtr ptr);
-  void makeTranRecord(XID xid, uint32_t object_id, Op op, std::list<Row>& undo,
-                      std::list<Row>& redo, const SCN& scn);
+  void makeTranRecord(XID xid, uint32_t object_id, Ushort op,
+                      std::list<Row>& undo, std::list<Row>& redo,
+                      const SCN& scn, Ushort uflag, Ushort iflag);
 
   bool verifyTrans(TransactionPtr trans_ptr);
 

@@ -130,7 +130,7 @@ namespace databus {
     Row row;
     OpCodeKdo* opkdo = (OpCodeKdo*)change0501->part(4);
     OpCode0501Sec* sec = (OpCode0501Sec*)(change0501->part(2));
-    uflag_ = (((OpCode0501*)change0501)->part(1))->flag_;
+    uflag_ = ((OpCode0501*)(change0501->part(1)))->flag_;
     // printTransBase(change0501);
     // if there any exception if opkdo->opcode_ = 0501
     switch (opkdo->opcode_ & 0x1f) {

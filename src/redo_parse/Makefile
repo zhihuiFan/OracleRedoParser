@@ -18,8 +18,10 @@ OCI_FLAGS=-locci -lclntsh
 
 PLATFORM=$(shell uname)
 ifeq ($(PLATFORM),SunOS)
-	LDFLAGS=-L${OCCI_HOME} -static-libstdc++ -static-libgcc ${LDFLAGS_BASE} -pthread /usr/local/lib/libboost_log.a /usr/local/lib/libboost_log_setup.a  /usr/local/lib/libboost_thread.a /usr/local/lib/libboost_system.a -lrt
-	CXXFLAGS = ${CXXFLAGS_BASE} -static-libstdc++ -static-libgcc
+	BOOST_LIB_DIR='/export/home/oracle/zhifan/boost/lib'
+	CC=/opt/csw/bin/g++
+	LDFLAGS=-L${ORACLE_HOME}/rdbms/public/ -static-libstdc++ -static-libgcc -pthread  -lboost_log -lprogram_options -DBOOST_LOG_DYN_LINK -lo
+	CXXFLAGS = ${CXXFLAGS_BASE} -static-libstdc++ -static-libgcc -m64 -locci -lclntsh
 endif
 
 ifeq ($(PLATFORM), Darwin)
