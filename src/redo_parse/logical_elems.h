@@ -65,6 +65,7 @@ namespace databus {
     ~ColumnChange() { delete[] content_; }
     void dump();
 
+    // start with 1
     Ushort col_id_;
     Ushort len_;
     char* content_;

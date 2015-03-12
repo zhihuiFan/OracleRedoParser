@@ -1,6 +1,8 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/format.hpp>
 #include <map>
+#include <list>
+#include <assert>
 #include <vector>
 #include "trans.h"
 #include "opcode.h"
@@ -8,16 +10,45 @@
 #include "metadata.h"
 #include "tconvert.h"
 #include "util/logger.h"
+#include "util/dassert.h"
 #include "stream.h"
 
 namespace databus {
-  DBAMap Transaction::getDBAMap() {
-    static std::map<DBA, USN> xid2uba;
-    return xid2uba;
+  bool Transaction::operator<(const Transaction& other) const {
+    return commit_scn_ < other.commit_scn_;
   }
-  XIDMap Transaction::getXIDMap() {
-    static std::map<XID, TransactionPtr> xid_map;
-    return xid_map;
+
+  bool Transaction::buildTransaction() {
+    if (commited_ == 0) return;
+    if (has_rollback()) {
+      xid_map_.erase(xid_);
+      return;
+    } else if (has_commited()) {
+      auto temp_changes_ = std::move(changes_);
+      for (auto& rc : temp_changes_) {
+        if (rc->op_ == opcode::kDelete || rc->op_ == opcode::kMultiInsert) {
+          changes_.insert(rc)
+        } else if (rc->op_ == opcode::Insert) {
+          static Ushort last_col_no = 0;
+          static Row row_chain;
+          if (iflag_ == 0x2c) {
+            // normal insert
+            util::dassert("normal iflag error 0x04", last_col_no == 0);
+            changes_.insert(rc)
+          } else if (iflag == 0x04) {
+            util::dassert("row chain iflag error 0x04", last_col_no == 0);
+            changes_.insert(rc);
+            last_col_no = rc.new_data_.size();
+          } else if (iflag == 0x00) {
+              util::dassert("row chain middle error", last_col_no > 0 && last_col_no == changes_.size());
+              for (auto trc& : changes_) {
+
+              }
+          }
+        }
+      }
+      xid_map_.erase(xid_);
+    }
   }
 
   std::string Transaction::toString() const {
@@ -173,7 +204,7 @@ namespace databus {
     return "";
   }
 
-  void buildTransaction(RecordBufPtr record) {
+  void addToTransaction(RecordBufPtr record) {
     DBA dba = 0;
     XID xid = 0;
     std::list<Row> undo, redo;
@@ -199,11 +230,11 @@ namespace databus {
           xid = Ops0501::getXID(change);
           object_id = Ops0501::getObjId(change);
           if (dba > 0) {
-            Transaction::getDBAMap()[dba] =
+            Transaction::dba_map_[dba] =
                 ((OpCode0501*)change->part(1))->xid_high_;
             dba = 0;
             if (!trans_start_scn.empty()) {
-              XIDMap xidmap = Transaction::getXIDMap();
+              auto& xidmap = Transaction::xid_map_;
               auto it = xidmap.find(xid);
               if (it != xidmap.end()) {
                 BOOST_LOG_TRIVIAL(fatal)
@@ -237,8 +268,8 @@ namespace databus {
         case opcode::kCommit:
           dba = change->dba();
           {
-            auto it = Transaction::getDBAMap().find(dba);
-            if (it == Transaction::getDBAMap().end()) {
+            auto it = Transaction::dba_map_.find(dba);
+            if (it == Transaction::dba_map_.end()) {
               BOOST_LOG_TRIVIAL(warning)
                   << "found dba " << dba
                   << " in commit , but unknow when this transaction is started";
@@ -248,8 +279,8 @@ namespace databus {
             XID ixid =
                 (((XID)it->second) << (sizeof(Ushort) + sizeof(uint32_t)) * 8) |
                 (((XID)ucm->slt_) << sizeof(uint32_t) * 8) | ucm->sqn_;
-            auto xidit = Transaction::getXIDMap().find(ixid);
-            if (xidit == Transaction::getXIDMap().end()) {
+            auto xidit = Transaction::xid_map_.find(ixid);
+            if (xidit == Transaction::xid_map_.end()) {
               BOOST_LOG_TRIVIAL(warning)
                   << "found xid " << dba
                   << " in commit , but unknow when this transaction is started";
@@ -267,7 +298,7 @@ namespace databus {
   void makeTranRecord(XID xid, uint32_t object_id, Ushort op,
                       std::list<Row>& undos, std::list<Row>& redos,
                       const SCN& scn, Ushort uflag, Ushort iflag) {
-    XIDMap xidmap = Transaction::getXIDMap();
+    XIDMap xidmap = Transaction::xid_map_();
     auto transit = xidmap.find(xid);
     if (transit == xidmap.end()) {
       BOOST_LOG_TRIVIAL(fatal)
