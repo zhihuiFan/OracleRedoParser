@@ -20,19 +20,22 @@ PLATFORM=$(shell uname)
 ifeq ($(PLATFORM),SunOS)
 	BOOST_LIB_DIR='/export/home/oracle/zhifan/boost/lib'
 	CC=/opt/csw/bin/g++
-	LDFLAGS=-L/oracle/VIKING/home/products/11203/lib -static-libstdc++ -static-libgcc -pthread  -lboost_log -lprogram_options -DBOOST_LOG_DYN_LINK -lo
+	# LDFLAGS=-L/oracle/VIKING/home/products/11203/lib -static-libstdc++ -static-libgcc -pthread  -lboost_log -lprogram_options -DBOOST_LOG_DYN_LINK -lo
+	# LDFLAGS=-L/oracle/VIKING/home/products/11203/lib -static-libstdc++ -static-libgcc -pthread  -lprogram_options
 	CXXFLAGS = ${CXXFLAGS_BASE} -static-libstdc++ -static-libgcc -m64 -locci -lclntsh -I/oracle/VIKING/home/products/11203/rdbms/public -I${HOME}/zhifan/boost/include
 endif
 
 ifeq ($(PLATFORM), Darwin)
 	OCI_FALGS=-DMAC_OSX -D_GNU_SOURCE -D_REENTRANT -mmacosx-version-min=10.10
 	CXXFLAGS = ${CXXFLAGS_BASE} -I/Users/zhifan/Downloads/instantclient_11_2/sdk/include/
-	LDFLAGS= ${LDFLAGS_BASE} -L/Users/zhifan/Downloads/instantclient_11_2 -lnnz11 -lboost_log-mt
+	# LDFLAGS= ${LDFLAGS_BASE} -L/Users/zhifan/Downloads/instantclient_11_2 -lnnz11 -lboost_log-mt
+	LDFLAGS= ${LDFLAGS_BASE} -L/Users/zhifan/Downloads/instantclient_11_2 -lnnz11
 endif
 
 ifeq ($(PLATFORM), Linux)
 	CXXFLAGS = ${CXXFLAGS_BASE} -I/home/oracle/instantclient_11_2/sdk/include/ -DBOOST_LOG_DYN_LINK
-	LDFLAGS=${LDFLAGS_BASE} -L/home/oracle/instantclient_11_2 -L/home/oracle/app/oracle/product/11.2.0/dbhome_1 -lnnz11 -lboost_log -lboost_program_options
+	# LDFLAGS=${LDFLAGS_BASE} -L/home/oracle/instantclient_11_2 -L/home/oracle/app/oracle/product/11.2.0/dbhome_1 -lnnz11 -lboost_log -lboost_program_options
+	LDFLAGS=${LDFLAGS_BASE} -L/home/oracle/instantclient_11_2 -L/home/oracle/app/oracle/product/11.2.0/dbhome_1 -lnnz11  -lboost_program_options
 endif
 
 %.o: %.cpp $(DEPS)

@@ -40,10 +40,10 @@ namespace databus {
             changes_.insert(rc);
             last_col_no = rc.new_data_.size();
           } else if (iflag == 0x00) {
-              util::dassert("row chain middle error", last_col_no > 0 && last_col_no == changes_.size());
-              for (auto trc& : changes_) {
-
-              }
+            util::dassert("row chain middle error",
+                          last_col_no > 0 && last_col_no == changes_.size());
+            for (auto trc& : changes_) {
+            }
           }
         }
       }
@@ -91,10 +91,10 @@ namespace databus {
     if (npk == table_def->pk.size()) {
       return npk;
     } else {
-      BOOST_LOG_TRIVIAL(fatal) << "Number of PK mismatched\n Object Name "
-                               << table_def->owner << "." << table_def->name
-                               << "\nNum of PK " << table_def->pk.size()
-                               << "\nNo. of PK in Redo " << pk.size();
+      error() << "Number of PK mismatched\n Object Name " << table_def->owner
+              << "." << table_def->name << "\nNum of PK "
+              << table_def->pk.size() << "\nNo. of PK in Redo " << pk.size()
+              << std::endl;
       return -1;
     }
   }
@@ -199,7 +199,7 @@ namespace databus {
         }
       } break;
       default:
-        BOOST_LOG_TRIVIAL(fatal) << "Unknown Op " << (int)op_;
+        error() << "Unknown Op " << (int)op_ << std::endl;
     }
     return "";
   }
@@ -237,11 +237,10 @@ namespace databus {
               auto& xidmap = Transaction::xid_map_;
               auto it = xidmap.find(xid);
               if (it != xidmap.end()) {
-                BOOST_LOG_TRIVIAL(fatal)
-                    << "I think Transaction (xid" << xid
-                    << ") just start here offset: " << record->offset()
-                    << " but it was started before \n"
-                    << "Dump Info\n" << it->second->toString();
+                error() << "I think Transaction (xid" << xid
+                        << ") just start here offset: " << record->offset()
+                        << " but it was started before \n"
+                        << "Dump Info\n" << it->second->toString() << std::endl;
                 return;
               }
               xidmap[xid] = TransactionPtr(new Transaction());
@@ -251,9 +250,9 @@ namespace databus {
           }
           {
             undo = Ops0501::makeUpUndo(change, uflag, opsup);
-            BOOST_LOG_TRIVIAL(info)
-                << "Sup start_col_offset " << record->offset() << ":"
-                << opsup->start_column_ << ":" << opsup->start_column2_;
+            info() << "Sup start_col_offset " << record->offset() << ":"
+                   << opsup->start_column_ << ":" << opsup->start_column2_
+                   << std::endl;
           }
           break;
         case opcode::kUpdate:
@@ -270,9 +269,10 @@ namespace databus {
           {
             auto it = Transaction::dba_map_.find(dba);
             if (it == Transaction::dba_map_.end()) {
-              BOOST_LOG_TRIVIAL(warning)
+              warn()
                   << "found dba " << dba
-                  << " in commit , but unknow when this transaction is started";
+                  << " in commit , but unknow when this transaction is started"
+                  << std::endl;
               return;
             }
             OpCode0504_ucm* ucm = (OpCode0504_ucm*)(change->part(1));
@@ -281,9 +281,10 @@ namespace databus {
                 (((XID)ucm->slt_) << sizeof(uint32_t) * 8) | ucm->sqn_;
             auto xidit = Transaction::xid_map_.find(ixid);
             if (xidit == Transaction::xid_map_.end()) {
-              BOOST_LOG_TRIVIAL(warning)
+              warn()
                   << "found xid " << dba
-                  << " in commit , but unknow when this transaction is started";
+                  << " in commit , but unknow when this transaction is started"
+                  << std::endl;
               return;
             }
             xidit->second->commit_scn_ = record_scn;
@@ -301,15 +302,15 @@ namespace databus {
     XIDMap xidmap = Transaction::xid_map_();
     auto transit = xidmap.find(xid);
     if (transit == xidmap.end()) {
-      BOOST_LOG_TRIVIAL(fatal)
-          << "XID " << xid
-          << " info was missed when I want to add a change to it";
+      error() << "XID " << xid
+              << " info was missed when I want to add a change to it"
+              << std::endl;
       return;
     }
     auto table_def = getMetadata().getTabDefFromId(object_id);
     if (table_def == NULL) {
-      BOOST_LOG_TRIVIAL(debug) << "Can't get table definition for object_id "
-                               << object_id << " ignore this change ";
+      debug() << "Can't get table definition for object_id " << object_id
+              << " ignore this change " << std::endl;
       return;
     }
     switch (op) {
@@ -360,7 +361,7 @@ namespace databus {
         }
       } break;
       default:
-        BOOST_LOG_TRIVIAL(fatal) << "Unknown Op " << (int)op;
+        error() << "Unknown Op " << (int)op << std::endl;
         break;
     }
   }
@@ -382,8 +383,8 @@ namespace databus {
     }
 
     if (dup) {
-      BOOST_LOG_TRIVIAL(warning) << "FOUND duplicated SCN in this transaction";
-      BOOST_LOG_TRIVIAL(warning) << trans_ptr->toString();
+      warn() << "FOUND duplicated SCN in this transaction" << std::endl;
+      warn() << trans_ptr->toString() << std::endl;
     }
 #endif
     return ~dup;

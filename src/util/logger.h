@@ -1,26 +1,15 @@
-#include <boost/log/core.hpp>
-#include <boost/log/trivial.hpp>
-#include <boost/log/expressions.hpp>
+#include <sstream>
+#include <string>
+#include <iostream>
 
 namespace databus {
+  inline std::ostream& trace() { return std::cout << "[TRACE] "; }
 
-  namespace logging = boost::log;
+  inline std::ostream& debug() { return std::cout << "[DEBUG] "; }
 
-  // defined in trivial.hpp
-  // enum severity_level
-  // {
-  //     trace,   0
-  //     debug,   1
-  //     info,    2
-  //     warning, 3
-  //     error,   4
-  //     fatal    5
-  // }
+  inline std::ostream& info() { return std::cout << "[INFO] "; }
 
-  inline void setLogLevel(short log_level) {
-    if (log_level > 5) log_level = 5;
-    if (log_level < 0) log_level = 0;
-    logging::core::get()->set_filter(logging::trivial::severity >=
-                                     5 - log_level);
-  }
+  inline std::ostream& warn() { return std::cout << "[WARN] "; }
+
+  inline std::ostream& error() { return std::cout << "[ERROR] "; }
 }

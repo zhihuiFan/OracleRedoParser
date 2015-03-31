@@ -93,37 +93,37 @@ namespace databus {
                 std::list<Row> undos, std::list<Row> redos) {
     auto table_def = getMetadata().getTabDefFromId(object_id);
     if (table_def == NULL) {
-      BOOST_LOG_TRIVIAL(debug) << "Obj (" << object_id
-                               << ") doesn't exist or don't have PK";
+      debug() << "Obj (" << object_id << ") doesn't exist or don't have PK"
+              << std::endl;
 
       return;
     }
-    BOOST_LOG_TRIVIAL(info) << "Transaction ID " << xid;
+    info() << "Transaction ID " << xid << std::endl;
 
-    BOOST_LOG_TRIVIAL(info) << optype << " " << table_def->name << std::endl;
+    info() << optype << " " << table_def->name << std::endl;
     if (strncmp(optype, "insert", strlen("insert")) != 0) {
-      BOOST_LOG_TRIVIAL(info) << "Primary Keys:";
+      info() << "Primary Keys:" << std::endl;
       for (auto undo : undos) {
         for (auto col : undo) {
           if (col->len_ > 0 &&
               table_def->pk.find(col->col_id_ + 1) != table_def->pk.end()) {
-            BOOST_LOG_TRIVIAL(info)
-                << "\t" << table_def->col_names[col->col_id_ + 1] << "----"
-                << convert(col->content_,
-                           table_def->col_types[col->col_id_ + 1], col->len_);
+            info() << "\t" << table_def->col_names[col->col_id_ + 1] << "----"
+                   << convert(col->content_,
+                              table_def->col_types[col->col_id_ + 1], col->len_)
+                   << std::endl;
           }
         }
       }
     }
 
     if (strncmp(optype, "delete", strlen("delete")) != 0) {
-      BOOST_LOG_TRIVIAL(info) << "New data: ";
+      info() << "New data: " << std::endl;
       for (auto redo : redos) {
         for (auto col : redo) {
-          BOOST_LOG_TRIVIAL(info)
-              << table_def->col_names[col->col_id_ + 1] << "----"
-              << convert(col->content_, table_def->col_types[col->col_id_ + 1],
-                         col->len_);
+          info() << table_def->col_names[col->col_id_ + 1] << "----"
+                 << convert(col->content_,
+                            table_def->col_types[col->col_id_ + 1], col->len_)
+                 << std::endl;
         }
       }
     }

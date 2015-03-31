@@ -29,14 +29,14 @@ namespace databus {
       buildTransaction(buf);
       ++c;
     }
-    BOOST_LOG_TRIVIAL(debug) << " total record found  = " << c;
-    BOOST_LOG_TRIVIAL(debug) << " build sql record ";
+    debug() << " total record found  = " << c << std::endl;
+    debug() << " build sql record " << std::endl;
 
-    BOOST_LOG_TRIVIAL(info) << "Dump Transaction now";
+    info() << "Dump Transaction now" << std::endl;
     for (auto tran : Transaction::getXIDMap()) {
       verifyTrans(tran.second);
       if (!tran.second->changes_.empty()) {
-        BOOST_LOG_TRIVIAL(info) << tran.second->toString();
+        info() << tran.second->toString() << std::endl;
       }
     }
     //    MetadataManager::destoy();

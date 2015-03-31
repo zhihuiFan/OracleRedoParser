@@ -41,11 +41,13 @@ namespace databus {
       std::exit(1);
     }
 
+    /*
     if (vm.count("loglevel")) {
       setLogLevel(vm["loglevel"].as<unsigned short>());
     } else {
       setLogLevel(3);
     }
+    */
 
     po::notify(vm);
     validParams();

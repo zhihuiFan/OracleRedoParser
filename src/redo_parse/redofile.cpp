@@ -20,7 +20,7 @@ namespace databus {
   using util::dassert;
 
   void RedoFile::init(const char* filename) {
-    BOOST_LOG_TRIVIAL(info) << "RedoFile::init " << filename;
+    info() << "RedoFile::init " << filename << std::endl;
 
     if (file_start_pos_ != NULL) munmap(file_start_pos_, length_);
     int fd = open(filename, O_RDONLY, 0644);
@@ -127,8 +127,8 @@ namespace databus {
         goto again;
       } else {
         int ivld = vld;
-        BOOST_LOG_TRIVIAL(fatal) << "unsupport vld " << ivld << " offset "
-                                 << curr_record_pos_ - file_start_pos_;
+        error() << "unsupport vld " << ivld << " offset "
+                << curr_record_pos_ - file_start_pos_ << std::endl;
         curr_record_pos_ = nextRecord(curr_record_pos_);
         goto again;
       }
@@ -219,9 +219,9 @@ namespace databus {
           p_redo_header_->next_scn_major_ == 0xFFFF) {
         online_log = true;
         if (isOverRead(blk_id)) {
-          BOOST_LOG_TRIVIAL(debug) << "blocking on the last block of online log"
-                                   << "blk_id " << blk_id << " latest_blk "
-                                   << latest_blk_;
+          debug() << "blocking on the last block of online log"
+                  << "blk_id " << blk_id << " latest_blk " << latest_blk_
+                  << std::endl;
           sleep(3);
           pos = from;
           goto tryagain;

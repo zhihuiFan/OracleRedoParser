@@ -89,9 +89,9 @@ namespace databus {
       const char* src = change->part(data_offset + i);
       char* data = new char[*(col_len + i) + 1];
       if (*(change->partLen(data_offset + i)) < *(col_len + i)) {
-        BOOST_LOG_TRIVIAL(debug) << "column_len( " << *(col_len + i)
-                                 << ") is bigger than data part length("
-                                 << *(change->partLen(data_offset + i)) << ")";
+        debug() << "column_len( " << *(col_len + i)
+                << ") is bigger than data part length("
+                << *(change->partLen(data_offset + i)) << ")" << std::endl;
         *(col_len + i) = *(change->partLen(data_offset + i));
       }
       memcpy(data, src, *(col_len + i));
@@ -136,7 +136,7 @@ namespace databus {
     switch (opkdo->opcode_ & 0x1f) {
       case opcode::kInsert & 0xff: {
         // common delete will go to here
-        BOOST_LOG_TRIVIAL(debug) << "Normal Delete ";
+        debug() << "Normal Delete " << std::endl;
         OpCodeKdoirp* irp = (OpCodeKdoirp*)opkdo;
         if (irp->column_count_ != 0) {
           Row undo_cols = makeUpCols((Ushort*)NULL, irp->column_count_,
@@ -161,7 +161,7 @@ namespace databus {
         }
       } break;
       case opcode::kMultiInsert & 0xff: {
-        BOOST_LOG_TRIVIAL(debug) << "seems run into mulit-delete op ";
+        debug() << "seems run into mulit-delete op " << std::endl;
         std::exit(100);
       } break;
       case opcode::kUpdate & 0xff: {
@@ -219,10 +219,10 @@ namespace databus {
     Row redo_row;
     switch (change->opCode()) {
       case opcode::kInsert: {
-        BOOST_LOG_TRIVIAL(debug) << "Normal Insert ";
+        debug() << "Normal Insert " << std::endl;
         OpCodeKdoirp* irp = (OpCodeKdoirp*)kdo;
         if (irp->flag_ & 0x80 || irp->flag_ & 0x40) {
-          BOOST_LOG_TRIVIAL(debug) << "Found cluster op, bypass it";
+          debug() << "Found cluster op, bypass it" << std::endl;
           break;
         }
         redo_row =
@@ -247,13 +247,13 @@ namespace databus {
         */
       } break;
       case opcode::kUpdate:
-        BOOST_LOG_TRIVIAL(debug) << "Normal Update";
+        debug() << "Normal Update";
         redo_row = makeUpCols((Ushort*)change->part(3),
                               ((OpCodeKdourp*)kdo)->nchanged_, change, 4,
                               kdo->xtype_, false);
         break;
       case opcode::kMultiInsert: {
-        BOOST_LOG_TRIVIAL(debug) << "Mulit Insert";
+        debug() << "Mulit Insert" << std::endl;
         OpCodeKdoqm* qm = (OpCodeKdoqm*)change->part(2);
         Uchar* data = (Uchar*)change->part(4);
         for (int row = 0; row < qm->nrow_; ++row) {
