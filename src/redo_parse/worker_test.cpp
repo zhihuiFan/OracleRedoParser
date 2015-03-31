@@ -26,14 +26,14 @@ namespace databus {
     RecordBufPtr buf;
     unsigned long c = 0;
     while ((buf = redofile.nextRecordBuf()) != NULL) {
-      buildTransaction(buf);
+      addToTransaction(buf);
       ++c;
     }
     debug() << " total record found  = " << c << std::endl;
     debug() << " build sql record " << std::endl;
 
     info() << "Dump Transaction now" << std::endl;
-    for (auto tran : Transaction::getXIDMap()) {
+    for (auto tran : Transaction::xid_map_) {
       verifyTrans(tran.second);
       if (!tran.second->changes_.empty()) {
         info() << tran.second->toString() << std::endl;

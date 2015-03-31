@@ -37,11 +37,10 @@ namespace databus {
 
   struct Transaction;
   typedef std::map<XID, std::shared_ptr<Transaction>>& XIDMap;
-  typedef std::map<SCN, TransactionPtr>& SCNTranMap;
   typedef std::map<DBA, USN>& DBAMap;
 
   struct Transaction {
-    Transaction() : commited_(0), xid_(0), start_scn_(0), commit_scn_(0) {}
+    Transaction() : commited_(0), xid_(0), start_scn_(), commit_scn_() {}
     XID xid_;
     SCN start_scn_;
     SCN commit_scn_;
@@ -73,6 +72,7 @@ namespace databus {
   };
 
   typedef std::shared_ptr<Transaction> TransactionPtr;
+  typedef std::map<SCN, TransactionPtr>& SCNTranMap;
 
   void addToTransaction(RecordBufPtr ptr);
   void makeTranRecord(XID xid, uint32_t object_id, Ushort op,

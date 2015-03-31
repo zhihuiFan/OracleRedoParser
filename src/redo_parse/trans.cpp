@@ -2,7 +2,6 @@
 #include <boost/format.hpp>
 #include <map>
 #include <list>
-#include <assert>
 #include <vector>
 #include "trans.h"
 #include "opcode.h"
@@ -18,8 +17,9 @@ namespace databus {
     return commit_scn_ < other.commit_scn_;
   }
 
-  bool Transaction::buildTransaction() {
+  void Transaction::buildTransaction() {
     if (commited_ == 0) return;
+    /*
     if (has_rollback()) {
       xid_map_.erase(xid_);
       return;
@@ -49,6 +49,7 @@ namespace databus {
       }
       xid_map_.erase(xid_);
     }
+    */
   }
 
   std::string Transaction::toString() const {
@@ -299,7 +300,7 @@ namespace databus {
   void makeTranRecord(XID xid, uint32_t object_id, Ushort op,
                       std::list<Row>& undos, std::list<Row>& redos,
                       const SCN& scn, Ushort uflag, Ushort iflag) {
-    XIDMap xidmap = Transaction::xid_map_();
+    XIDMap xidmap = Transaction::xid_map_;
     auto transit = xidmap.find(xid);
     if (transit == xidmap.end()) {
       error() << "XID " << xid
