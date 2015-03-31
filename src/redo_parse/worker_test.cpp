@@ -25,7 +25,7 @@ namespace databus {
             -> uint32_t { return logmanager->getOnlineLastBlock(seq); });
     RecordBufPtr buf;
     unsigned long c = 0;
-    while ((buf = redofile.nextRecordBuf()) != NULL) {
+    while ((buf = redofile.nextRecordBuf()).get()) {
       addToTransaction(buf);
       ++c;
     }
