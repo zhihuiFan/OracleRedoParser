@@ -16,13 +16,15 @@ namespace databus {
 
   std::shared_ptr<LogManager> logmanager = NULL;
 
+  std::string getLogfile(uint32_t seq) { return logmanager->getLogfile(seq); }
+
+  uint32_t getOnlineLastBlock(uint32_t seq) {
+    return logmanager->getOnlineLastBlock(seq);
+  }
   int main(int ac, char** av) {
     initStream(ac, av);
-    RedoFile redofile(
-        getStreamConf().getUint32("startSeq"),
-        [](uint32_t seq) -> std::string { return logmanager->getLogfile(seq); },
-        [](uint32_t seq)
-            -> uint32_t { return logmanager->getOnlineLastBlock(seq); });
+    RedoFile redofile(getStreamConf().getUint32("startSeq"), getLogfile,
+                      getOnlineLastBlock);
     RecordBufPtr buf;
     unsigned long c = 0;
     while ((buf = redofile.nextRecordBuf()).get()) {
