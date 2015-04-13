@@ -64,9 +64,6 @@ namespace databus {
     // return -1 if the given seq is not the current logfile
     uint32_t getOnlineLastBlock(uint32_t seq);
 
-    // TODO: thread-safe? only called in NumberAsStr
-    Environment* getEnv() { return env_; }
-
    private:
     void init(const std::string& username, const std::string& password,
               const std::string& db);

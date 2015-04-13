@@ -1,5 +1,6 @@
-#include "metadata_otl.h"
+#include "metadata.h"
 #include "otlv4.h"
+#include "util/logger.h"
 
 namespace databus {
   void TabDef::dump() {
@@ -49,19 +50,20 @@ namespace databus {
                      conn_),
         obj2tab_stmt_(10,
                       " select owner, object_name from dba_objects"
-                      " where object_id = :x<unsigned>") {
+                      " where object_id = :x<unsigned>",
+                      conn_) {
     // make sure we called otl_connect::otl_initialize() before init this
     // class
-    conn_.rlogin(conn_str);
+    conn_.rlogon(conn_str.c_str());
   }
 
   MetadataManager::~MetadataManager() { conn_.logoff(); }
 
   uint32_t MetadataManager::getGlobalObjId(uint32_t objid) {
     objp2g_stmt_ << objid;
-    uint32_t gid = -1;
+    uint32_t gid;
     if (!objp2g_stmt_.eof()) {
-      gid << objp2g_stmt_;
+      objp2g_stmt_ >> gid;
     }
     return gid;
   }
@@ -69,8 +71,8 @@ namespace databus {
   void MetadataManager::initFromId(uint32_t object_id) {
     obj2tab_stmt_ << object_id;
     if (!obj2tab_stmt_.eof()) {
-      char[31] owner;
-      char[129] table;
+      char owner[31];
+      char table[129];
       obj2tab_stmt_ >> owner;
       obj2tab_stmt_ >> table;
       initTabDefFromName(owner, table);
@@ -101,8 +103,8 @@ namespace databus {
     tab_def->name = std::string(table);
 
     pk_stmt_ << owner << table;
-    Ushort colno;
     while (!pk_stmt_.eof()) {
+      Ushort colno;
       pk_stmt_ >> colno;
       tab_def->pk.insert(colno);
     }
@@ -115,16 +117,16 @@ namespace databus {
 
     tab2def_stmt_ << owner << table;
     Ushort col_id;
-    char[129] col_name, col_type;
-    while (!tab2def_stmt_->eof()) {
+    char col_name[129], col_type[129];
+    while (!tab2def_stmt_.eof()) {
       tab2def_stmt_ >> col_id >> col_name >> col_type;
-      tab_def->col_names[col_id] = std::move(string(col_name));
-      tab_def->col_types[col_id] = std::move(string(col_type));
+      tab_def->col_names[col_id] = std::move(std::string(col_name));
+      tab_def->col_types[col_id] = std::move(std::string(col_type));
     }
 
     tab2oid_stmt_ << owner << table;
-    uint32_t int object_id;
-    while (oid_ret->next()) {
+    uint32_t object_id;
+    while (!tab2oid_stmt_.eof()) {
       tab2oid_stmt_ >> object_id;
       if (oid2def_.find(object_id) != oid2def_.end()) {
         warn() << "logical error old def exist already"
@@ -150,14 +152,15 @@ namespace databus {
                          conn_),
         log_last_blk_stmt_(1,
                            "select LAST_REDO_BLOCK from v$thread where "
-                           "LAST_REDO_SEQUENCE# = :seq<unsigned>") {
+                           "LAST_REDO_SEQUENCE# = :seq<unsigned>",
+                           conn_) {
     conn_.rlogon(conn_str);
   }
 
   std::string LogManager::getLogfile(uint32_t seq) {
     // prefer archive log
     arch_log_stmt_ << seq;
-    char[514] filename;
+    char filename[514];
     if (!arch_log_stmt_.eof()) {
       arch_log_stmt_ >> filename;
       return std::string(filename);

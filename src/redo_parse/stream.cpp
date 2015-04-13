@@ -123,16 +123,15 @@ namespace databus {
       std::cout << i << std::endl;
     }
     */
-    logmanager = std::shared_ptr<LogManager>(new LogManager(
-        streamconf->getString("srcUser"), streamconf->getString("srcPass"),
-        streamconf->getString("srcDB")));
+    logmanager = std::shared_ptr<LogManager>(
+        new LogManager(streamconf->getString("srcUser").c_str()));
     for (auto table : captual_tables) {
       auto first = table.find_first_of('.');
       auto last = table.find_last_of('.');
       if (first == last && first != table.npos) {
         std::string owner = table.substr(0, first);
         std::string tablename = table.substr(first + 1, table.npos - first - 1);
-        getMetadata().initTabDefFromName(owner, tablename);
+        getMetadata().initTabDefFromName(owner.c_str(), tablename.c_str());
         // if (tabdef) tabdef->dump();
       } else {
         // TODO: why?
