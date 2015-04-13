@@ -1,4 +1,4 @@
-CC=/export/home/oracle/zhifan/solarisstudio12.4/bin/CC
+CC=/opt/csw/gcc4/bin/g++
 DEPS=metadata.h \
 	 logical_elems.h \
 	 opcode.h \
@@ -13,8 +13,8 @@ DEPS=metadata.h \
 
 PLATFORM=$(shell uname)
 ifeq ($(PLATFORM),SunOS)
-	LDFLAGS=-L/oracle/VIKING/home/products/11203/lib -L/export/home/oracle/zhifan/boost/lib -mt -lprogram_options -locci -lclntsh
-	CXXFLAGS = -I. -I.. -std=c++11 -xO0  -mt -m64 -D__STREAM_DEBUG__ -I/oracle/VIKING/home/zhifan/boost/include -locci -lclntsh -I/oracle/VIKING/home/products/11203/rdbms/public
+	LDFLAGS=-L/oracle/VIKING/home/products/11203/lib -L/export/home/oracle/zhifan/boost/lib -mt -lprogram_options -lclntsh -pthread
+	CXXFLAGS = -I. -I.. -std=c++11 -O0  -m64 -D__STREAM_DEBUG__ -I/oracle/VIKING/home/zhifan/boost/include -lclntsh -I/oracle/VIKING/home/products/11203/rdbms/public -pthread
 endif
 
 %.o: %.cpp $(DEPS)
