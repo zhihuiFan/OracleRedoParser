@@ -1,8 +1,10 @@
 #ifndef METADATA_INC
 #define METADATA_INC
+#ifndef OTL_ORA11G_R2
+#define OTL_ORA11G_R2
+#endif
 #include <string>
 #include <stdlib.h>
-#include <occi.h>
 #include <map>
 #include <list>
 #include <set>
@@ -12,9 +14,9 @@
 #include <iostream>
 #include <memory>
 #include "util/dtypes.h"
+#include "otlv4.h"
 
 namespace databus {
-  using namespace oracle::occi;
 
   class TabDef {
    public:
@@ -34,31 +36,28 @@ namespace databus {
     // 2. add a new table to tracking
     // in both cases, we know owner.table at begining
     // 3. Get Tabledef from obj#
-    // 4. We should not init TableDef when needed, so modify getTabDefFromId
+    // 4. We should init TableDef when needed, so modify getTabDefFromId
     // TODO:
     //  a. init TableDef when get a objid effectively
     //  b. since db connection is not thread-safe, so this function is not
     //  thread-safe.
     //     need to verify only 1 thread use db connection,  all the others are
-    //     read from static
-    //     member only,
+    //     read from static member only,
     //  c. With the mode stated in b,  this read/write mode doesn't need a
     //  mutex?
     //     A: on a given time, getTabDefFromId to get a TabDef, the object_id
-    //     must be
-    //        inited or not before, so when read this id, there is no changes
-    //        for this
-    //        id during the time. so doesn't need a mutex in this case?
-    friend class Rules;
+    //     must be inited or not before, so when read this id, there is no
+    //     changes
+    //     for this id during the time. so doesn't need a mutex in this case?
+    //
 
    public:
-    MetadataManager(const std::string& username, const std::string& password,
-                    const std::string& db);
+    MetadataManager(const std::string& conn_str);
     ~MetadataManager();
     // re-connect if needed
     std::shared_ptr<TabDef> getTabDefFromId(uint32_t object_id);
-    std::shared_ptr<TabDef> initTabDefFromName(const std::string& owner,
-                                               const std::string& table);
+    std::shared_ptr<TabDef> initTabDefFromName(const char* owner,
+                                               const char* table);
 
     std::string getLogfile(uint32_t seq);
 
@@ -81,38 +80,31 @@ namespace databus {
 
    private:
     // for re-connect
-    const std::string username;
-    const std::string password;
-    const std::string db;
-    Environment* env_;
-    Connection* conn_;
-    Statement* tab2oid_stmt_;
-    Statement* tab2def_stmt_;
-    Statement* objp2g_stmt_;
-    Statement* obj2tab_stmt_;
-    Statement* pk_stmt_;
+    const std::string conn_str_;
+    otl_connect conn_;
+    otl_stream tab2oid_stmt_;
+    otl_stream tab2def_stmt_;
+    otl_stream objp2g_stmt_;
+    otl_stream obj2tab_stmt_;
+    otl_stream pk_stmt_;
     static std::map<uint32_t, std::shared_ptr<TabDef> > oid2def_;
     static std::map<uint32_t, uint32_t> poid2goid_;
   };
 
   class LogManager {
    public:
-    LogManager(const std::string& user, const std::string& passwd,
-               const std::string& db);
+    LogManager(const char* conn_str);
     ~LogManager();
     std::string getLogfile(uint32_t seq);
     uint32_t getOnlineLastBlock(uint32_t seq);
 
    private:
     // for re-connect
-    const std::string username;
-    const std::string password;
-    const std::string db;
-    Environment* env_;
-    Connection* conn_;
-    Statement* arch_log_stmt_;
-    Statement* online_log_stmt_;
-    Statement* log_last_blk_stmt_;
+    const std::string conn_str_;
+    otl_connect conn_;
+    otl_stream arch_log_stmt_;
+    otl_stream online_log_stmt_;
+    otl_stream log_last_blk_stmt_;
   };
 }
 #endif
