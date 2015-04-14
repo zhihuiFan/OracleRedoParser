@@ -36,8 +36,8 @@ namespace databus {
   typedef std::shared_ptr<RowChange> RowChangePtr;
 
   struct Transaction;
-  typedef std::map<XID, std::shared_ptr<Transaction>>& XIDMap;
-  typedef std::map<DBA, USN>& DBAMap;
+  typedef std::map<XID, std::shared_ptr<Transaction>> XIDMap;
+  typedef std::map<DBA, USN> DBAMap;
 
   struct Transaction {
     Transaction() : commited_(0), xid_(0), start_scn_(), commit_scn_() {}

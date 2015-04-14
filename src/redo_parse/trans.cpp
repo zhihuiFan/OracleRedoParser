@@ -17,6 +17,9 @@ namespace databus {
     return commit_scn_ < other.commit_scn_;
   }
 
+  DBAMap Transaction::dba_map_;
+  XIDMap Transaction::xid_map_;
+
   void Transaction::buildTransaction() {
     if (commited_ == 0) return;
     /*
