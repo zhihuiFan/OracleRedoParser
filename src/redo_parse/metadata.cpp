@@ -15,6 +15,8 @@ namespace databus {
       std::cout << col_names[i.first] << ":" << col_types[i.first] << std::endl;
   }
 
+  std::map<uint32_t, std::shared_ptr<TabDef> > MetadataManager::oid2def_;
+  std::map<uint32_t, uint32_t> MetadataManager::poid2goid_;
   MetadataManager::MetadataManager(const std::string& conn_str)
       : conn_str_(conn_str),
         tab2oid_stmt_(10,
