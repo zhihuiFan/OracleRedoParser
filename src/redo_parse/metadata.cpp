@@ -1,4 +1,6 @@
 #include "metadata.h"
+#define OTL_ORA11G_R2
+#define OTL_ORA_UTF8
 #include "otlv4.h"
 #include "util/logger.h"
 
@@ -104,9 +106,9 @@ namespace databus {
 
     pk_stmt_ << owner << table;
     while (!pk_stmt_.eof()) {
-      Ushort colno;
-      pk_stmt_ >> colno;
-      tab_def->pk.insert(colno);
+      unsigned int col_no;
+      pk_stmt_ >> col_no;
+      tab_def->pk.insert(col_no);
     }
     if (tab_def->pk.empty()) {
       debug() << "either " << owner << "." << table
@@ -116,7 +118,7 @@ namespace databus {
     assert(!tab_def->pk.empty());
 
     tab2def_stmt_ << owner << table;
-    Ushort col_id;
+    unsigned int col_id;
     char col_name[129], col_type[129];
     while (!tab2def_stmt_.eof()) {
       tab2def_stmt_ >> col_id >> col_name >> col_type;

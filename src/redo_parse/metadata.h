@@ -1,8 +1,5 @@
 #ifndef METADATA_INC
 #define METADATA_INC
-#ifndef OTL_ORA11G_R2
-#define OTL_ORA11G_R2
-#endif
 #include <string>
 #include <stdlib.h>
 #include <map>
@@ -14,6 +11,8 @@
 #include <iostream>
 #include <memory>
 #include "util/dtypes.h"
+#define OTL_ORA11G_R2
+#define OTL_ORA_UTF8
 #include "otlv4.h"
 
 namespace databus {

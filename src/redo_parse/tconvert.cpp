@@ -3,7 +3,7 @@
 #include <string>
 #include <sstream>
 #include <string.h>
-#include <occi.h>
+// #include <occi.h>
 
 #include "logical_elems.h"
 #include "metadata.h"
@@ -11,7 +11,8 @@
 #include "util/logger.h"
 
 namespace databus {
-  using namespace oracle::occi;
+  // using namespace oracle::occi;
+  /*
   static Number numberAsStr(const char* input, uint32_t len) {
     Number num(0);
     Number base(100);
@@ -29,6 +30,59 @@ namespace databus {
       }
     }
     return num;
+  }
+  */
+
+  static std::string numberAsStr(const char* input, uint32_t len) {
+    unsigned char sign_bit = *input;  // 193, 64 ...
+    if (len == 1) {
+      assert(sign_bit == 128);
+      return std::string("0");
+    }
+
+    std::stringstream ss;
+    unsigned short n;
+    bool floated = false;
+
+    if (sign_bit > 128) {
+      int int_bit = sign_bit - 192;
+      for (Uchar i = 1; i < len || i <= int_bit; ++i) {
+        if (i > int_bit && !floated) {
+          ss << ".";
+          floated = true;
+        }
+        if (i >= len) {
+          ss << "00";
+        } else {
+          n = input[i] - 1;
+          if (n < 10) {
+            ss << 0;
+          }
+          ss << n;
+        }
+      }
+    } else {
+      ss << "-";
+      int int_bit = 63 - sign_bit;
+      for (int i = 1; i < len - 1; ++i) {
+        // input[len-1] == 102, useless
+        if (i > int_bit && !floated) {
+          ss << ".";
+          floated = true;
+          // 0.00000001
+          int padding = sign_bit - len;
+          for (int i = 0; i < +padding; ++i) {
+            ss << "00";
+          }
+        }
+        n = 101 - input[len];
+        if (n < 10) {
+          ss << "0";
+        }
+        ss << n;
+      }
+    }
+    return ss.str();
   }
 
   struct OracleDate {
@@ -80,8 +134,7 @@ namespace databus {
       return ss.str();
     }
     if (type == "NUMBER") {
-      return boost::trim_left_copy(numberAsStr(input, len).toText(
-          getMetadata().getEnv(), "99999999999999999999999999999999999999"));
+      return numberAsStr(input, len);
     }
     if (type == "DATE") {
       return dateToStr(input, len);
