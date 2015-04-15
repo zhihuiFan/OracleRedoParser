@@ -40,15 +40,19 @@ namespace databus {
   typedef std::map<DBA, USN> DBAMap;
 
   struct Transaction {
-    Transaction() : commited_(0), xid_(0), start_scn_(), commit_scn_() {}
+    Transaction()
+        : commited_(0), xid_(0), start_scn_(), commit_scn_(), ordered(false) {}
     XID xid_;
     SCN start_scn_;
     SCN commit_scn_;
     char commited_;  // 2=commited  4=rollbacked
+    // orginize changes, for row-chains, row migration
+    bool ordered;
     std::multiset<RowChangePtr> changes_;
     std::string toString() const;
     static XIDMap xid_map_;
     static DBAMap dba_map_;
+    static std::map<SCN, std::shared_ptr<Transaction>> commit_trans_;
 
     bool operator<(const Transaction& other) const;
     bool has_rollback() const { return commited_ & 4; }
@@ -69,6 +73,7 @@ namespace databus {
     // 2. you have read all the changes in the online log before the flush
     // marker
     void buildTransaction();
+    void tidyChanges();
   };
 
   typedef std::shared_ptr<Transaction> TransactionPtr;

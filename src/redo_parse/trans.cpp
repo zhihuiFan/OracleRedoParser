@@ -19,40 +19,55 @@ namespace databus {
 
   DBAMap Transaction::dba_map_;
   XIDMap Transaction::xid_map_;
+  std::map<SCN, TransactionPtr> Transaction::commit_trans_;
 
   void Transaction::buildTransaction() {
-    if (commited_ == 0) return;
-    /*
     if (has_rollback()) {
       xid_map_.erase(xid_);
       return;
     } else if (has_commited()) {
-      auto temp_changes_ = std::move(changes_);
-      for (auto& rc : temp_changes_) {
-        if (rc->op_ == opcode::kDelete || rc->op_ == opcode::kMultiInsert) {
-          changes_.insert(rc)
-        } else if (rc->op_ == opcode::Insert) {
-          static Ushort last_col_no = 0;
-          static Row row_chain;
-          if (iflag_ == 0x2c) {
-            // normal insert
-            util::dassert("normal iflag error 0x04", last_col_no == 0);
-            changes_.insert(rc)
-          } else if (iflag == 0x04) {
-            util::dassert("row chain iflag error 0x04", last_col_no == 0);
-            changes_.insert(rc);
-            last_col_no = rc.new_data_.size();
-          } else if (iflag == 0x00) {
-            util::dassert("row chain middle error",
-                          last_col_no > 0 && last_col_no == changes_.size());
-            for (auto trc& : changes_) {
-            }
-          }
-        }
-      }
+      tidyChanges();
+      commit_trans_[this->commit_scn_] = xid_map_[xid_];
       xid_map_.erase(xid_);
     }
-    */
+    // the rest is pending transaction, not commit/rollback so far.
+    // leave them as it is until it is rollbacked or commited
+  }
+
+  void Transaction::tidyChanges() {
+    auto temp_changes_ = std::move(changes_);
+    for (auto& rc : temp_changes_) {
+      if (rc->op_ == opcode::kDelete || rc->op_ == opcode::kMultiInsert ||
+          (rc->op_ == opcode::kUpdate && rc->iflag_ == 0x2c) ||
+          rc->op_ == opcode::kRowChain) {
+        changes_.insert(rc);
+      } else if (rc->op_ == opcode::kInsert) {
+        static Ushort last_col_no = 0;
+        if (rc->iflag_ == 0x2c) {
+          // normal insert
+          util::dassert("normal iflag error 0x04", last_col_no == 0);
+          changes_.insert(rc);
+        } else if (rc->iflag_ == 0x04) {
+          util::dassert("row chain iflag error 0x04", last_col_no == 0);
+          changes_.insert(rc);
+          last_col_no = rc->new_data_.size();
+        } else if (rc->iflag_ == 0x00 || rc->iflag_ == 0x28) {
+          util::dassert("row chain middle error",
+                        last_col_no > 0 && last_col_no == changes_.size());
+          RowChangePtr lastRowPtr = *changes_.rbegin();
+          Ushort newElemLen = rc->new_data_.size();
+          for (ColumnChangePtr c : lastRowPtr->new_data_) {
+            c->col_id_ += newElemLen;
+          }
+          lastRowPtr->new_data_.splice(lastRowPtr->new_data_.end(),
+                                       rc->new_data_);
+          if (rc->iflag_ == 0x00)
+            last_col_no += newElemLen;
+          else
+            last_col_no = 0;
+        }
+      }
+    }
   }
 
   std::string Transaction::toString() const {
@@ -266,6 +281,7 @@ namespace databus {
           redo = OpsDML::makeUpRedoCols(change, iflag);
           break;
         case opcode::kDelete:
+        case opcode::kRowChain:
           op = change->opCode();
           break;
         case opcode::kCommit:
@@ -303,7 +319,7 @@ namespace databus {
   void makeTranRecord(XID xid, uint32_t object_id, Ushort op,
                       std::list<Row>& undos, std::list<Row>& redos,
                       const SCN& scn, Ushort uflag, Ushort iflag) {
-    XIDMap xidmap = Transaction::xid_map_;
+    XIDMap& xidmap = Transaction::xid_map_;
     auto transit = xidmap.find(xid);
     if (transit == xidmap.end()) {
       error() << "XID " << xid
@@ -328,6 +344,8 @@ namespace databus {
             rcp->scn_ = scn;
             rcp->op_ = op;
             rcp->object_id_ = object_id;
+            rcp->uflag_ = uflag;
+            rcp->iflag_ = iflag;
             transit->second->changes_.insert(std::move(rcp));
           }
         }
@@ -339,6 +357,8 @@ namespace databus {
           for (auto col : row) {
             if (col->len_ > 0) {
               rcp->new_data_.push_back(col);
+              rcp->uflag_ = uflag;
+              rcp->iflag_ = iflag;
             }
           }
           rcp->scn_ = scn;
@@ -360,6 +380,8 @@ namespace databus {
           rcp->scn_ = scn;
           rcp->op_ = op;
           rcp->object_id_ = object_id;
+          rcp->uflag_ = uflag;
+          rcp->iflag_ = iflag;
           rcp->new_data_ = std::move(*redo_iter);
           transit->second->changes_.insert(std::move(rcp));
         }
