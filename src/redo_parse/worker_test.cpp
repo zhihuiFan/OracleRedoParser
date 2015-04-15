@@ -31,16 +31,33 @@ namespace databus {
       addToTransaction(buf);
       ++c;
     }
-    debug() << " total record found  = " << c << std::endl;
-    debug() << " build sql record " << std::endl;
+    debug() << "total record found  = " << c << std::endl;
 
-    info() << "Dump Transaction now" << std::endl;
+    info() << "Build Transaction now" << std::endl;
     for (auto tran : Transaction::xid_map_) {
-      verifyTrans(tran.second);
-      if (!tran.second->changes_.empty()) {
-        info() << tran.second->toString() << std::endl;
+      int r = tran.second->buildTransaction();
+      switch (r) {
+        case 0:
+          info() << "Transaction " << tran.second->xid_
+                 << " doesn't end, check it later" << std::endl;
+          break;
+        case 1:
+          info() << "Transaction " << tran.second->xid_ << " rollbacked "
+                 << std::endl;
+          break;
+
+        case 2:
+          info() << "Transaction " << tran.second->xid_
+                 << " Committed, will apply it soon" << std::endl;
+          break;
       }
     }
+
+    info() << "Apply Transaction now " << std::endl;
+    for (auto tran : Transaction::commit_trans_) {
+      tran.second->toString();
+    }
+
     //    MetadataManager::destoy();
     return 0;
   }

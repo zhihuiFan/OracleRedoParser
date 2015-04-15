@@ -3,6 +3,7 @@
 #include <map>
 #include <list>
 #include <vector>
+#include <sstream>
 #include "trans.h"
 #include "opcode.h"
 #include "opcode_ops.h"
@@ -21,17 +22,17 @@ namespace databus {
   XIDMap Transaction::xid_map_;
   std::map<SCN, TransactionPtr> Transaction::commit_trans_;
 
-  void Transaction::buildTransaction() {
+  int Transaction::buildTransaction() {
     if (has_rollback()) {
       xid_map_.erase(xid_);
-      return;
+      return 1;
     } else if (has_commited()) {
       tidyChanges();
       commit_trans_[this->commit_scn_] = xid_map_[xid_];
       xid_map_.erase(xid_);
+      return 2;
     }
-    // the rest is pending transaction, not commit/rollback so far.
-    // leave them as it is until it is rollbacked or commited
+    return 0;
   }
 
   void Transaction::tidyChanges() {
@@ -70,22 +71,20 @@ namespace databus {
     }
   }
 
+  void Transaction::apply(TransactionPtr tran) {
+    // will write this part later
+    info() << "Apply Transaction " << tran->xid_ << std::endl;
+  }
+
   std::string Transaction::toString() const {
     std::stringstream ss;
     ss << std::endl << "XID " << std::hex << xid_
        << " start_scn : " << start_scn_.toStr()
        << " commit_scn: " << commit_scn_.toStr()
        << " commited  : " << (int)commited_ << std::endl;
-    for (auto rc : changes_) {
-      ss << rc->toString() << std::endl;
+    for (auto& rc : changes_) {
+      ss << rc->pkToString() << std::endl;
     }
-
-    if (commited_ & 4)
-      ss << "rollback" << std::endl;
-    else if (commited_ & 2)
-      ss << "commit" << std::endl;
-    else
-      ss << "Unknow commit flag " << (int)commited_ << std::endl;
     return ss.str();
   }
 
@@ -223,6 +222,25 @@ namespace databus {
     return "";
   }
 
+  std::string RowChange::pkToString() const {
+    std::stringstream ss;
+    TabDefPtr tab_def = getMetadata().getTabDefFromId(object_id_);
+    ss << tab_def->owner << "." << tab_def->name << "  " << opcode::map[op_];
+    // for update, delete, row migration, we store pk into pk_ already
+    if (op_ == opcode::kInsert || op_ == opcode::kMultiInsert) {
+      Row pk;
+      findPk(tab_def, new_data_, pk);
+      for (ColumnChangePtr c : pk) {
+        ss << colAsStr(c, tab_def);
+      }
+    } else {
+      for (ColumnChangePtr c : pk_) {
+        ss << colAsStr(c, tab_def);
+      }
+    }
+    return ss.str();
+  }
+
   void addToTransaction(RecordBufPtr record) {
     DBA dba = 0;
     XID xid = 0;
@@ -289,10 +307,9 @@ namespace databus {
           {
             auto it = Transaction::dba_map_.find(dba);
             if (it == Transaction::dba_map_.end()) {
-              warn()
-                  << "found dba " << dba
-                  << " in commit , but unknow when this transaction is started"
-                  << std::endl;
+              warn() << "found dba " << dba << " in commit , but unknow when "
+                                               "this transaction is started"
+                     << std::endl;
               return;
             }
             OpCode0504_ucm* ucm = (OpCode0504_ucm*)(change->part(1));
@@ -301,10 +318,9 @@ namespace databus {
                 (((XID)ucm->slt_) << sizeof(uint32_t) * 8) | ucm->sqn_;
             auto xidit = Transaction::xid_map_.find(ixid);
             if (xidit == Transaction::xid_map_.end()) {
-              warn()
-                  << "found xid " << dba
-                  << " in commit , but unknow when this transaction is started"
-                  << std::endl;
+              warn() << "found xid " << dba << " in commit , but unknow when "
+                                               "this transaction is started"
+                     << std::endl;
               return;
             }
             xidit->second->commit_scn_ = record_scn;
@@ -334,7 +350,8 @@ namespace databus {
       return;
     }
     switch (op) {
-      case opcode::kDelete: {
+      case opcode::kDelete:
+      case opcode::kRowChain: {
         for (auto row : undos) {
           RowChangePtr rcp(new RowChange());
           Row pk;
@@ -369,7 +386,8 @@ namespace databus {
       } break;
 
       case opcode::kUpdate: {
-        // this is no mulitUpdate, so there is 1 elems in undo and redo at most
+        // this is no mulitUpdate, so there is 1 elems in undo and redo at
+        // most
         Row pk;
         auto undo_iter = undos.begin();
         auto redo_iter = redos.begin();

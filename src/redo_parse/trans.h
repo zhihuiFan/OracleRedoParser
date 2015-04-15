@@ -18,6 +18,7 @@ namespace databus {
               Row& undo, Row& redo);
     bool operator<(const RowChange& other) const { return scn_ < other.scn_; }
     std::string toString(bool scn = false) const;
+    std::string pkToString() const;
 
     SCN scn_;
     uint32_t object_id_;
@@ -26,11 +27,6 @@ namespace databus {
     Ushort iflag_;
     Row pk_;
     Row new_data_;
-
-    bool isNormal() const {
-      return op_ == opcode::kDelete || op_ == opcode::kMultiInsert ||
-             (op_ == opcode::kInsert && iflag_ == 0x2c);
-    }
   };
 
   typedef std::shared_ptr<RowChange> RowChangePtr;
@@ -72,8 +68,15 @@ namespace databus {
     // 1. you have read all the changes in the whole archive log into changes_
     // 2. you have read all the changes in the online log before the flush
     // marker
-    void buildTransaction();
+    // Return value:
+    // 0  the transction doesn't rollback or commit, leave it in transaction
+    // queue
+    // 1  the transaction is rollbacked, remove it from transaction queue
+    // 2  the transaction is committed, remove it from transaction, add it to
+    // applyable transaction queue
+    int buildTransaction();
     void tidyChanges();
+    static void apply(std::shared_ptr<Transaction> tran);
   };
 
   typedef std::shared_ptr<Transaction> TransactionPtr;
@@ -85,7 +88,5 @@ namespace databus {
                       const SCN& scn, Ushort uflag, Ushort iflag);
 
   bool verifyTrans(TransactionPtr trans_ptr);
-
-  void dump(TransactionPtr trans);
 }
 #endif /* ----- #ifndef TRANS_INC  ----- */
