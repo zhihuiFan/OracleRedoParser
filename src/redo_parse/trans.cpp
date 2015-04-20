@@ -39,7 +39,7 @@ namespace databus {
     auto temp_changes_ = std::move(changes_);
     for (auto& rc : temp_changes_) {
       if (rc->op_ == opcode::kDelete || rc->op_ == opcode::kMultiInsert ||
-          (rc->op_ == opcode::kUpdate && rc->iflag_ == 0x2c) ||
+          (rc->op_ == opcode::kUpdate && rc->uflag_ == 0x12) ||
           rc->op_ == opcode::kRowChain) {
         changes_.insert(rc);
       } else if (rc->op_ == opcode::kInsert) {
