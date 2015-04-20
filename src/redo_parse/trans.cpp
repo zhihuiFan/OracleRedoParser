@@ -43,10 +43,13 @@ namespace databus {
           rc->op_ == opcode::kRowChain) {
         changes_.insert(rc);
       } else if (rc->op_ == opcode::kInsert) {
+        if (rc->uflag_ == 0x22) {
+          continue;
+        }
         static Ushort last_col_no = 0;
         if (rc->iflag_ == 0x2c) {
           // normal insert
-          util::dassert("normal iflag error 0x04", last_col_no == 0);
+          util::dassert("normal iflag error 0x2c", last_col_no == 0);
           changes_.insert(rc);
         } else if (rc->iflag_ == 0x04) {
           util::dassert("row chain iflag error 0x04", last_col_no == 0);
@@ -287,9 +290,10 @@ namespace databus {
           }
           {
             undo = Ops0501::makeUpUndo(change, uflag, opsup);
-            info() << "Sup start_col_offset " << record->offset() << ":"
-                   << opsup->start_column_ << ":" << opsup->start_column2_
-                   << std::endl;
+            // opsup only set when  irp->xtype_ & 0x20
+            // info() << "Sup start_col_offset " << record->offset() << ":"
+            //      << opsup->start_column_ << ":" << opsup->start_column2_
+            //    << std::endl;
           }
           break;
         case opcode::kUpdate:
