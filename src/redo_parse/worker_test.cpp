@@ -11,6 +11,7 @@
 #include "util/logger.h"
 #include "opcode_ops.h"
 #include "trans.h"
+#include "otlv4.h"
 
 namespace databus {
 
@@ -22,7 +23,19 @@ namespace databus {
     return logmanager->getOnlineLastBlock(seq);
   }
   int main(int ac, char** av) {
+    otl_connect::otl_initialize();
+    //    try {
     initStream(ac, av);
+    //  } catch (otl_exception& p) {
+    /*
+        std::cerr << p.msg << std::endl;  // print out error message
+        std::cerr << p.stm_text
+                  << std::endl;  // print out SQL that caused the error
+        std::cerr << p.var_info
+                  << std::endl;  // print out the variable that caused the error
+        return 1;
+      }
+      */
     RedoFile redofile(getStreamConf().getUint32("startSeq"), getLogfile,
                       getOnlineLastBlock);
     RecordBufPtr buf;

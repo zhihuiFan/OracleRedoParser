@@ -19,6 +19,7 @@ namespace databus {
   std::map<uint32_t, uint32_t> MetadataManager::poid2goid_;
   MetadataManager::MetadataManager(const std::string& conn_str)
       : conn_str_(conn_str),
+        conn_(conn_str.c_str()),
         tab2oid_stmt_(10,
                       "select object_id from dba_objects where "
                       "owner=upper(:x<char[31]>) and "
@@ -58,7 +59,6 @@ namespace databus {
                       conn_) {
     // make sure we called otl_connect::otl_initialize() before init this
     // class
-    conn_.rlogon(conn_str.c_str());
   }
 
   MetadataManager::~MetadataManager() { conn_.logoff(); }
@@ -145,6 +145,7 @@ namespace databus {
 
   LogManager::LogManager(const char* conn_str)
       : conn_str_(conn_str),
+        conn_(conn_str),
         arch_log_stmt_(
             1,
             "select name from v$archived_log where sequence# = :seq<unsigned>",
@@ -157,9 +158,7 @@ namespace databus {
         log_last_blk_stmt_(1,
                            "select LAST_REDO_BLOCK from v$thread where "
                            "LAST_REDO_SEQUENCE# = :seq<unsigned>",
-                           conn_) {
-    conn_.rlogon(conn_str);
-  }
+                           conn_) {}
 
   std::string LogManager::getLogfile(uint32_t seq) {
     // prefer archive log

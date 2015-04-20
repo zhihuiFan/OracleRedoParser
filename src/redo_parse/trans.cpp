@@ -225,7 +225,7 @@ namespace databus {
   std::string RowChange::pkToString() const {
     std::stringstream ss;
     TabDefPtr tab_def = getMetadata().getTabDefFromId(object_id_);
-    ss << tab_def->owner << "." << tab_def->name << "  " << opcode::map[op_];
+    ss << tab_def->owner << "." << tab_def->name << "  " << getOpStr(op_);
     // for update, delete, row migration, we store pk into pk_ already
     if (op_ == opcode::kInsert || op_ == opcode::kMultiInsert) {
       Row pk;

@@ -72,10 +72,12 @@ namespace databus {
       std::cout << desc << std::endl;
       std::exit(1);
     }
+    /*
     util::dassert("srcUser/srcPass/srcHost/tableConf are must",
                   vm.count("srcUser") && vm.count("srcPass") &&
                       vm.count("srcDB") && vm.count("tableConf") &&
                       vm.count("startSeq"));
+                      */
   };
 
   int StreamConf::getInt(const char* para, int default_value) {
