@@ -29,7 +29,7 @@ namespace databus {
         tab2def_stmt_(
             10,
             "select COLUMN_ID, COLUMN_NAME, DATA_TYPE from dba_tab_cols where "
-            "owner=upper(:x<char[31]>) and table_name=upper(:y<char[129]) "
+            "owner=upper(:x<char[31]>) and table_name=upper(:y<char[129]>) "
             "and column_id is not null",
             conn_),
         pk_stmt_(

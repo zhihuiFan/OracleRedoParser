@@ -24,18 +24,16 @@ namespace databus {
   }
   int main(int ac, char** av) {
     otl_connect::otl_initialize();
-    //    try {
-    initStream(ac, av);
-    //  } catch (otl_exception& p) {
-    /*
-        std::cerr << p.msg << std::endl;  // print out error message
-        std::cerr << p.stm_text
-                  << std::endl;  // print out SQL that caused the error
-        std::cerr << p.var_info
-                  << std::endl;  // print out the variable that caused the error
-        return 1;
-      }
-      */
+    try {
+      initStream(ac, av);
+    } catch (otl_exception& p) {
+      std::cerr << p.msg << std::endl;  // print out error message
+      std::cerr << p.stm_text
+                << std::endl;  // print out SQL that caused the error
+      std::cerr << p.var_info
+                << std::endl;  // print out the variable that caused the error
+      throw p;
+    }
     RedoFile redofile(getStreamConf().getUint32("startSeq"), getLogfile,
                       getOnlineLastBlock);
     RecordBufPtr buf;
