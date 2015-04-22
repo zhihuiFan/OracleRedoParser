@@ -37,37 +37,43 @@ namespace databus {
   void Transaction::tidyChanges() {
     auto temp_changes_ = std::move(changes_);
     for (auto& rc : temp_changes_) {
+      LOG(INFO) << rc->scn_.toStr();
       if (rc->op_ == opcode::kDelete || rc->op_ == opcode::kMultiInsert ||
           (rc->op_ == opcode::kUpdate && rc->uflag_ == 0x12) ||
           rc->op_ == opcode::kRowChain) {
         changes_.insert(rc);
       } else if (rc->op_ == opcode::kInsert) {
+        /*
         if (rc->uflag_ == 0x22) {
           continue;
-        }
-        static Ushort last_col_no = 0;
+        } */
         if (rc->iflag_ == 0x2c) {
           // normal insert
-          util::dassert("normal iflag error 0x2c", last_col_no == 0);
+          util::dassert("normal iflag error 0x2c", last_col_no_ == 0);
           changes_.insert(rc);
         } else if (rc->iflag_ == 0x04) {
-          util::dassert("row chain iflag error 0x04", last_col_no == 0);
+          util::dassert("row chain iflag error 0x04", last_col_no_ == 0);
           changes_.insert(rc);
-          last_col_no = rc->new_data_.size();
+          last_col_no_ = rc->new_data_.size();
+          LOG(INFO) << "start minsert " << last_col_no_;
         } else if (rc->iflag_ == 0x00 || rc->iflag_ == 0x28) {
-          util::dassert("row chain middle error",
-                        last_col_no > 0 && last_col_no == changes_.size());
           RowChangePtr lastRowPtr = *changes_.rbegin();
+          util::dassert(
+              "row chain middle error",
+              last_col_no_ > 0 && last_col_no_ == lastRowPtr->new_data_.size());
           Ushort newElemLen = rc->new_data_.size();
           for (ColumnChangePtr c : lastRowPtr->new_data_) {
             c->col_id_ += newElemLen;
           }
           lastRowPtr->new_data_.splice(lastRowPtr->new_data_.end(),
                                        rc->new_data_);
-          if (rc->iflag_ == 0x00)
-            last_col_no += newElemLen;
-          else
-            last_col_no = 0;
+          if (rc->iflag_ == 0x00) {
+            LOG(INFO) << "middle minsert " << last_col_no_;
+            last_col_no_ += newElemLen;
+          } else {
+            last_col_no_ = 0;
+            LOG(INFO) << "last minsert " << last_col_no_;
+          }
         }
       }
     }
@@ -267,6 +273,7 @@ namespace databus {
           break;
         case opcode::kUndo:
           xid = Ops0501::getXID(change);
+          if (xid == 0) return;
           object_id = Ops0501::getObjId(change);
           if (dba > 0) {
             Transaction::dba_map_[dba] =
@@ -289,6 +296,10 @@ namespace databus {
             }
           }
           {
+            if (getMetadata().getTabDefFromId(object_id, false) == NULL) {
+              // we don't care about this object id
+              return;
+            }
             undo = Ops0501::makeUpUndo(change, uflag, opsup);
             // opsup only set when  irp->xtype_ & 0x20
             // LOG(INFO) << "Sup start_col_offset " << record->offset() << ":"
@@ -332,7 +343,7 @@ namespace databus {
           }
       }  // end switch
     }
-    if (op)
+    if (op && xid != 0)
       makeTranRecord(xid, object_id, op, undo, redo, record_scn, uflag, iflag);
   }
 

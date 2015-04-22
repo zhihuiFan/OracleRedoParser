@@ -3,16 +3,19 @@
 #define OTL_ORA_UTF8
 #include "otlv4.h"
 #include "util/logger.h"
+#include <sstream>
 
 namespace databus {
-  void TabDef::dump() {
-    std::cout << "Table Name : " << name << "\n"
-              << "Primary Key : "
-              << "\n";
-    for (auto i : pk) std::cout << i << " ";
-    std::cout << std::endl;
+  std::string TabDef::toString() {
+    std::stringstream ss;
+    ss << "Table Name : " << name << "\n"
+       << "Primary Key : "
+       << "\n";
+    for (auto i : pk) ss << i << " ";
+    ss << std::endl;
     for (auto i : col_names)
-      std::cout << col_names[i.first] << ":" << col_types[i.first] << std::endl;
+      ss << col_names[i.first] << ":" << col_types[i.first] << std::endl;
+    return ss.str();
   }
 
   std::map<uint32_t, std::shared_ptr<TabDef> > MetadataManager::oid2def_;

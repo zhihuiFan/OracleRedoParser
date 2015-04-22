@@ -25,7 +25,7 @@ namespace databus {
     std::map<Ushort, std::string> col_names;
     std::map<Ushort, std::string> col_types;  // shall I use number?
    public:
-    void dump();
+    std::string toString();
   };
 
   typedef std::shared_ptr<TabDef> TabDefPtr;

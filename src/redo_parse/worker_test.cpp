@@ -61,7 +61,7 @@ namespace databus {
 
     LOG(INFO) << "Apply Transaction now " << std::endl;
     for (auto tran : Transaction::commit_trans_) {
-      LOG(INFO) << tran.second->toString();
+      if (!tran.second->empty()) LOG(INFO) << tran.second->toString();
     }
 
     //    MetadataManager::destoy();

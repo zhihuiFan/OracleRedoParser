@@ -37,15 +37,22 @@ namespace databus {
 
   struct Transaction {
     Transaction()
-        : commited_(0), xid_(0), start_scn_(), commit_scn_(), ordered(false) {}
+        : commited_(0),
+          xid_(0),
+          start_scn_(),
+          commit_scn_(),
+          ordered(false),
+          last_col_no_(0) {}
     XID xid_;
     SCN start_scn_;
     SCN commit_scn_;
     char commited_;  // 2=commited  4=rollbacked
     // orginize changes, for row-chains, row migration
     bool ordered;
-    std::multiset<RowChangePtr> changes_;
+    std::set<RowChangePtr, std::owner_less<RowChangePtr>> changes_;
     std::string toString() const;
+    // for big insert only
+    Ushort last_col_no_;
     static XIDMap xid_map_;
     static DBAMap dba_map_;
     static std::map<SCN, std::shared_ptr<Transaction>> commit_trans_;
@@ -53,6 +60,7 @@ namespace databus {
     bool operator<(const Transaction& other) const;
     bool has_rollback() const { return commited_ & 4; }
     bool has_commited() const { return commited_ & 2; }
+    bool empty() const { return changes_.empty(); }
     void tidyChanges();
     static void apply(std::shared_ptr<Transaction> tran);
   };
