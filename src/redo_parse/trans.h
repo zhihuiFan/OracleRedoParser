@@ -29,6 +29,12 @@ namespace databus {
     Row new_data_;
   };
 
+  struct Less {
+    bool operator()(const std::shared_ptr<RowChange>& l,
+                    const std::shared_ptr<RowChange>& r) {
+      return l->scn_ < r->scn_;
+    }
+  };
   typedef std::shared_ptr<RowChange> RowChangePtr;
 
   struct Transaction;
@@ -49,7 +55,7 @@ namespace databus {
     char commited_;  // 2=commited  4=rollbacked
     // orginize changes, for row-chains, row migration
     bool ordered;
-    std::set<RowChangePtr, std::owner_less<RowChangePtr>> changes_;
+    std::set<RowChangePtr, Less> changes_;
     std::string toString() const;
     // for big insert only
     Ushort last_col_no_;
