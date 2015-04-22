@@ -14,7 +14,7 @@ DEPS=metadata.h \
 PLATFORM=$(shell uname)
 ifeq ($(PLATFORM),SunOS)
 	LDFLAGS=-L/oracle/VIKING/home/products/11203/lib -L/export/home/oracle/zhifan/boost_gcc/lib  -lboost_program_options -lclntsh -pthread
-	CXXFLAGS = -I. -I.. -std=c++11 -O0  -m64 -D__STREAM_DEBUG__ -I/oracle/VIKING/home/zhifan/boost_gcc/include -lclntsh -I/oracle/VIKING/home/products/11203/rdbms/public -pthread
+	CXXFLAGS = -I. -I.. -std=c++11 -O0 -g -m64 -D__STREAM_DEBUG__ -I/oracle/VIKING/home/zhifan/boost_gcc/include -lclntsh -I/oracle/VIKING/home/products/11203/rdbms/public -pthread
 endif
 
 %.o: %.cpp $(DEPS)

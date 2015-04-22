@@ -54,7 +54,8 @@ namespace databus {
     MetadataManager(const std::string& conn_str);
     ~MetadataManager();
     // re-connect if needed
-    std::shared_ptr<TabDef> getTabDefFromId(uint32_t object_id);
+    std::shared_ptr<TabDef> getTabDefFromId(uint32_t object_id,
+                                            bool allow_init = true);
     std::shared_ptr<TabDef> initTabDefFromName(const char* owner,
                                                const char* table);
 

@@ -83,17 +83,20 @@ namespace databus {
     }
   }
 
-  std::shared_ptr<TabDef> MetadataManager::getTabDefFromId(uint32_t object_id) {
+  std::shared_ptr<TabDef> MetadataManager::getTabDefFromId(uint32_t object_id,
+                                                           bool allow_init) {
     // may be null
     // a). not init   b). object_id is a partition obj id
     if (haveDef(object_id)) return oid2def_[object_id];
     uint32_t goid = poid2goid_[object_id];
-    if (goid) {
-      if (haveDef(goid)) return oid2def_[goid];
-    } else {
+    if (!goid) {
       goid = getGlobalObjId(object_id);
     }
+    if (haveDef(goid)) return oid2def_[goid];
     if (goid != object_id) poid2goid_[object_id] = goid;  // cache the map
+    if (!allow_init) {
+      return NULL;
+    }
     initFromId(goid);
     // NULL if a) not pk, like some sys.tables
     return oid2def_[goid];
@@ -114,7 +117,7 @@ namespace databus {
     }
     if (tab_def->pk.empty()) {
       LOG(DEBUG) << "either " << owner << "." << table
-              << " not exits or not primary key" << std::endl;
+                 << " not exits or not primary key" << std::endl;
       return NULL;
     }
     assert(!tab_def->pk.empty());
@@ -134,9 +137,9 @@ namespace databus {
       tab2oid_stmt_ >> object_id;
       if (oid2def_.find(object_id) != oid2def_.end()) {
         LOG(WARNING) << "logical error old def exist already"
-               << oid2def_[object_id]->name << ":" << oid2def_[object_id]->owner
-               << " new def " << tab_def->owner << ":" << tab_def->name
-               << std::endl;
+                     << oid2def_[object_id]->name << ":"
+                     << oid2def_[object_id]->owner << " new def "
+                     << tab_def->owner << ":" << tab_def->name << std::endl;
       }
       oid2def_[object_id] = tab_def;
     }
