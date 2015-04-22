@@ -22,17 +22,16 @@ namespace databus {
   XIDMap Transaction::xid_map_;
   std::map<SCN, TransactionPtr> Transaction::commit_trans_;
 
-  int Transaction::buildTransaction() {
-    if (has_rollback()) {
-      xid_map_.erase(xid_);
-      return 1;
-    } else if (has_commited()) {
-      tidyChanges();
-      commit_trans_[this->commit_scn_] = xid_map_[xid_];
-      xid_map_.erase(xid_);
-      return 2;
+  XIDMap::iterator buildTransaction(XIDMap::iterator it) {
+    if (it->second->has_rollback()) {
+      return Transaction::xid_map_.erase(it);
+    } else if (it->second->has_commited()) {
+      it->second->tidyChanges();
+      Transaction::commit_trans_[it->second->commit_scn_] =
+          Transaction::xid_map_[it->second->xid_];
+      return Transaction::xid_map_.erase(it);
     }
-    return 0;
+    return Transaction::xid_map_.end();
   }
 
   void Transaction::tidyChanges() {
@@ -76,7 +75,7 @@ namespace databus {
 
   void Transaction::apply(TransactionPtr tran) {
     // will write this part later
-    info() << "Apply Transaction " << tran->xid_ << std::endl;
+    LOG(INFO) << "Apply Transaction " << tran->xid_ << std::endl;
   }
 
   std::string Transaction::toString() const {
@@ -112,10 +111,10 @@ namespace databus {
     if (npk == table_def->pk.size()) {
       return npk;
     } else {
-      error() << "Number of PK mismatched\n Object Name " << table_def->owner
-              << "." << table_def->name << "\nNum of PK "
-              << table_def->pk.size() << "\nNo. of PK in Redo " << pk.size()
-              << std::endl;
+      LOG(ERROR) << "Number of PK mismatched\n Object Name " << table_def->owner
+                 << "." << table_def->name << "\nNum of PK "
+                 << table_def->pk.size() << "\nNo. of PK in Redo " << pk.size()
+                 << std::endl;
       return -1;
     }
   }
@@ -220,7 +219,7 @@ namespace databus {
         }
       } break;
       default:
-        error() << "Unknown Op " << (int)op_ << std::endl;
+        LOG(ERROR) << "Unknown Op " << (int)op_ << std::endl;
     }
     return "";
   }
@@ -277,10 +276,11 @@ namespace databus {
               auto& xidmap = Transaction::xid_map_;
               auto it = xidmap.find(xid);
               if (it != xidmap.end()) {
-                error() << "I think Transaction (xid" << xid
-                        << ") just start here offset: " << record->offset()
-                        << " but it was started before \n"
-                        << "Dump Info\n" << it->second->toString() << std::endl;
+                LOG(ERROR) << "I think Transaction (xid" << xid
+                           << ") just start here offset: " << record->offset()
+                           << " but it was started before \n"
+                           << "Dump Info\n" << it->second->toString()
+                           << std::endl;
                 return;
               }
               xidmap[xid] = TransactionPtr(new Transaction());
@@ -291,7 +291,7 @@ namespace databus {
           {
             undo = Ops0501::makeUpUndo(change, uflag, opsup);
             // opsup only set when  irp->xtype_ & 0x20
-            // info() << "Sup start_col_offset " << record->offset() << ":"
+            // LOG(INFO) << "Sup start_col_offset " << record->offset() << ":"
             //      << opsup->start_column_ << ":" << opsup->start_column2_
             //    << std::endl;
           }
@@ -311,9 +311,9 @@ namespace databus {
           {
             auto it = Transaction::dba_map_.find(dba);
             if (it == Transaction::dba_map_.end()) {
-              warn() << "found dba " << dba << " in commit , but unknow when "
-                                               "this transaction is started"
-                     << std::endl;
+              LOG(WARNING) << "found dba " << dba
+                           << " in commit , but unknow when "
+                              "this transaction is started" << std::endl;
               return;
             }
             OpCode0504_ucm* ucm = (OpCode0504_ucm*)(change->part(1));
@@ -322,9 +322,9 @@ namespace databus {
                 (((XID)ucm->slt_) << sizeof(uint32_t) * 8) | ucm->sqn_;
             auto xidit = Transaction::xid_map_.find(ixid);
             if (xidit == Transaction::xid_map_.end()) {
-              warn() << "found xid " << dba << " in commit , but unknow when "
-                                               "this transaction is started"
-                     << std::endl;
+              LOG(WARNING) << "found xid " << dba
+                           << " in commit , but unknow when "
+                              "this transaction is started" << std::endl;
               return;
             }
             xidit->second->commit_scn_ = record_scn;
@@ -342,15 +342,15 @@ namespace databus {
     XIDMap& xidmap = Transaction::xid_map_;
     auto transit = xidmap.find(xid);
     if (transit == xidmap.end()) {
-      error() << "XID " << xid
-              << " info was missed when I want to add a change to it"
-              << std::endl;
+      LOG(ERROR) << "XID " << xid
+                 << " info was missed when I want to add a change to it"
+                 << std::endl;
       return;
     }
     auto table_def = getMetadata().getTabDefFromId(object_id);
     if (table_def == NULL) {
-      debug() << "Can't get table definition for object_id " << object_id
-              << " ignore this change " << std::endl;
+      LOG(DEBUG) << "Can't get table definition for object_id " << object_id
+                 << " ignore this change " << std::endl;
       return;
     }
     switch (op) {
@@ -409,7 +409,7 @@ namespace databus {
         }
       } break;
       default:
-        error() << "Unknown Op " << (int)op << std::endl;
+        LOG(ERROR) << "Unknown Op " << (int)op << std::endl;
         break;
     }
   }
@@ -431,8 +431,8 @@ namespace databus {
     }
 
     if (dup) {
-      warn() << "FOUND duplicated SCN in this transaction" << std::endl;
-      warn() << trans_ptr->toString() << std::endl;
+      LOG(WARNING) << "FOUND duplicated SCN in this transaction" << std::endl;
+      LOG(WARNING) << trans_ptr->toString() << std::endl;
     }
 #endif
     return ~dup;

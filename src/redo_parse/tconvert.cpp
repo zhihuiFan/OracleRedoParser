@@ -146,21 +146,21 @@ namespace databus {
                 std::list<Row> undos, std::list<Row> redos) {
     auto table_def = getMetadata().getTabDefFromId(object_id);
     if (table_def == NULL) {
-      debug() << "Obj (" << object_id << ") doesn't exist or don't have PK"
+      LOG(DEBUG) << "Obj (" << object_id << ") doesn't exist or don't have PK"
               << std::endl;
 
       return;
     }
-    info() << "Transaction ID " << xid << std::endl;
+    LOG(INFO) << "Transaction ID " << xid << std::endl;
 
-    info() << optype << " " << table_def->name << std::endl;
+    LOG(INFO) << optype << " " << table_def->name << std::endl;
     if (strncmp(optype, "insert", strlen("insert")) != 0) {
-      info() << "Primary Keys:" << std::endl;
+      LOG(INFO) << "Primary Keys:" << std::endl;
       for (auto undo : undos) {
         for (auto col : undo) {
           if (col->len_ > 0 &&
               table_def->pk.find(col->col_id_ + 1) != table_def->pk.end()) {
-            info() << "\t" << table_def->col_names[col->col_id_ + 1] << "----"
+            LOG(INFO) << "\t" << table_def->col_names[col->col_id_ + 1] << "----"
                    << convert(col->content_,
                               table_def->col_types[col->col_id_ + 1], col->len_)
                    << std::endl;
@@ -170,10 +170,10 @@ namespace databus {
     }
 
     if (strncmp(optype, "delete", strlen("delete")) != 0) {
-      info() << "New data: " << std::endl;
+      LOG(INFO) << "New data: " << std::endl;
       for (auto redo : redos) {
         for (auto col : redo) {
-          info() << table_def->col_names[col->col_id_ + 1] << "----"
+          LOG(INFO) << table_def->col_names[col->col_id_ + 1] << "----"
                  << convert(col->content_,
                             table_def->col_types[col->col_id_ + 1], col->len_)
                  << std::endl;

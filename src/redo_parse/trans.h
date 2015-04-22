@@ -53,31 +53,31 @@ namespace databus {
     bool operator<(const Transaction& other) const;
     bool has_rollback() const { return commited_ & 4; }
     bool has_commited() const { return commited_ & 2; }
-    // if this transaction is commit,
-    //      build applyable changes
-    //      move_from_xid_map
-    //      add_to_scn_map
-    // else if rollbacked:
-    //      move_from_xid_map
-    // else:  unknown so far
-    //      pass
-    // about applyable changes
-    //      see https://jirap.corp.ebay.com/browse/DBISTREA-19
-    // Note: buildTransaction can be call only when one of the following
-    // sisutaion is true
-    // 1. you have read all the changes in the whole archive log into changes_
-    // 2. you have read all the changes in the online log before the flush
-    // marker
-    // Return value:
-    // 0  the transction doesn't rollback or commit, leave it in transaction
-    // queue
-    // 1  the transaction is rollbacked, remove it from transaction queue
-    // 2  the transaction is committed, remove it from transaction, add it to
-    // applyable transaction queue
-    int buildTransaction();
     void tidyChanges();
     static void apply(std::shared_ptr<Transaction> tran);
   };
+  // if this transaction is commit,
+  //      build applyable changes
+  //      move_from_xid_map
+  //      add_to_scn_map
+  // else if rollbacked:
+  //      move_from_xid_map
+  // else:  unknown so far
+  //      pass
+  // about applyable changes
+  //      see https://jirap.corp.ebay.com/browse/DBISTREA-19
+  // Note: buildTransaction can be call only when one of the following
+  // sisutaion is true
+  // 1. you have read all the changes in the whole archive log into changes_
+  // 2. you have read all the changes in the online log before the flush
+  // marker
+  // Return value:
+  // 0  the transction doesn't rollback or commit, leave it in transaction
+  // queue
+  // 1  the transaction is rollbacked, remove it from transaction queue
+  // 2  the transaction is committed, remove it from transaction, add it to
+  // applyable transaction queue
+  XIDMap::iterator buildTransaction(XIDMap::iterator it);
 
   typedef std::shared_ptr<Transaction> TransactionPtr;
   typedef std::map<SCN, TransactionPtr>& SCNTranMap;

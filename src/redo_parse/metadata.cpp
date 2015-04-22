@@ -113,7 +113,7 @@ namespace databus {
       tab_def->pk.insert(col_no);
     }
     if (tab_def->pk.empty()) {
-      debug() << "either " << owner << "." << table
+      LOG(DEBUG) << "either " << owner << "." << table
               << " not exits or not primary key" << std::endl;
       return NULL;
     }
@@ -133,7 +133,7 @@ namespace databus {
     while (!tab2oid_stmt_.eof()) {
       tab2oid_stmt_ >> object_id;
       if (oid2def_.find(object_id) != oid2def_.end()) {
-        warn() << "logical error old def exist already"
+        LOG(WARNING) << "logical error old def exist already"
                << oid2def_[object_id]->name << ":" << oid2def_[object_id]->owner
                << " new def " << tab_def->owner << ":" << tab_def->name
                << std::endl;

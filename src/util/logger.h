@@ -1,6 +1,7 @@
 #include <sstream>
 #include <string>
 #include <iostream>
+#include "easylogging++.h"
 
 namespace databus {
   inline std::ostream& trace() { return std::cout << "[TRACE] "; }

@@ -12,9 +12,10 @@
 #include "opcode_ops.h"
 #include "trans.h"
 #include "otlv4.h"
+#include "easylogging++.h"
 
+INITIALIZE_EASYLOGGINGPP
 namespace databus {
-
   std::shared_ptr<LogManager> logmanager = NULL;
 
   std::string getLogfile(uint32_t seq) { return logmanager->getLogfile(seq); }
@@ -24,6 +25,9 @@ namespace databus {
   }
   int main(int ac, char** av) {
     otl_connect::otl_initialize();
+    el::Configurations conf("logging.conf");
+    el::Loggers::reconfigureLogger("default", conf);
+    // el::Loggers::reconfigureAllLoggers(conf);
     try {
       initStream(ac, av);
     } catch (otl_exception& p) {
@@ -42,31 +46,22 @@ namespace databus {
       addToTransaction(buf);
       ++c;
     }
-    debug() << "total record found  = " << c << std::endl;
+    LOG(DEBUG) << "total record found  = " << c << std::endl;
 
-    info() << "Build Transaction now" << std::endl;
-    for (auto tran : Transaction::xid_map_) {
-      int r = tran.second->buildTransaction();
-      switch (r) {
-        case 0:
-          info() << "Transaction " << tran.second->xid_
-                 << " doesn't end, check it later" << std::endl;
-          break;
-        case 1:
-          info() << "Transaction " << tran.second->xid_ << " rollbacked "
-                 << std::endl;
-          break;
-
-        case 2:
-          info() << "Transaction " << tran.second->xid_
-                 << " Committed, will apply it soon" << std::endl;
-          break;
+    LOG(INFO) << "Build Transaction now" << std::endl;
+    auto tran = Transaction::xid_map_.begin();
+    while (tran != Transaction::xid_map_.end()) {
+      auto it = buildTransaction(tran);
+      if (it != Transaction::xid_map_.end()) {
+        tran = it;
+      } else {
+        tran++;
       }
     }
 
-    info() << "Apply Transaction now " << std::endl;
+    LOG(INFO) << "Apply Transaction now " << std::endl;
     for (auto tran : Transaction::commit_trans_) {
-      std::cout << tran.second->toString() << std::endl;
+      LOG(INFO) << tran.second->toString();
     }
 
     //    MetadataManager::destoy();
