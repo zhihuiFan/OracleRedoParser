@@ -90,8 +90,8 @@ namespace databus {
       char* data = new char[*(col_len + i) + 1];
       if (*(change->partLen(data_offset + i)) < *(col_len + i)) {
         LOG(DEBUG) << "column_len( " << *(col_len + i)
-                << ") is bigger than data part length("
-                << *(change->partLen(data_offset + i)) << ")" << std::endl;
+                   << ") is bigger than data part length("
+                   << *(change->partLen(data_offset + i)) << ")" << std::endl;
         *(col_len + i) = *(change->partLen(data_offset + i));
       }
       memcpy(data, src, *(col_len + i));
@@ -219,10 +219,10 @@ namespace databus {
     Row redo_row;
     switch (change->opCode()) {
       case opcode::kInsert: {
-        LOG(DEBUG) << "Normal Insert " << std::endl;
+        LOG(DEBUG) << "Normal Insert ";
         OpCodeKdoirp* irp = (OpCodeKdoirp*)kdo;
         if (irp->flag_ & 0x80 || irp->flag_ & 0x40) {
-          LOG(DEBUG) << "Found cluster op, bypass it" << std::endl;
+          LOG(DEBUG) << "Found cluster op, bypass it";
           break;
         }
         redo_row =

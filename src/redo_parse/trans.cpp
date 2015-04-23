@@ -54,7 +54,6 @@ namespace databus {
           util::dassert("row chain iflag error 0x04", last_col_no_ == 0);
           changes_.insert(rc);
           last_col_no_ = rc->new_data_.size();
-          LOG(TRACE) << "start minsert " << last_col_no_;
         } else if (rc->iflag_ == 0x00 || rc->iflag_ == 0x28) {
           RowChangePtr lastRowPtr = *changes_.rbegin();
           util::dassert(
@@ -64,14 +63,17 @@ namespace databus {
           for (ColumnChangePtr c : lastRowPtr->new_data_) {
             c->col_id_ += newElemLen;
           }
+          for (auto c : rc->new_data_) {
+            for (auto cl : lastRowPtr->new_data_) {
+              dassert("col_no_error", cl->col_id_ != c->col_id_);
+            }
+          }
           lastRowPtr->new_data_.splice(lastRowPtr->new_data_.end(),
                                        rc->new_data_);
           if (rc->iflag_ == 0x00) {
-            LOG(TRACE) << "middle minsert " << last_col_no_;
             last_col_no_ += newElemLen;
           } else {
             last_col_no_ = 0;
-            LOG(TRACE) << "last minsert " << last_col_no_;
           }
         }
       }
@@ -116,7 +118,7 @@ namespace databus {
     if (npk == table_def->pk.size()) {
       return npk;
     } else {
-      LOG(ERROR) << "Number of PK mismatched\n Object Name " << table_def->owner
+      LOG(ERROR) << "Number of PK Mismatched\n Object Name " << table_def->owner
                  << "." << table_def->name << "\nNum of PK "
                  << table_def->pk.size() << "\nNo. of PK in Redo " << pk.size()
                  << std::endl;
@@ -386,11 +388,11 @@ namespace databus {
         for (auto row : redos) {
           RowChangePtr rcp(new RowChange());
           for (auto col : row) {
-            if (col->len_ > 0) {
-              rcp->new_data_.push_back(col);
-              rcp->uflag_ = uflag;
-              rcp->iflag_ = iflag;
-            }
+            // if (col->len_ > 0) {
+            rcp->new_data_.push_back(col);
+            rcp->uflag_ = uflag;
+            rcp->iflag_ = iflag;
+            //  }
           }
           rcp->scn_ = scn;
           rcp->op_ = op;
