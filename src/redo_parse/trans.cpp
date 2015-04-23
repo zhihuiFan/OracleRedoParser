@@ -38,14 +38,9 @@ namespace databus {
     auto temp_changes_ = std::move(changes_);
     for (auto& rc : temp_changes_) {
       if (rc->op_ == opcode::kDelete || rc->op_ == opcode::kMultiInsert ||
-          (rc->op_ == opcode::kUpdate && rc->uflag_ == 0x12) ||
-          rc->op_ == opcode::kRowChain) {
+          rc->op_ == opcode::kUpdate) {
         changes_.insert(rc);
       } else if (rc->op_ == opcode::kInsert) {
-        /*
-        if (rc->uflag_ == 0x22) {
-          continue;
-        } */
         if (rc->iflag_ == 0x2c) {
           // normal insert
           util::dassert("normal iflag error 0x2c", last_col_no_ == 0);
@@ -76,6 +71,18 @@ namespace databus {
             last_col_no_ = 0;
           }
         }
+      } else if (rc->op_ == opcode::kRowChain) {
+        // A big insert before 11.6 may be imcompleted
+        // Check https://jirap.corp.ebay.com/browse/DBISTREA-21
+        last_col_no_ = 0;
+        dassert("Row Chain Exception 1", !changes_.empty());
+        auto it = changes_.end();
+        --it;
+        dassert("Row Chain Exception 2",
+                (*it)->op_ == opcode::kInsert &&
+                    (*it)->object_id_ == rc->object_id_);
+        changes_.erase(it);
+        changes_.insert(rc);
       }
     }
   }
@@ -118,10 +125,11 @@ namespace databus {
     if (npk == table_def->pk.size()) {
       return npk;
     } else {
-      LOG(ERROR) << "Number of PK Mismatched\n Object Name " << table_def->owner
-                 << "." << table_def->name << "\nNum of PK "
-                 << table_def->pk.size() << "\nNo. of PK in Redo " << pk.size()
-                 << std::endl;
+      LOG(WARNING) << "Number of PK Mismatched\n Object Name "
+                   << table_def->owner << "." << table_def->name
+                   << " Num of PK " << table_def->pk.size()
+                   << " No. of PK in Redo " << pk.size()
+                   << " This probably a Row Megration 11.2 \n";
       return -1;
     }
   }
@@ -238,7 +246,9 @@ namespace databus {
     // for update, delete, row migration, we store pk into pk_ already
     if (op_ == opcode::kInsert || op_ == opcode::kMultiInsert) {
       Row pk;
-      findPk(tab_def, new_data_, pk);
+      if (findPk(tab_def, new_data_, pk) == -1) {
+        return std::string("Probably Row Megration");
+      }
       for (ColumnChangePtr c : pk) {
         ss << colAsStr(c, tab_def);
       }
@@ -298,7 +308,7 @@ namespace databus {
           }
           {
             if (getMetadata().getTabDefFromId(object_id, false) == NULL) {
-              // we don't care about this object id
+              // we don't care about this object id for version 0.1
               return;
             }
             undo = Ops0501::makeUpUndo(change, uflag, opsup);

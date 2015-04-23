@@ -128,7 +128,7 @@ namespace databus {
       } else {
         int ivld = vld;
         LOG(ERROR) << "unsupport vld " << ivld << " offset "
-                << curr_record_pos_ - file_start_pos_ << std::endl;
+                   << curr_record_pos_ - file_start_pos_ << std::endl;
         curr_record_pos_ = nextRecord(curr_record_pos_);
         goto again;
       }
@@ -220,8 +220,8 @@ namespace databus {
         online_log = true;
         if (isOverRead(blk_id)) {
           LOG(DEBUG) << "blocking on the last block of online log"
-                  << "blk_id " << blk_id << " latest_blk " << latest_blk_
-                  << std::endl;
+                     << "blk_id " << blk_id << " latest_blk " << latest_blk_
+                     << std::endl;
           sleep(3);
           pos = from;
           goto tryagain;

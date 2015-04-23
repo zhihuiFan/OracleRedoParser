@@ -134,7 +134,8 @@ namespace databus {
     // printTransBase(change0501);
     // if there any exception if opkdo->opcode_ = 0501
     switch (opkdo->opcode_ & 0x1f) {
-      case opcode::kInsert & 0xff: {
+      case opcode::kInsert & 0xff:
+      case opcode::kRowChain & 0xff: {
         // common delete will go to here
         LOG(DEBUG) << "Normal Delete " << std::endl;
         OpCodeKdoirp* irp = (OpCodeKdoirp*)opkdo;
@@ -200,7 +201,6 @@ namespace databus {
       case opcode::kMultiDelete & 0xff:
       // mulit_insert will go here, we should be able to find out the pks which
       // are inserted
-      case opcode::kRowChain & 0xff:
       case opcode::kLmn & 0xff:
       case opcode::kMfc & 0xff:
       case opcode::kCfa & 0xff:
