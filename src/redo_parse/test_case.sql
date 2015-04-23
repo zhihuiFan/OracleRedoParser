@@ -4,10 +4,14 @@
 conn andy/andy
 set echo on
 drop table target;
-create table target (b varchar2(4000), a int primary key, c date, d varchar2(4000), e varchar2(4000));
+create table target (b varchar2(4000), a number(38,10) primary key, c date, d varchar2(4000), e varchar2(4000));
+drop table test;
+create table test (a int primary key, b varchar2(40), c date, d varchar2(40), e varchar2(40));
+
 alter system switch logfile;
 
 -- insert part of columns
+whenever sqlerror exit
 insert into target(a, b, c) values(1, 'FANZHIHUI',  sysdate);
 commit;
 insert into target(a, b, c)  values(2, 'abcdef',  sysdate);
@@ -26,15 +30,17 @@ commit;
 -- This will not generate Mulit-Insert, row too long?
 insert all
     into target(a, b, c) values(-100, 'ab', sysdate-1)
-    into target(a) values(-101)
     into target(a, c) values(-102.22, sysdate-2)
+    into target(a, b, c) values(-0.0101, 'ab', sysdate-1)
+    into target(a, b, c) values(100, 'ab', sysdate-1)
+    into target(a, c) values(102.22, sysdate-2)
+    into target(a, b, c) values(0.0101, 'ab', sysdate-1)
+    into target(a) values(0)
 select * from dual;
 commit;
 delete from target where a=-100;
 delete from target where a=-101;
 rollback;
-drop table test;
-create table test (a int primary key, b varchar2(40), c date, d varchar2(40), e varchar2(40));
 -- This will generate Mulit-Insert
 insert all
    into test values(-1, 'a', sysdate, 'a', 'a')

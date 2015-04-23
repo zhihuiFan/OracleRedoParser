@@ -37,7 +37,6 @@ namespace databus {
   void Transaction::tidyChanges() {
     auto temp_changes_ = std::move(changes_);
     for (auto& rc : temp_changes_) {
-      LOG(INFO) << rc->scn_.toStr();
       if (rc->op_ == opcode::kDelete || rc->op_ == opcode::kMultiInsert ||
           (rc->op_ == opcode::kUpdate && rc->uflag_ == 0x12) ||
           rc->op_ == opcode::kRowChain) {
@@ -55,7 +54,7 @@ namespace databus {
           util::dassert("row chain iflag error 0x04", last_col_no_ == 0);
           changes_.insert(rc);
           last_col_no_ = rc->new_data_.size();
-          LOG(INFO) << "start minsert " << last_col_no_;
+          LOG(TRACE) << "start minsert " << last_col_no_;
         } else if (rc->iflag_ == 0x00 || rc->iflag_ == 0x28) {
           RowChangePtr lastRowPtr = *changes_.rbegin();
           util::dassert(
@@ -68,11 +67,11 @@ namespace databus {
           lastRowPtr->new_data_.splice(lastRowPtr->new_data_.end(),
                                        rc->new_data_);
           if (rc->iflag_ == 0x00) {
-            LOG(INFO) << "middle minsert " << last_col_no_;
+            LOG(TRACE) << "middle minsert " << last_col_no_;
             last_col_no_ += newElemLen;
           } else {
             last_col_no_ = 0;
-            LOG(INFO) << "last minsert " << last_col_no_;
+            LOG(TRACE) << "last minsert " << last_col_no_;
           }
         }
       }

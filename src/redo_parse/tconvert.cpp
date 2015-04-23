@@ -3,6 +3,7 @@
 #include <string>
 #include <sstream>
 #include <string.h>
+#include <cmath>
 // #include <occi.h>
 
 #include "logical_elems.h"
@@ -64,22 +65,28 @@ namespace databus {
     } else {
       ss << "-";
       int int_bit = 63 - sign_bit;
-      for (int i = 1; i < len - 1; ++i) {
+      for (int i = 1; i < len - 1 || i < abs(int_bit) + 1; ++i) {
         // input[len-1] == 102, useless
         if (i > int_bit && !floated) {
           ss << ".";
           floated = true;
-          // 0.00000001
-          int padding = sign_bit - len;
-          for (int i = 0; i < +padding; ++i) {
-            ss << "00";
+          if (int_bit <= 0) {
+            // -0.00000001
+            for (int i = 0; i < abs(int_bit); ++i) {
+              ss << "00";
+            }
           }
         }
-        n = 101 - input[len];
-        if (n < 10) {
-          ss << "0";
+        if (i >= len - 1) {
+          // handle -10000
+          ss << "00";
+        } else {
+          n = 101 - input[i];
+          if (n < 10) {
+            ss << "0";
+          }
+          ss << n;
         }
-        ss << n;
       }
     }
     return ss.str();
@@ -147,7 +154,7 @@ namespace databus {
     auto table_def = getMetadata().getTabDefFromId(object_id);
     if (table_def == NULL) {
       LOG(DEBUG) << "Obj (" << object_id << ") doesn't exist or don't have PK"
-              << std::endl;
+                 << std::endl;
 
       return;
     }
@@ -160,10 +167,11 @@ namespace databus {
         for (auto col : undo) {
           if (col->len_ > 0 &&
               table_def->pk.find(col->col_id_ + 1) != table_def->pk.end()) {
-            LOG(INFO) << "\t" << table_def->col_names[col->col_id_ + 1] << "----"
-                   << convert(col->content_,
-                              table_def->col_types[col->col_id_ + 1], col->len_)
-                   << std::endl;
+            LOG(INFO) << "\t" << table_def->col_names[col->col_id_ + 1]
+                      << "----"
+                      << convert(col->content_,
+                                 table_def->col_types[col->col_id_ + 1],
+                                 col->len_) << std::endl;
           }
         }
       }
@@ -174,9 +182,9 @@ namespace databus {
       for (auto redo : redos) {
         for (auto col : redo) {
           LOG(INFO) << table_def->col_names[col->col_id_ + 1] << "----"
-                 << convert(col->content_,
-                            table_def->col_types[col->col_id_ + 1], col->len_)
-                 << std::endl;
+                    << convert(col->content_,
+                               table_def->col_types[col->col_id_ + 1],
+                               col->len_) << std::endl;
         }
       }
     }
