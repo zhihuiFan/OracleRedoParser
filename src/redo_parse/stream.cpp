@@ -8,6 +8,7 @@
 #include "util/logger.h"
 #include "stream.h"
 #include "metadata.h"
+#include "applier.h"
 namespace databus {
   StreamConf* streamconf;
   std::list<std::string> captual_tables;
@@ -135,8 +136,11 @@ namespace databus {
         std::string tablename = table.substr(first + 1, table.npos - first - 1);
         auto tab_def =
             getMetadata().initTabDefFromName(owner.c_str(), tablename.c_str());
-        if (tab_def != NULL)
+        if (tab_def != NULL) {
           LOG(DEBUG) << " init tab def " << tab_def->toString();
+          SimpleApplier::getApplier(streamconf->getString("srcUser").c_str())
+              .addTable(tab_def);
+        }
         // if (tabdef) tabdef->dump();
       } else {
         // TODO: why?

@@ -1,5 +1,9 @@
 #ifndef METADATA_INC
 #define METADATA_INC
+
+#define OTL_ORA11G_R2
+#define OTL_ORA_UTF8
+#include "otlv4.h"
 #include <string>
 #include <stdlib.h>
 #include <map>
@@ -11,9 +15,6 @@
 #include <iostream>
 #include <memory>
 #include "util/dtypes.h"
-#define OTL_ORA11G_R2
-#define OTL_ORA_UTF8
-#include "otlv4.h"
 
 namespace databus {
 
@@ -24,8 +25,17 @@ namespace databus {
     std::set<Ushort> pk;
     std::map<Ushort, std::string> col_names;
     std::map<Ushort, std::string> col_types;  // shall I use number?
+    // we only care the len of char/varchar2/number, the scale of number
+    std::map<Ushort, uint32_t> col_len;
+    std::map<Ushort, uint32_t> col_scale;
+
    public:
     std::string toString();
+    std::string getTabName() {
+      std::stringstream ss;
+      ss << owner << "." << name;
+      return ss.str();
+    }
   };
 
   typedef std::shared_ptr<TabDef> TabDefPtr;

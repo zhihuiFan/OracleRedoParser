@@ -2,6 +2,7 @@
 #define TRANS_INC
 #include <map>
 #include <set>
+#include <vector>
 #include <memory>
 #include <string>
 #include <sstream>
@@ -12,6 +13,18 @@
 
 namespace databus {
 
+  struct ColumnLess {
+    bool operator()(const std::shared_ptr<ColumnChange>& l,
+                    const std::shared_ptr<ColumnChange>& r) {
+      return l->col_id_ < r->col_id_;
+    }
+  };
+
+  struct RowChange;
+  class TabDef;
+  typedef std::shared_ptr<RowChange> RowChangePtr;
+  typedef std::set<ColumnChangePtr, ColumnLess> OrderedPK;
+
   struct RowChange {
     RowChange();
     RowChange(SCN& scn, uint32_t obj_id, Ushort op, Ushort uflag, Ushort iflag,
@@ -19,13 +32,14 @@ namespace databus {
     bool operator<(const RowChange& other) const { return scn_ < other.scn_; }
     std::string toString(bool scn = false) const;
     std::string pkToString() const;
+    std::vector<std::string> getPk();
 
     SCN scn_;
     uint32_t object_id_;
     Ushort op_;
     Ushort uflag_;
     Ushort iflag_;
-    Row pk_;
+    OrderedPK pk_;
     Row new_data_;
   };
 
@@ -35,7 +49,6 @@ namespace databus {
       return l->scn_ < r->scn_;
     }
   };
-  typedef std::shared_ptr<RowChange> RowChangePtr;
 
   struct Transaction;
   typedef std::map<XID, std::shared_ptr<Transaction>> XIDMap;
@@ -102,5 +115,7 @@ namespace databus {
                       const SCN& scn, Ushort uflag, Ushort iflag);
 
   bool verifyTrans(TransactionPtr trans_ptr);
+  Ushort findPk(std::shared_ptr<TabDef> tab_def, const Row& undo,
+                OrderedPK& pk);
 }
 #endif /* ----- #ifndef TRANS_INC  ----- */

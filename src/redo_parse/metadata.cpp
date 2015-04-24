@@ -1,9 +1,12 @@
-#include "metadata.h"
+#include <sstream>
+#include <cstring>
+#include <boost/algorithm/string.hpp>
+
 #define OTL_ORA11G_R2
 #define OTL_ORA_UTF8
 #include "otlv4.h"
 #include "util/logger.h"
-#include <sstream>
+#include "metadata.h"
 
 namespace databus {
   std::string TabDef::toString() {
@@ -31,7 +34,9 @@ namespace databus {
                       conn_),
         tab2def_stmt_(
             10,
-            "select COLUMN_ID, COLUMN_NAME, DATA_TYPE from dba_tab_cols where "
+            "select COLUMN_ID, COLUMN_NAME, DATA_TYPE,  DATA_LENGTH, "
+            "DATA_PRECISION, DATA_SCALE "
+            "from dba_tab_cols where "
             "owner=upper(:x<char[31]>) and table_name=upper(:y<char[129]>) "
             "and column_id is not null",
             conn_),
@@ -111,6 +116,8 @@ namespace databus {
     std::shared_ptr<TabDef> tab_def(new TabDef());
     tab_def->owner = std::string(owner);
     tab_def->name = std::string(table);
+    boost::to_upper(tab_def->owner);
+    boost::to_upper(tab_def->name);
 
     pk_stmt_ << owner << table;
     while (!pk_stmt_.eof()) {
@@ -128,10 +135,22 @@ namespace databus {
     tab2def_stmt_ << owner << table;
     unsigned int col_id;
     char col_name[129], col_type[129];
+    uint32_t len;
     while (!tab2def_stmt_.eof()) {
       tab2def_stmt_ >> col_id >> col_name >> col_type;
       tab_def->col_names[col_id] = std::move(std::string(col_name));
       tab_def->col_types[col_id] = std::move(std::string(col_type));
+      if (strcmp(col_type, "VARCHAR2") == 0 || strcmp(col_type, "CHAR") == 0) {
+        tab2def_stmt_ >> len;
+        tab_def->col_len[col_id] = len;
+      } else if (strcmp(col_type, "NUMBER") == 0) {
+        uint32_t scale;
+        tab2def_stmt_ >> len;
+        tab2def_stmt_ >> len;
+        tab2def_stmt_ >> scale;
+        tab_def->col_len[col_id] = len;
+        tab_def->col_scale[col_id] = scale;
+      }
     }
 
     tab2oid_stmt_ << owner << table;

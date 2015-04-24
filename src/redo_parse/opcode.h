@@ -27,7 +27,7 @@ namespace databus {
     const Ushort kMultiDelete = 0x0b0c;
     const Ushort kLmn = 0x0b10;
     const Ushort kDdl = 0x1801;
-    const std::map<Ushort, std::string> kOpMap{{kInsert, "insert"},
+    const std::map<Ushort, std::string> kOpMap{{kInsert, "Insert"},
                                                {kUpdate, "Update"},
                                                {kDelete, "Delete"},
                                                {kMultiInsert, "Insert"},

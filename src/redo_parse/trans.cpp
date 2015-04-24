@@ -12,6 +12,7 @@
 #include "util/logger.h"
 #include "util/dassert.h"
 #include "stream.h"
+#include "applier.h"
 
 namespace databus {
   bool Transaction::operator<(const Transaction& other) const {
@@ -113,12 +114,12 @@ namespace databus {
     return ss.str();
   }
 
-  static int findPk(std::shared_ptr<TabDef> table_def, const Row& undo,
-                    Row& pk) {
-    for (auto col : undo) {
+  Ushort findPk(std::shared_ptr<TabDef> table_def, const Row& undo,
+                OrderedPK& pk) {
+    for (const auto col : undo) {
       if (col->len_ > 0 &&
           table_def->pk.find(col->col_id_ + 1) != table_def->pk.end()) {
-        pk.push_back(col);
+        pk.insert(col);
       }
     }
     int npk = pk.size();
@@ -130,7 +131,7 @@ namespace databus {
                    << " Num of PK " << table_def->pk.size()
                    << " No. of PK in Redo " << pk.size()
                    << " This probably a Row Megration 11.2 \n";
-      return -1;
+      return 0xffff;
     }
   }
 
@@ -142,6 +143,7 @@ namespace databus {
         iflag_(0),
         pk_{},
         new_data_{} {}
+  /*
   RowChange::RowChange(SCN& scn, uint32_t obj_id, Ushort op, Ushort uflag,
                        Ushort iflag, Row& undo, Row& redo)
       : scn_(scn), object_id_(obj_id), op_(op), uflag_(uflag), iflag_(iflag) {
@@ -164,7 +166,7 @@ namespace databus {
       case opcode::kUpdate: {
       }
     }
-  }
+  }  */
   std::string RowChange::toString(bool scn) const {
     static auto format_insert = boost::format("insert into %s(%s) values(%s)");
     static auto format_update = boost::format("update %s set %s where %s");
@@ -245,8 +247,8 @@ namespace databus {
     ss << tab_def->owner << "." << tab_def->name << "  " << getOpStr(op_);
     // for update, delete, row migration, we store pk into pk_ already
     if (op_ == opcode::kInsert || op_ == opcode::kMultiInsert) {
-      Row pk;
-      if (findPk(tab_def, new_data_, pk) == -1) {
+      OrderedPK pk;
+      if (findPk(tab_def, new_data_, pk) == 0xffff) {
         return std::string("Probably Row Megration");
       }
       for (ColumnChangePtr c : pk) {
@@ -258,6 +260,29 @@ namespace databus {
       }
     }
     return ss.str();
+  }
+
+  std::vector<std::string> RowChange::getPk() {
+    // the pk string is order by col_no
+    TabDefPtr tab_def = getMetadata().getTabDefFromId(object_id_);
+    std::vector<std::string> pks(tab_def->pk.size() + prefix_cols.size());
+    int n = 0;
+    pks[n++] = getOpStr(op_);
+
+    if (op_ == opcode::kInsert || op_ == opcode::kMultiInsert) {
+      OrderedPK pk;
+      if (findPk(tab_def, new_data_, pk) == 0xffff) {
+        return std::vector<std::string>();
+      }
+      for (ColumnChangePtr c : pk) {
+        pks[n++] = std::move(colAsStr(c, tab_def));
+      }
+    } else {
+      for (ColumnChangePtr c : pk_) {
+        pks[n++] = std::move(colAsStr(c, tab_def));
+      }
+    }
+    return pks;
   }
 
   void addToTransaction(RecordBufPtr record) {
@@ -380,9 +405,9 @@ namespace databus {
       case opcode::kRowChain: {
         for (auto row : undos) {
           RowChangePtr rcp(new RowChange());
-          Row pk;
+          OrderedPK pk;
           int ret = findPk(table_def, row, pk);
-          if (ret > 0) {
+          if (ret != 0xffff) {
             rcp->pk_ = std::move(pk);
             rcp->scn_ = scn;
             rcp->op_ = op;
@@ -414,12 +439,12 @@ namespace databus {
       case opcode::kUpdate: {
         // this is no mulitUpdate, so there is 1 elems in undo and redo at
         // most
-        Row pk;
+        OrderedPK pk;
         auto undo_iter = undos.begin();
         auto redo_iter = redos.begin();
         RowChangePtr rcp(new RowChange());
         int ret = findPk(table_def, *undo_iter, pk);
-        if (ret > 0) {
+        if (ret != 0xffff) {
           rcp->pk_ = std::move(pk);
           rcp->scn_ = scn;
           rcp->op_ = op;

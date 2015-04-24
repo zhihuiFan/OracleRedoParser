@@ -2,6 +2,7 @@
 #include <vector>
 #include <list>
 #include <memory>
+#include "easylogging++.h"
 #include "util/container.h"
 #include "stream.h"
 #include "metadata.h"
@@ -11,8 +12,8 @@
 #include "util/logger.h"
 #include "opcode_ops.h"
 #include "trans.h"
+#include "applier.h"
 #include "otlv4.h"
-#include "easylogging++.h"
 
 INITIALIZE_EASYLOGGINGPP
 namespace databus {
@@ -60,10 +61,16 @@ namespace databus {
     }
 
     LOG(INFO) << "Apply Transaction now " << std::endl;
-    for (auto tran : Transaction::commit_trans_) {
-      if (!tran.second->empty()) LOG(INFO) << tran.second->toString();
+    // for (auto tran : Transaction::commit_trans_) {
+    auto commit_tran = Transaction::commit_trans_.begin();
+    while (commit_tran != Transaction::commit_trans_.end()) {
+      if (!commit_tran->second->empty()) {
+        SimpleApplier::getApplier(streamconf->getString("srcUser").c_str())
+            .apply(tran->second);
+      }
+      commit_tran = Transaction::commit_trans_.erase(commit_tran);
+      // LOG(INFO) << tran.second->toString();
     }
-
     //    MetadataManager::destoy();
     return 0;
   }
