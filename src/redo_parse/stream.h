@@ -38,7 +38,7 @@ namespace databus {
   extern std::list<std::string> captual_tables;
 
   inline MetadataManager& getMetadata() {
-    static MetadataManager metadata(streamconf->getString("srcUser").c_str());
+    static MetadataManager metadata(streamconf->getString("srcConn").c_str());
     return metadata;
   }
 

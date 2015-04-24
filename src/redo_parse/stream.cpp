@@ -56,16 +56,13 @@ namespace databus {
 
   void StreamConf::add_options() {
     desc.add_options()("help,h", "show help message")(
-        "srcUser", po::value<std::string>()->default_value("dbstream"),
-        "Username for source oracle instance")(
-        "srcPass", po::value<std::string>(),
-        "password for source oracle instance")(
-        "srcDB", po::value<std::string>(), "connection string for source db")(
+        "srcConn", po::value<std::string>(),
+        "string for source database, format username/password@vm")(
+        "tarConn", po::value<std::string>(),
+        "string for target database username/password@vm")(
         "confFile", po::value<std::string>(), "configure file for data stream")(
         "tableConf", po::value<std::string>(), "tables to capture changes")(
-        "startSeq", po::value<uint32_t>(), "the log sequence to start with")(
-        "loglevel,v", po::value<unsigned short>(),
-        "loger level, the higher the more details, default 3");
+        "startSeq", po::value<uint32_t>(), "the log sequence to start with");
   }
 
   void StreamConf::validParams() {
@@ -73,12 +70,9 @@ namespace databus {
       std::cout << desc << std::endl;
       std::exit(1);
     }
-    /*
-    util::dassert("srcUser/srcPass/srcHost/tableConf are must",
-                  vm.count("srcUser") && vm.count("srcPass") &&
-                      vm.count("srcDB") && vm.count("tableConf") &&
-                      vm.count("startSeq"));
-                      */
+    util::dassert("srcConn/tarConn/tableConf are must",
+                  vm.count("srcConn") && vm.count("tarConn") &&
+                      vm.count("tableConf") && vm.count("startSeq"));
   };
 
   int StreamConf::getInt(const char* para, int default_value) {
@@ -127,7 +121,7 @@ namespace databus {
     }
     */
     logmanager = std::shared_ptr<LogManager>(
-        new LogManager(streamconf->getString("srcUser").c_str()));
+        new LogManager(streamconf->getString("srcConn").c_str()));
     for (auto table : captual_tables) {
       auto first = table.find_first_of('.');
       auto last = table.find_last_of('.');
@@ -138,7 +132,7 @@ namespace databus {
             getMetadata().initTabDefFromName(owner.c_str(), tablename.c_str());
         if (tab_def != NULL) {
           LOG(DEBUG) << " init tab def " << tab_def->toString();
-          SimpleApplier::getApplier(streamconf->getString("srcUser").c_str())
+          SimpleApplier::getApplier(streamconf->getString("tarConn").c_str())
               .addTable(tab_def);
         }
         // if (tabdef) tabdef->dump();
