@@ -3,14 +3,20 @@
 #include <map>
 #include <string>
 #include <memory>
+#include <utility>
+#include <list>
 #define OTL_ORA11G_R2
 #define OTL_ORA_UTF8
 #include "otlv4.h"
 #include "trans.h"
 
 namespace databus {
-  const std::map<std::string, std::string> prefix_cols{
-      {"OP", ":stream_op<char[40]>"}};
+  const std::list<std::pair<std::string, std::string>> prefix_cols{
+      std::make_pair("XID", "to_number(:stream_xid<char[39]>)"),
+      std::make_pair("OP", ":stream_op<char[40]>"),
+      std::make_pair(
+          "SCN",
+          "to_number(:stream_scn<char[29]>, 'XXXXXXXXXXXXXXXXXXXXXXXXXXXX')")};
   class TabDef;
   typedef std::shared_ptr<TabDef> TabDefPtr;
   class SimpleApplier {

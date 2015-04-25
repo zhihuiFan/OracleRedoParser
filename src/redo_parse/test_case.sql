@@ -8,11 +8,16 @@ drop table test;
 create table test (a int primary key, b varchar2(40), c date, d varchar2(40), e varchar2(40));
 drop table rc2;
 create table rc2(id int, c1 varchar2(3000), c2 varchar2(3000), c3 varchar2(3000), primary key(id,c2)); 
+drop table rc;
+-- in dba_tab_cols, datatype of id : scale:null
+create table rc(id number, c1 varchar2(3000), cdate date, c3 varchar2(3000), primary key(id,cdate)); 
 
 alter system switch logfile;
 
 -- insert part of columns
 whenever sqlerror exit
+insert into rc(id, cdate) values(101, sysdate);
+commit;
 insert into target(a, b, c) values(1, 'FANZHIHUI',  sysdate);
 commit;
 insert into target(a, b, c)  values(2, 'abcdef',  sysdate);

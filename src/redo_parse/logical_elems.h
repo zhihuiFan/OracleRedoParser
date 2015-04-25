@@ -21,6 +21,8 @@ namespace databus {
 
     bool operator<(const SCN& other) const;
     std::string toStr() const;
+    // To store this data into Database
+    std::string toString() const;
     bool empty() const {
       return minor_ == 0 && major_ == 0 && subscn_ == 0 && noffset_ == 0;
     }

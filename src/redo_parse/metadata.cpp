@@ -35,7 +35,7 @@ namespace databus {
         tab2def_stmt_(
             10,
             "select COLUMN_ID, COLUMN_NAME, DATA_TYPE,  DATA_LENGTH, "
-            "DATA_PRECISION, DATA_SCALE "
+            "NVL(DATA_PRECISION, 9999), NVL(DATA_SCALE, 9999) "
             "from dba_tab_cols where "
             "owner=upper(:x<char[31]>) and table_name=upper(:y<char[129]>) "
             "and column_id is not null",

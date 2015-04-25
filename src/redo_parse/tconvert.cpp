@@ -123,9 +123,9 @@ namespace databus {
       if (ora_date->decade_ < 100 || ora_date->century_ < 100) year = -year;
 
       std::stringstream ss;
-      ss << "'" << year << "-" << (int)ora_date->month_ << "-"
-         << (int)ora_date->day_ << " " << (int)ora_date->hour_ << ":"
-         << (int)ora_date->minute_ << ":" << (int)ora_date->second_ << "'";
+      ss << year << "-" << (int)ora_date->month_ << "-" << (int)ora_date->day_
+         << " " << (int)ora_date->hour_ << ":" << (int)ora_date->minute_ << ":"
+         << (int)ora_date->second_;
       return ss.str();
     }
     return NULL;

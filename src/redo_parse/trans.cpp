@@ -273,9 +273,11 @@ namespace databus {
   std::vector<std::string> RowChange::getPk() {
     // the pk string is order by col_no
     TabDefPtr tab_def = getMetadata().getTabDefFromId(object_id_);
-    std::vector<std::string> pks(tab_def->pk.size() + prefix_cols.size());
+    // this line is super urgly and error prone, will fix it someday
+    std::vector<std::string> pks(tab_def->pk.size() + prefix_cols.size() - 1);
     int n = 0;
     pks[n++] = getOpStr(op_);
+    pks[n++] = scn_.toString();
 
     if (op_ == opcode::kInsert || op_ == opcode::kMultiInsert) {
       OrderedPK pk;

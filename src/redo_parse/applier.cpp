@@ -2,6 +2,7 @@
 #include <boost/format.hpp>
 #include <vector>
 #include <sstream>
+#include <string>
 
 #include "applier.h"
 #include "trans.h"
@@ -21,7 +22,7 @@ namespace databus {
       return;
     }
     auto insert_sql = getInsertStmt(tab_def);
-    LOG(DEBUG) << insert_sql;
+    LOG(INFO) << insert_sql;
     stmt_dict_[tab_name] = std::shared_ptr<otl_stream>(
         new otl_stream(10, insert_sql.c_str(), conn_));
   }
@@ -33,6 +34,7 @@ namespace databus {
       if (!pk_data.empty()) {
         auto tab_def = getMetadata().getTabDefFromId(rc->object_id_);
         auto tab_name = tab_def->getTabName();
+        (*(stmt_dict_[tab_name].get())) << std::to_string(tran->xid_).c_str();
         for (auto& pk_col : pk_data) {
           (*(stmt_dict_[tab_name].get())) << pk_col.c_str();
         }
@@ -57,16 +59,17 @@ namespace databus {
       col_name[n] = p.first;
       col_value[n++] = p.second;
     }
-    std::stringstream ss;
     for (auto col_no : tab_def->pk) {
+      std::stringstream ss;
       if (tab_def->col_types[col_no] == "NUMBER") {
         ss << "TO_NUMBER(:" << tab_def->col_names[col_no] << "<char[127]>)";
       } else if (tab_def->col_types[col_no] == "VARCHAR2" ||
                  tab_def->col_types[col_no] == "CHAR") {
         ss << ":" << tab_def->col_names[col_no] << "<char["
            << tab_def->col_len[col_no] << "]>";
-      } else if (tab_def->col_types[col_no] != "DATE") {
-        ss << "TO_DATE(:" << tab_def->col_names[col_no] << "<char[21]>";
+      } else if (tab_def->col_types[col_no] == "DATE") {
+        ss << "TO_DATE(:" << tab_def->col_names[col_no]
+           << "<char[21]>, 'yyyy-mm-dd hh24:mi:ss')";
       } else {
         LOG(ERROR) << " FIND UNSUPPORT DATA TYPE "
                    << tab_def->col_types[col_no];
@@ -76,7 +79,6 @@ namespace databus {
       }
       col_name[n] = tab_def->col_names[col_no];
       col_value[n++] = ss.str();
-      ss.clear();
     }
     return (insert_template % tab_def->name % boost::join(col_name, ",") %
             boost::join(col_value, ",")).str();

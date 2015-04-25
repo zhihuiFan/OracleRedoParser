@@ -1,8 +1,11 @@
+#include <iostream>
+#include <sstream>
+#include <iomanip>
+
 #include "logical_elems.h"
 #include "physical_elems.h"
 #include "opcode_ops.h"
 #include "util/dtypes.h"
-#include <iostream>
 
 namespace databus {
   bool SCN::operator<(const SCN& other) const {
@@ -29,6 +32,13 @@ namespace databus {
     std::stringstream ss;
     ss << std::hex << major_ << ":" << minor_ << ":" << subscn_ << ":"
        << noffset_;
+    return ss.str();
+  }
+
+  std::string SCN::toString() const {
+    std::stringstream ss;
+    ss << std::hex << std::setfill('0') << std::setw(4) << major_
+       << std::setw(8) << minor_ << subscn_ << noffset_;
     return ss.str();
   }
   RecordBuf::RecordBuf(const SCN& scn, uint32_t len, uint32_t epoch,
