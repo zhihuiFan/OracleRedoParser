@@ -3,12 +3,14 @@
 #include <map>
 #include <string>
 #include <memory>
+#define OTL_ORA11G_R2
+#define OTL_ORA_UTF8
 #include "otlv4.h"
 #include "trans.h"
 
 namespace databus {
   const std::map<std::string, std::string> prefix_cols{
-      {"OP", ":_stream_op<char[40]>"}};
+      {"OP", ":stream_op<char[40]>"}};
   class TabDef;
   typedef std::shared_ptr<TabDef> TabDefPtr;
   class SimpleApplier {
@@ -24,8 +26,7 @@ namespace databus {
     }
 
    private:
-    SimpleApplier(const char* conn_str)
-        : conn_str_(conn_str), conn_(conn_str) {}
+    SimpleApplier(const char* conn_str);
     std::string getInsertStmt(TabDefPtr tab_def);
 
    private:

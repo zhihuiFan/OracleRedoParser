@@ -7,8 +7,8 @@
 #include "trans.h"
 #include "util/logger.h"
 #include "util/dassert.h"
-#include "otlv4.h"
 #include "metadata.h"
+#include "stream.h"
 
 namespace databus {
   SimpleApplier::SimpleApplier(const char* conn_str)
@@ -22,27 +22,31 @@ namespace databus {
     }
     auto insert_sql = getInsertStmt(tab_def);
     LOG(DEBUG) << insert_sql;
-    stmt_dict_[tab_name] =
-        std::shared_ptr<otl_stream>(new otl_stream(10, insert_sql, conn_));
+    stmt_dict_[tab_name] = std::shared_ptr<otl_stream>(
+        new otl_stream(10, insert_sql.c_str(), conn_));
   }
 
   void SimpleApplier::apply(TransactionPtr tran) {
-    for (auto& rc : tran->changes_) {
+    int n = 0;
+    for (auto rc : tran->changes_) {
       auto pk_data = rc->getPk();
-      if (!data.empty()) {
-        auto tab_def = getMetadata().getTabDefFromId(c->object_id_);
+      if (!pk_data.empty()) {
+        auto tab_def = getMetadata().getTabDefFromId(rc->object_id_);
         auto tab_name = tab_def->getTabName();
         for (auto& pk_col : pk_data) {
           (*(stmt_dict_[tab_name].get())) << pk_col.c_str();
         }
       }
+      n++;
     }
-    conn_->commit();
+    LOG(INFO) << tran->xid_ << " : " << n;
+    conn_.commit();
   }
 
   std::string SimpleApplier::getInsertStmt(TabDefPtr tab_def) {
     // the statement is order by col_no of pk
-    auto insert_template = boost::format("insert into %s(%s) values(%s)");
+    static auto insert_template =
+        boost::format("insert into %s(%s) values(%s)");
 
     auto pre_cnt = prefix_cols.size();
     auto pk_cnt = tab_def->pk.size();
@@ -56,12 +60,13 @@ namespace databus {
     std::stringstream ss;
     for (auto col_no : tab_def->pk) {
       if (tab_def->col_types[col_no] == "NUMBER") {
-        ss << "TO_NUMBER(:" << col_name[n] << "<char[39]>)";
+        ss << "TO_NUMBER(:" << tab_def->col_names[col_no] << "<char[127]>)";
       } else if (tab_def->col_types[col_no] == "VARCHAR2" ||
                  tab_def->col_types[col_no] == "CHAR") {
-        ss << ":" << col_name[n] << "<char[" << tab_def->col_len[n] << "]>";
+        ss << ":" << tab_def->col_names[col_no] << "<char["
+           << tab_def->col_len[col_no] << "]>";
       } else if (tab_def->col_types[col_no] != "DATE") {
-        ss << "TO_DATE(:" << col_name[n] << "<char[21]>";
+        ss << "TO_DATE(:" << tab_def->col_names[col_no] << "<char[21]>";
       } else {
         LOG(ERROR) << " FIND UNSUPPORT DATA TYPE "
                    << tab_def->col_types[col_no];
@@ -69,11 +74,11 @@ namespace databus {
                    << tab_def->col_types[col_no];
         std::exit(100);
       }
+      col_name[n] = tab_def->col_names[col_no];
+      col_value[n++] = ss.str();
+      ss.clear();
     }
-    col_name[n] = tab_def->col_names[col_no];
-    col_value[n++] = ss.str();
-    ss.clear();
-    return insert_template % tab_def->getTabName() %
-           boost::join(col_name, ",") % boost::join(col_value, ",");
+    return (insert_template % tab_def->name % boost::join(col_name, ",") %
+            boost::join(col_value, ",")).str();
   }
 }

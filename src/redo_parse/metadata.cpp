@@ -132,17 +132,29 @@ namespace databus {
     }
     assert(!tab_def->pk.empty());
 
+    /*
+    int col_count;
+    otl_column_desc* desc = tab2def_stmt_.describe_select(col_count);
+    LOG(INFO) << "total len " << col_count;
+    for (auto i = 0; i < col_count; ++i) {
+      LOG(INFO) << desc[i].name << "--" << desc[i].dbtype << "--"
+                << desc[i].otl_var_dbtype;
+    }  */
     tab2def_stmt_ << owner << table;
     unsigned int col_id;
     char col_name[129], col_type[129];
-    uint32_t len;
+    unsigned int len;
     while (!tab2def_stmt_.eof()) {
-      tab2def_stmt_ >> col_id >> col_name >> col_type;
+      tab2def_stmt_ >> col_id;
+      tab2def_stmt_ >> col_name;
+      tab2def_stmt_ >> col_type;
       tab_def->col_names[col_id] = std::move(std::string(col_name));
       tab_def->col_types[col_id] = std::move(std::string(col_type));
       if (strcmp(col_type, "VARCHAR2") == 0 || strcmp(col_type, "CHAR") == 0) {
         tab2def_stmt_ >> len;
         tab_def->col_len[col_id] = len;
+        tab2def_stmt_ >> len;
+        tab2def_stmt_ >> len;
       } else if (strcmp(col_type, "NUMBER") == 0) {
         uint32_t scale;
         tab2def_stmt_ >> len;
@@ -150,6 +162,10 @@ namespace databus {
         tab2def_stmt_ >> scale;
         tab_def->col_len[col_id] = len;
         tab_def->col_scale[col_id] = scale;
+      } else {
+        tab2def_stmt_ >> len;
+        tab2def_stmt_ >> len;
+        tab2def_stmt_ >> len;
       }
     }
 

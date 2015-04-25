@@ -26,8 +26,8 @@ namespace databus {
     std::map<Ushort, std::string> col_names;
     std::map<Ushort, std::string> col_types;  // shall I use number?
     // we only care the len of char/varchar2/number, the scale of number
-    std::map<Ushort, uint32_t> col_len;
-    std::map<Ushort, uint32_t> col_scale;
+    std::map<Ushort, unsigned int> col_len;
+    std::map<Ushort, unsigned int> col_scale;
 
    public:
     std::string toString();

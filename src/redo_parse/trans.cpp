@@ -114,6 +114,14 @@ namespace databus {
     return ss.str();
   }
 
+  static std::string colAsStr2(ColumnChangePtr col, TabDefPtr tab_def,
+                               char seperator = ':') {
+    std::stringstream ss;
+    ss << convert(col->content_, tab_def->col_types[col->col_id_ + 1],
+                  col->len_);
+    return ss.str();
+  }
+
   Ushort findPk(std::shared_ptr<TabDef> table_def, const Row& undo,
                 OrderedPK& pk) {
     for (const auto col : undo) {
@@ -275,11 +283,11 @@ namespace databus {
         return std::vector<std::string>();
       }
       for (ColumnChangePtr c : pk) {
-        pks[n++] = std::move(colAsStr(c, tab_def));
+        pks[n++] = std::move(colAsStr2(c, tab_def));
       }
     } else {
       for (ColumnChangePtr c : pk_) {
-        pks[n++] = std::move(colAsStr(c, tab_def));
+        pks[n++] = std::move(colAsStr2(c, tab_def));
       }
     }
     return pks;
