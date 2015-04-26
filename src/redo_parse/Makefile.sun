@@ -8,19 +8,20 @@ DEPS=metadata.h \
      workers.h \
 	 stream.h \
 	 stream_error.h \
-	 trans.h
+	 trans.h \
+	 applier.h
 
 
 PLATFORM=$(shell uname)
 ifeq ($(PLATFORM),SunOS)
 	LDFLAGS=-L/oracle/VIKING/home/products/11203/lib -L/export/home/oracle/zhifan/boost_gcc/lib  -lboost_program_options -lclntsh -pthread
-	CXXFLAGS = -I. -I.. -std=c++11 -O0 -g -m64 -D__STREAM_DEBUG__ -I/oracle/VIKING/home/zhifan/boost_gcc/include -lclntsh -I/oracle/VIKING/home/products/11203/rdbms/public -pthread
+	CXXFLAGS = -I. -I.. -std=c++11 -O0 -g -m64 -D__STREAM_DEBUG__ -I/oracle/VIKING/home/zhifan/boost_gcc/include -lclntsh -I/oracle/VIKING/home/products/11203/rdbms/public -pthread -DELPP_THREAD_SAFE -DOTL_DESTRUCTORS_DO_NOT_THROW
 endif
 
 %.o: %.cpp $(DEPS)
 	$(CC) -c -o $@ $< $(CXXFLAGS)
 
-datastream: stream.o logical_elems.o physical_elems.o redofile.o worker_test.o opcode_ops.o stream.o metadata.o tconvert.o trans.o
+datastream: stream.o logical_elems.o physical_elems.o redofile.o worker_test.o opcode_ops.o stream.o metadata.o tconvert.o trans.o applier.o
 	${CC} ${CXXFLAGS} -o $@ $^ ${LDFLAGS} $(OCI_FLAGS)
 
 dumpop: logical_elems.o physical_elems.o redofile.o opcode_ops.o dump_op.o
