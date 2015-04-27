@@ -28,7 +28,7 @@ namespace databus {
       : conn_str_(conn_str),
         conn_(conn_str.c_str()),
         tab2oid_stmt_(10,
-                      "select object_id, nlv(SUBOBJECT_NAME, '__') from "
+                      "select object_id, nvl(SUBOBJECT_NAME, '__') from "
                       "dba_objects where "
                       "owner=upper(:x<char[31]>) and "
                       "object_name=upper(:y<char[129]>) and object_type in "
