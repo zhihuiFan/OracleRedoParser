@@ -38,8 +38,11 @@ namespace databus {
       while ((buf = redofile.nextRecordBuf()).get()) {
         addToTransaction(buf);
         ++c;
+        if (c % 1000) {
+            LOG(INFO) << "Parsed " << c << " Records ";
+        }
       }
-      LOG(DEBUG) << "total record found  = " << c << std::endl;
+      LOG(INFO) << "total record found  = " << c << std::endl;
 
       LOG(INFO) << "Build Transaction now" << std::endl;
       auto tran = Transaction::xid_map_.begin();

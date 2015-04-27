@@ -137,7 +137,7 @@ namespace databus {
       case opcode::kInsert & 0xff:
       case opcode::kRowChain & 0xff: {
         // common delete will go to here
-        LOG(DEBUG) << "Normal Delete " << std::endl;
+        // LOG(DEBUG) << "Normal Delete " << std::endl;
         OpCodeKdoirp* irp = (OpCodeKdoirp*)opkdo;
         if (irp->column_count_ != 0) {
           Row undo_cols = makeUpCols((Ushort*)NULL, irp->column_count_,
@@ -219,7 +219,7 @@ namespace databus {
     Row redo_row;
     switch (change->opCode()) {
       case opcode::kInsert: {
-        LOG(DEBUG) << "Normal Insert ";
+        // LOG(DEBUG) << "Normal Insert ";
         OpCodeKdoirp* irp = (OpCodeKdoirp*)kdo;
         if (irp->flag_ & 0x80 || irp->flag_ & 0x40) {
           LOG(DEBUG) << "Found cluster op, bypass it";
@@ -247,7 +247,7 @@ namespace databus {
         */
       } break;
       case opcode::kUpdate:
-        LOG(DEBUG) << "Normal Update";
+        // LOG(DEBUG) << "Normal Update";
         redo_row = makeUpCols((Ushort*)change->part(3),
                               ((OpCodeKdourp*)kdo)->nchanged_, change, 4,
                               kdo->xtype_, false);
