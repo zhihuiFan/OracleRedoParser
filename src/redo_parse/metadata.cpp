@@ -6,6 +6,7 @@
 #define OTL_ORA_UTF8
 #include "otlv4.h"
 #include "util/logger.h"
+#include "util/dassert.h"
 #include "metadata.h"
 
 namespace databus {
@@ -27,7 +28,8 @@ namespace databus {
       : conn_str_(conn_str),
         conn_(conn_str.c_str()),
         tab2oid_stmt_(10,
-                      "select object_id from dba_objects where "
+                      "select object_id, nlv(SUBOBJECT_NAME, '__') from "
+                      "dba_objects where "
                       "owner=upper(:x<char[31]>) and "
                       "object_name=upper(:y<char[129]>) and object_type in "
                       "('TABLE', 'TABLE PARTITION')",
@@ -73,7 +75,7 @@ namespace databus {
 
   uint32_t MetadataManager::getGlobalObjId(uint32_t objid) {
     objp2g_stmt_ << objid;
-    uint32_t gid;
+    uint32_t gid = 0;
     if (!objp2g_stmt_.eof()) {
       objp2g_stmt_ >> gid;
     }
@@ -96,12 +98,11 @@ namespace databus {
     // may be null
     // a). not init   b). object_id is a partition obj id
     if (haveDef(object_id)) return oid2def_[object_id];
-    uint32_t goid = poid2goid_[object_id];
-    if (!goid) {
-      goid = getGlobalObjId(object_id);
+    uint32_t goid = getCachedGlobalId(object_id);
+    if (goid == 0) {
+      return NULL;
     }
     if (haveDef(goid)) return oid2def_[goid];
-    if (goid != object_id) poid2goid_[object_id] = goid;  // cache the map
     if (!allow_init) {
       return NULL;
     }
@@ -130,11 +131,10 @@ namespace databus {
                  << " not exits or not primary key" << std::endl;
       return NULL;
     }
-    assert(!tab_def->pk.empty());
-
     /*
     int col_count;
-    otl_column_desc* desc = tab2def_stmt_.describe_select(col_count);
+    otl_columMon Apr 27 14:16:12 2015n_desc* desc =
+    tab2def_stmt_.describe_select(col_count);
     LOG(INFO) << "total len " << col_count;
     for (auto i = 0; i < col_count; ++i) {
       LOG(INFO) << desc[i].name << "--" << desc[i].dbtype << "--"
@@ -171,15 +171,32 @@ namespace databus {
 
     tab2oid_stmt_ << owner << table;
     uint32_t object_id;
+    unsigned char object_name[129];
+    uint32_t global_object_id = 0;
     while (!tab2oid_stmt_.eof()) {
-      tab2oid_stmt_ >> object_id;
+      tab2oid_stmt_ >> object_id >> object_name;
       if (oid2def_.find(object_id) != oid2def_.end()) {
         LOG(WARNING) << "logical error old def exist already"
                      << oid2def_[object_id]->name << ":"
                      << oid2def_[object_id]->owner << " new def "
                      << tab_def->owner << ":" << tab_def->name << std::endl;
       }
-      oid2def_[object_id] = tab_def;
+      if (strcmp((const char*)object_name, "__") == 0) {
+        // global object_id
+        if (global_object_id > 0) {
+          util::dassert("Assert Global_object_id Error",
+                        global_object_id == object_id);
+        }
+        oid2def_[object_id] = tab_def;
+        global_object_id = object_id;
+      } else {
+        // partition object_id
+        if (global_object_id == 0) {
+          global_object_id = getGlobalObjId(object_id);
+          util::dassert("GlobalIDNotZeroError", global_object_id != 0);
+        }
+        poid2goid_[object_id] = global_object_id;
+      }
     }
     return oid2def_[object_id];
   }

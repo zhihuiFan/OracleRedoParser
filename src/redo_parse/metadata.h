@@ -79,6 +79,15 @@ namespace databus {
               const std::string& db);
     uint32_t getGlobalObjId(uint32_t obj);
     void initFromId(uint32_t object_id);
+    uint32_t getCachedGlobalId(uint32_t obj) const {
+      // I didn't use poid2goid_[obj] directly since
+      // the way will cause poid2goid_ huge
+      auto it = poid2goid_.find(obj);
+      if (it != poid2goid_.end()) {
+        return it->second;
+      }
+      return 0;
+    }
 
    public:
     static bool haveDef(uint32_t object_id) {

@@ -39,7 +39,7 @@ namespace databus {
         addToTransaction(buf);
         ++c;
         if (c % 1000) {
-            LOG(INFO) << "Parsed " << c << " Records ";
+          LOG(INFO) << "Parsed " << c << " Records ";
         }
       }
       LOG(INFO) << "total record found  = " << c << std::endl;
