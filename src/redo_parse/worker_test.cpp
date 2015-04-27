@@ -36,10 +36,11 @@ namespace databus {
       RecordBufPtr buf;
       unsigned long c = 0;
       while ((buf = redofile.nextRecordBuf()).get()) {
+        if (buf->change_vectors.empty()) continue;
         addToTransaction(buf);
         ++c;
         if (c % 1000 == 0) {
-          LOG(INFO) << "Parsed " << c << " Records ";
+          LOG(DEBUG) << "Parsed " << c << " Records ";
         }
       }
       LOG(INFO) << "total record found  = " << c << std::endl;

@@ -6,8 +6,19 @@
 #include "physical_elems.h"
 #include "opcode_ops.h"
 #include "util/dtypes.h"
+#include "opcode.h"
 
 namespace databus {
+
+  const std::set<Ushort> kDMLOps{opcode::kInsert,      opcode::kDelete,
+                                 opcode::kUpdate,      opcode::kRowChain,
+                                 opcode::kBeginTrans,  opcode::kCommit,
+                                 opcode::kMultiInsert, opcode::kMultiDelete};
+
+  const std::set<Ushort> kTRANOps{
+      opcode::kUndo, opcode::kBeginTrans, opcode::kCommit,
+  };
+
   bool SCN::operator<(const SCN& other) const {
     uint64_t me = toNum();
     uint64_t you = other.toNum();
@@ -55,21 +66,26 @@ namespace databus {
     // TODO:  bypass all the changes whose SEQ=0
     ChangeHeader* ch = (ChangeHeader*)(change_buffers_);
     uint32_t parsed_change_size = 0;
+    bool keep = false;
     do {
       uint32_t change_size = ch->changeSize();
       if (change_size == 0) {
         std::cout << "lol is 0, Diag offset ! " << offset_ << std::endl;
         return;
       }
-      if (validOp(ch->opCode()))
+      if (kDMLOps.find(ch->opCode()) != kDMLOps.end()) {
         change_vectors.push_back(ch);
-      else if (allop)
+        keep = true;
+      } else if (kTRANOps.find(ch->opCode()) != kTRANOps.end()) {
+        change_vectors.push_back(ch);
+      } else if (allop)
         change_vectors.push_back(ch);
       parsed_change_size += change_size;
-      unsigned int seq = ch->seq_;
+      // unsigned int seq = ch->seq_;
       // std::cout << seq << ":" << std::hex << ch->opCode() << std::endl;
       ch = (ChangeHeader*)((char*)ch + change_size);
     } while (parsed_change_size != change_length_);
+    if (!keep) change_vectors.clear();
   }
 
   void ColumnChange::dump() {
