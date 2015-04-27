@@ -161,10 +161,12 @@ namespace databus {
           }
         }
       } break;
+      /*
       case opcode::kMultiInsert & 0xff: {
         LOG(DEBUG) << "seems run into mulit-delete op " << std::endl;
         std::exit(100);
       } break;
+      */
       case opcode::kUpdate & 0xff: {
         OpCodeKdourp* urp = (OpCodeKdourp*)change0501->part(4);
         int total_colums = urp->ncol_;
