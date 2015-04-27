@@ -1,4 +1,4 @@
-CXXFLAGS_BASE=-I.. -std=c++11 -g -O0  -pthread -D__STREAM_DEBUG__ -DELPP_THREAD_SAFE -DOTL_DESTRUCTORS_DO_NOT_THROW
+CXXFLAGS_BASE=-I. -I.. -std=c++11 -g -O0  -pthread -D__STREAM_DEBUG__ -DELPP_THREAD_SAFE -DOTL_DESTRUCTORS_DO_NOT_THROW
 CC=g++
 DEPS=metadata.h \
 	 logical_elems.h \
