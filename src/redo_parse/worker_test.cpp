@@ -38,7 +38,7 @@ namespace databus {
       while ((buf = redofile.nextRecordBuf()).get()) {
         addToTransaction(buf);
         ++c;
-        if (c % 1000) {
+        if (c % 1000 == 0) {
           LOG(INFO) << "Parsed " << c << " Records ";
         }
       }
