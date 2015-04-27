@@ -134,11 +134,10 @@ namespace databus {
     if (npk == table_def->pk.size()) {
       return npk;
     } else {
-      LOG(WARNING) << "Number of PK Mismatched\n Object Name "
-                   << table_def->owner << "." << table_def->name
-                   << " Num of PK " << table_def->pk.size()
-                   << " No. of PK in Redo " << pk.size()
-                   << " This probably a Row Megration 11.2 \n";
+      LOG(DEBUG) << "Number of PK Mismatched\n Object Name " << table_def->owner
+                 << "." << table_def->name << " Num of PK "
+                 << table_def->pk.size() << " No. of PK in Redo " << pk.size()
+                 << " This probably a Row Megration 11.2 \n";
       return 0xffff;
     }
   }
@@ -368,9 +367,9 @@ namespace databus {
           {
             auto it = Transaction::dba_map_.find(dba);
             if (it == Transaction::dba_map_.end()) {
-              LOG(WARNING) << "found dba " << dba
-                           << " in commit , but unknow when "
-                              "this transaction is started" << std::endl;
+              LOG(DEBUG) << "found dba " << dba
+                         << " in commit , but unknow when "
+                            "this transaction is started" << std::endl;
               return;
             }
             OpCode0504_ucm* ucm = (OpCode0504_ucm*)(change->part(1));
@@ -379,9 +378,9 @@ namespace databus {
                 (((XID)ucm->slt_) << sizeof(uint32_t) * 8) | ucm->sqn_;
             auto xidit = Transaction::xid_map_.find(ixid);
             if (xidit == Transaction::xid_map_.end()) {
-              LOG(WARNING) << "found xid " << dba
-                           << " in commit , but unknow when "
-                              "this transaction is started" << std::endl;
+              LOG(DEBUG) << "found xid " << dba
+                         << " in commit , but unknow when "
+                            "this transaction is started" << std::endl;
               return;
             }
             xidit->second->commit_scn_ = record_scn;
