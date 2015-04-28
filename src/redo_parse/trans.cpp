@@ -76,12 +76,19 @@ namespace databus {
         // A big insert before 11.6 may be imcompleted
         // Check https://jirap.corp.ebay.com/browse/DBISTREA-21
         last_col_no_ = 0;
-        dassert("Row Chain Exception 1", !changes_.empty());
+        if (changes_.empty()) {
+          LOG(ERROR) << "Row Chain Empty Error " << rc->scn_.toString();
+          std::exit(100);
+        }
+        /// dassert("Row Chain Exception 1", !changes_.empty());
         auto it = changes_.end();
         --it;
-        dassert("Row Chain Exception 2",
-                (*it)->op_ == opcode::kInsert &&
-                    (*it)->object_id_ == rc->object_id_);
+        if ((*it)->op_ == opcode::kInsert &&
+            (*it)->object_id_ == rc->object_id_) {
+          LOG(ERROR) << "Row Chain Verify Error op:" << (*it)->op_ << " obj "
+                     << (*it)->object_id_ << " scn " << rc->scn_.toString();
+          std::exit(100);
+        }
         changes_.erase(it);
         changes_.insert(rc);
       }
