@@ -13,11 +13,10 @@ namespace databus {
   const std::set<Ushort> kDMLOps{opcode::kInsert,      opcode::kDelete,
                                  opcode::kUpdate,      opcode::kRowChain,
                                  opcode::kBeginTrans,  opcode::kCommit,
-                                 opcode::kMultiInsert, opcode::kMultiDelete};
+                                 opcode::kMultiInsert, opcode::kMultiDelete,
+                                 opcode::kBeginTrans,  opcode::kCommit};
 
-  const std::set<Ushort> kTRANOps{
-      opcode::kUndo, opcode::kBeginTrans, opcode::kCommit,
-  };
+  const std::set<Ushort> kTRANOps{opcode::kUndo};
 
   bool SCN::operator<(const SCN& other) const {
     uint64_t me = toNum();

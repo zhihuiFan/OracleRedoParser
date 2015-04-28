@@ -328,7 +328,7 @@ namespace databus {
               auto& xidmap = Transaction::xid_map_;
               auto it = xidmap.find(xid);
               if (it != xidmap.end()) {
-                LOG(ERROR) << "I think Transaction (xid" << xid
+                LOG(DEBUG) << "I think Transaction (xid" << xid
                            << ") just start here offset: " << record->offset()
                            << " but it was started before \n"
                            << "Dump Info\n" << it->second->toString()
@@ -398,7 +398,7 @@ namespace databus {
     XIDMap& xidmap = Transaction::xid_map_;
     auto transit = xidmap.find(xid);
     if (transit == xidmap.end()) {
-      LOG(ERROR) << "XID " << xid
+      LOG(DEBUG) << "XID " << xid
                  << " info was missed when I want to add a change to it"
                  << std::endl;
       return;

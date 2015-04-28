@@ -12,13 +12,21 @@ drop table rc;
 -- in dba_tab_cols, datatype of id : scale:null
 create table rc(id number, c1 varchar2(3000), cdate date, c3 varchar2(3000), primary key(id,cdate)); 
 
+-- clear data
+delete from halv.target;
+delete from halv.test;
+delete from halv.rc;
+delete from halv.rc2;
+commit;
+
+
 alter system switch logfile;
 
 -- insert part of columns
 whenever sqlerror exit
 insert into rc(id, cdate) values(101, sysdate);
 commit;
-insert into target(a, b, c) values(1, 'FANZHIHUI',  sysdate);
+insert into target(a, b, c) values(1, 'FANZHIHUI',  sysdate); -- missed
 commit;
 insert into target(a, b, c)  values(2, 'abcdef',  sysdate);
 commit;
@@ -44,8 +52,8 @@ insert all
     into target(a) values(0)
 select * from dual;
 commit;
-delete from target where a=-100;
-delete from target where a=-101;
+delete from target where a=-100; -- missed
+delete from target where a=-101; -- missed
 rollback;
 -- This will generate Mulit-Insert
 insert all
