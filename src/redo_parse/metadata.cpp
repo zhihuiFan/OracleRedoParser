@@ -204,10 +204,10 @@ namespace databus {
   LogManager::LogManager(const char* conn_str)
       : conn_str_(conn_str),
         conn_(conn_str),
-        arch_log_stmt_(
-            1,
-            "select name from v$archived_log where sequence# = :seq<unsigned>",
-            conn_),
+        arch_log_stmt_(1,
+                       "select name from v$archived_log where sequence# = "
+                       ":seq<unsigned> where STANDBY_DEST='NO'",
+                       conn_),
         online_log_stmt_(1,
                          "select member from v$logfile lf, v$log l where "
                          "l.group# = lf.group# and l.sequence# = "

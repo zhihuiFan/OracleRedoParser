@@ -26,7 +26,7 @@ alter system switch logfile;
 whenever sqlerror exit
 insert into rc(id, cdate) values(101, sysdate);
 commit;
-insert into target(a, b, c) values(1, 'FANZHIHUI',  sysdate); -- missed
+insert into target(a, b, c) values(1, 'FANZHIHUI',  sysdate);
 commit;
 insert into target(a, b, c)  values(2, 'abcdef',  sysdate);
 commit;
@@ -52,8 +52,8 @@ insert all
     into target(a) values(0)
 select * from dual;
 commit;
-delete from target where a=-100; -- missed
-delete from target where a=-101; -- missed
+delete from target where a=-100; 
+delete from target where a=-101;
 rollback;
 -- This will generate Mulit-Insert
 insert all
