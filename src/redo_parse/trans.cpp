@@ -78,15 +78,26 @@ namespace databus {
         last_col_no_ = 0;
         if (changes_.empty()) {
           LOG(ERROR) << "Row Chain Empty Error " << rc->scn_.toString();
+          for (auto t : temp_changes_) {
+            LOG(ERROR) << t->toString();
+          }
           std::exit(100);
         }
         /// dassert("Row Chain Exception 1", !changes_.empty());
         auto it = changes_.end();
         --it;
-        if ((*it)->op_ == opcode::kInsert &&
-            (*it)->object_id_ == rc->object_id_) {
+        if ((*it)->op_ != opcode::kInsert ||
+            (*it)->object_id_ != rc->object_id_) {
           LOG(ERROR) << "Row Chain Verify Error op:" << (*it)->op_ << " obj "
                      << (*it)->object_id_ << " scn " << rc->scn_.toString();
+          LOG(ERROR) << "TEMP_... ";
+          for (auto t : temp_changes_) {
+            LOG(ERROR) << t->toString();
+          }
+          LOG(ERROR) << "CHANGES... ";
+          for (auto t : changes_) {
+            LOG(ERROR) << t->toString();
+          }
           std::exit(100);
         }
         changes_.erase(it);

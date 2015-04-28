@@ -134,7 +134,7 @@ namespace databus {
       }
     }
 
-    if (change_length == 0) {
+    if (change_length == 0 || record_scn < start_scn_) {
       curr_record_pos_ = nextRecord(curr_record_pos_);
       goto again;
     }

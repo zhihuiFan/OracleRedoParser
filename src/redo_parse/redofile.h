@@ -28,6 +28,7 @@ namespace databus {
           latest_blk_(0),
           file_start_pos_(NULL),
           length_(0),
+          start_scn_(),
           allop_(false) {
       std::string filename = log_generator_(log_seq);
       init(filename.c_str());
@@ -39,6 +40,7 @@ namespace databus {
           file_start_pos_(NULL),
           length_(0),
           log_sequence_(-1),
+          start_scn_(),
           allop_(true) {
       log_generator_ = [&filename](uint32_t) { return filename; };
       online_last_blk_ = [](uint32_t) { return 0xFFFFFF; };
@@ -52,6 +54,8 @@ namespace databus {
     // just turn to the archive log. Be sure to return
     // a valid RecordBuf with this call!
     std::shared_ptr<RecordBuf> nextRecordBuf();
+
+    void setStartScn(SCN &scn) { start_scn_ = scn; }
 
     ~RedoFile();
 
@@ -130,6 +134,7 @@ namespace databus {
     char *p_block_header_;
     RedoHeader *p_redo_header_;
     SCN lowscn_;
+    SCN start_scn_;
     size_t length_;
     uint32_t block_size_;
     uint32_t last_block_id_;
