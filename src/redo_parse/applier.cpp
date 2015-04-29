@@ -83,4 +83,22 @@ namespace databus {
     return (insert_template % tab_def->name % boost::join(col_name, ",") %
             boost::join(col_value, ",")).str();
   }
+
+  ApplierHelper::ApplierHelper(const char* conn_str, const std::string& inst_id)
+      : conn_(conn_str),
+        inst_id_(inst_id),
+        save_progress_stmt_(1,
+                            "INSERT INTO stream_progress "
+                            " (INST_ID, COMMIT_SCN, START_SCN, CREATION_DATE) "
+                            "VALUES (:INST_ID<char[20]>, "
+                            "TO_NUMBER(:COMMIT_SCN<char[39]>), "
+                            "TO_NUMBER(:START_SCN<char[39]>), SYSDATE)",
+                            conn_),
+        get_progress_stmt_(1,
+                           "SELECT to_char(COMMIT_SCN), to_char(START_SCN) "
+                           " FROM  STREAM_PROGRESS "
+                           " WHERE INST_ID = :INST_ID<char[20]> "
+                           " AND CREATION_DATE = (SELECT MAX(CREATION_DATE) "
+                           " FROM STREAM_PROGRESS) ",
+                           conn_) {}
 }

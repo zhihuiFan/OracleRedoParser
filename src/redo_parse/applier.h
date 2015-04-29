@@ -40,5 +40,32 @@ namespace databus {
     otl_connect conn_;
     std::map<std::string, std::shared_ptr<otl_stream>> stmt_dict_;
   };
+
+  struct ApplyStats {
+    SCN restart_scn_;
+    SCN commit_scn_;
+  };
+
+  class ApplierHelper {
+    // record/get the apply progress into/from database
+
+   public:
+    ApplyStats getApplyStats();
+    void saveApplyProgress(SCN& commit_scn, SCN& commit);
+    static ApplierHelper& getApplierHelper(const char* conn_str,
+                                           const std::string& inst_id) {
+      static ApplierHelper applierHelper(conn_str, inst_id);
+      return applierHelper;
+    }
+
+   private:
+    ApplierHelper(const char* conn_str, const std::string& inst_id);
+
+   private:
+    std::string inst_id_;
+    otl_connect conn_;
+    otl_stream save_progress_stmt_;
+    otl_stream get_progress_stmt_;
+  };
 }
 #endif /* ----- #ifndef APPLIER_INC  ----- */
