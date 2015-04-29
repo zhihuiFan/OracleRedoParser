@@ -48,7 +48,7 @@ namespace databus {
   std::string SCN::toString() const {
     std::stringstream ss;
     ss << std::hex << std::setfill('0') << std::setw(4) << major_
-       << std::setw(8) << minor_ << set::setw(8) << subscn_ << std::setw(8)
+       << std::setw(8) << minor_ << std::setw(8) << subscn_ << std::setw(8)
        << noffset_;
     return ss.str();
   }
