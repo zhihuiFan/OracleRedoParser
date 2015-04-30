@@ -136,6 +136,9 @@ namespace databus {
 
   ApplyStats ApplierHelper::getApplyStats() {
     get_progress_stmt_ << inst_id_.c_str();
+    if (get_progress_stmt_.eof()) {
+      return ApplyStats(SCN(), SCN());
+    }
     SCN commit_scn, restart_scn;
     unsigned char buf[39];
     int n = 0;
@@ -153,7 +156,7 @@ namespace databus {
           commit_scn.subscn_ = std::stoi(std::string((char*)buf));
           break;
         case 4:
-          commit_scn.noffset_ = std::stoi(std::string((char*)buf));
+          commit_scn.noffset_ = std::stoi(std::string((char*)buf)) + 1;
           break;
         case 5:
           restart_scn.major_ = std::stoi(std::string((char*)buf));
@@ -165,7 +168,7 @@ namespace databus {
           restart_scn.subscn_ = std::stoi(std::string((char*)buf));
           break;
         case 8:
-          restart_scn.noffset_ = std::stoi(std::string((char*)buf));
+          restart_scn.noffset_ = std::stoi(std::string((char*)buf)) + 1;
           break;
       }
     }
