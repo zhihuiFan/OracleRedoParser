@@ -22,11 +22,15 @@ namespace databus {
   DBAMap Transaction::dba_map_;
   XIDMap Transaction::xid_map_;
   std::map<SCN, TransactionPtr> Transaction::commit_trans_;
+  SCN Transaction::last_commit_scn_;
 
   XIDMap::iterator buildTransaction(XIDMap::iterator it) {
     if (it->second->has_rollback()) {
       return Transaction::xid_map_.erase(it);
     } else if (it->second->has_commited()) {
+      if (it->second->commit_scn_ < last_commit_scn_) {
+        return Transaction::xid_map_.erase(it);
+      }
       it->second->tidyChanges();
       Transaction::commit_trans_[it->second->commit_scn_] =
           Transaction::xid_map_[it->second->xid_];

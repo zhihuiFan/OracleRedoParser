@@ -75,6 +75,7 @@ namespace databus {
     static XIDMap xid_map_;
     static DBAMap dba_map_;
     static std::map<SCN, std::shared_ptr<Transaction>> commit_trans_;
+    static SCN last_commit_scn_;
 
     bool operator<(const Transaction& other) const;
     bool has_rollback() const { return commited_ & 4; }
