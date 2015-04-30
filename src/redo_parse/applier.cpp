@@ -89,16 +89,86 @@ namespace databus {
         inst_id_(inst_id),
         save_progress_stmt_(1,
                             "INSERT INTO stream_progress "
-                            " (INST_ID, COMMIT_SCN, START_SCN, CREATION_DATE) "
+                            " (INST_ID, COMMIT_SCN_MAJOR, COMMIT_SCN_MINOR, "
+                            "COMMIT_SUBSCN, COMMIT_OFFSET, "
+                            " START_SCN_MAJOR, START_SCN_MINTOR, START_SUBSCN, "
+                            "START_OFFSET, CREATION_DATE) "
                             "VALUES (:INST_ID<char[20]>, "
-                            "TO_NUMBER(:COMMIT_SCN<char[39]>), "
-                            "TO_NUMBER(:START_SCN<char[39]>), SYSDATE)",
+                            "TO_NUMBER(:COMMIT_SCN_MAJOR<char[39]>), "
+                            "TO_NUMBER(:COMMIT_SCN_MINOR<char[39]>), "
+                            "TO_NUMBER(:COMMIT_SUBSCN<char[39]>), "
+                            "TO_NUMBER(:COMMIT_OFFSET<char[39]>), "
+                            "TO_NUMBER(:START_SCN_MAJOR<char[39]>), "
+                            "TO_NUMBER(:START_SCN_MAJOR<char[39]>), "
+                            "TO_NUMBER(:START_SCN_MAJOR<char[39]>), "
+                            "TO_NUMBER(:START_SCN_MAJOR<char[39]>), "
+                            "SYSDATE)",
                             conn_),
         get_progress_stmt_(1,
-                           "SELECT to_char(COMMIT_SCN), to_char(START_SCN) "
+                           "SELECT "
+                           " to_char(COMMIT_SCN_MAJOR), "
+                           " to_char(COMMIT_SCN_MINOR), "
+                           " to_char(COMMIT_SUBSCN), "
+                           " to_char(COMMIT_OFFSET), "
+                           " to_char(START_SCN_MAJOR), "
+                           " to_char(START_SCN_MINOR), "
+                           " to_char(START_SUBSCN), "
+                           " to_char(START_OFFSET) "
                            " FROM  STREAM_PROGRESS "
                            " WHERE INST_ID = :INST_ID<char[20]> "
                            " AND CREATION_DATE = (SELECT MAX(CREATION_DATE) "
                            " FROM STREAM_PROGRESS) ",
                            conn_) {}
+
+  void ApplierHelper::saveApplyProgress(const SCN& commit_scn,
+                                        const SCN& restart_scn) {
+    save_progress_stmt_ << inst_id_.c_str()
+                        << std::to_string(commit_scn.major_).c_str()
+                        << std::to_string(commit_scn.minor_).c_str()
+                        << std::to_string(commit_scn.subscn_).c_str()
+                        << std::to_string(commit_scn.noffset_).c_str()
+                        << std::to_string(restart_scn.major_).c_str()
+                        << std::to_string(restart_scn.minor_).c_str()
+                        << std::to_string(restart_scn.subscn_).c_str()
+                        << std::to_string(restart_scn.noffset_).c_str();
+    conn_.commit();
+  }
+
+  ApplyStats ApplierHelper::getApplyStats() {
+    get_progress_stmt_ << inst_id_.c_str();
+    SCN commit_scn, restart_scn;
+    unsigned char buf[39];
+    int n = 0;
+    while (n < 9) {
+      get_progress_stmt_ >> buf;
+      ++n;
+      switch (n) {
+        case 1:
+          commit_scn.major_ = std::stoi(std::string((char*)buf));
+          break;
+        case 2:
+          commit_scn.minor_ = std::stoi(std::string((char*)buf));
+          break;
+        case 3:
+          commit_scn.subscn_ = std::stoi(std::string((char*)buf));
+          break;
+        case 4:
+          commit_scn.noffset_ = std::stoi(std::string((char*)buf));
+          break;
+        case 5:
+          restart_scn.major_ = std::stoi(std::string((char*)buf));
+          break;
+        case 6:
+          restart_scn.minor_ = std::stoi(std::string((char*)buf));
+          break;
+        case 7:
+          restart_scn.subscn_ = std::stoi(std::string((char*)buf));
+          break;
+        case 8:
+          restart_scn.noffset_ = std::stoi(std::string((char*)buf));
+          break;
+      }
+    }
+    return ApplyStats(restart_scn, commit_scn);
+  }
 }

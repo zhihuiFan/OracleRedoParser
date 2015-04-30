@@ -42,6 +42,8 @@ namespace databus {
   };
 
   struct ApplyStats {
+    ApplyStats(const SCN& restart_scn, const SCN& commit_scn)
+        : restart_scn_(restart_scn), commit_scn_(commit_scn) {}
     SCN restart_scn_;
     SCN commit_scn_;
   };
@@ -51,7 +53,7 @@ namespace databus {
 
    public:
     ApplyStats getApplyStats();
-    void saveApplyProgress(SCN& commit_scn, SCN& commit);
+    void saveApplyProgress(const SCN& commit_scn, const SCN& restart_scn);
     static ApplierHelper& getApplierHelper(const char* conn_str,
                                            const std::string& inst_id) {
       static ApplierHelper applierHelper(conn_str, inst_id);
