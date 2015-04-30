@@ -28,7 +28,7 @@ namespace databus {
     if (it->second->has_rollback()) {
       return Transaction::xid_map_.erase(it);
     } else if (it->second->has_commited()) {
-      if (it->second->commit_scn_ < last_commit_scn_) {
+      if (it->second->commit_scn_ < Transaction::last_commit_scn_) {
         return Transaction::xid_map_.erase(it);
       }
       it->second->tidyChanges();

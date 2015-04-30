@@ -42,6 +42,7 @@ namespace databus {
       n++;
     }
     LOG(INFO) << tran->xid_ << " : " << n;
+    Transaction::last_commit_scn_ = tran->commit_scn_;
     conn_.commit();
   }
 
