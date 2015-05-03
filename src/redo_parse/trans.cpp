@@ -4,6 +4,7 @@
 #include <list>
 #include <vector>
 #include <sstream>
+#include <thread>
 #include "trans.h"
 #include "opcode.h"
 #include "opcode_ops.h"
@@ -22,13 +23,38 @@ namespace databus {
   DBAMap Transaction::dba_map_;
   XIDMap Transaction::xid_map_;
   std::map<SCN, TransactionPtr> Transaction::commit_trans_;
-  SCN Transaction::last_commit_scn_;
 
+  SCN Transaction::last_commit_scn_;
+  SCN Transaction::restart_scn_;
+  std::mutex Transaction::restart_mutex_;
+  std::mutex Transaction::commit_mutex_;
+
+  SCN Transaction::getLastCommitScn() {
+    std::lock_guard<std::mutex> lk(commit_mutex_);
+    return last_commit_scn_;
+  }
+  SCN Transaction::getRestartScn() {
+    std::lock_guard<std::mutex> lk(restart_mutex_);
+    return restart_scn_;
+  }
+  void Transaction::setCommitScn(const SCN& scn) {
+    std::lock_guard<std::mutex> lk(commit_mutex_);
+    if (last_commit_scn_ < scn) {
+      last_commit_scn_ = scn;
+    }
+  }
+
+  void Transaction::setRestartScn(const SCN& scn) {
+    std::lock_guard<std::mutex> lk(restart_mutex_);
+    if (scn < restart_scn_) {
+      restart_scn_ = scn;
+    }
+  }
   XIDMap::iterator buildTransaction(XIDMap::iterator it) {
     if (it->second->has_rollback()) {
       return Transaction::xid_map_.erase(it);
     } else if (it->second->has_commited()) {
-      if (it->second->commit_scn_ < Transaction::last_commit_scn_) {
+      if (it->second->commit_scn_ < Transaction::getLastCommitScn()) {
         return Transaction::xid_map_.erase(it);
       }
       it->second->tidyChanges();
@@ -335,6 +361,7 @@ namespace databus {
             if (((OpCode0502*)change->part(1))->sqn_ > 0) {
               // sqn_ == 0 is not a start of transaction
               trans_start_scn = record_scn;
+              Transaction::setRestartScn(trans_start_scn);
             }
           }
           break;

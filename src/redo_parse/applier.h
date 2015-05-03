@@ -69,5 +69,7 @@ namespace databus {
     otl_stream save_progress_stmt_;
     otl_stream get_progress_stmt_;
   };
+
+  void applyMonitor();
 }
 #endif /* ----- #ifndef APPLIER_INC  ----- */

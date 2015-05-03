@@ -42,7 +42,7 @@ namespace databus {
       n++;
     }
     LOG(INFO) << tran->xid_ << " : " << n;
-    Transaction::last_commit_scn_ = tran->commit_scn_;
+    Transaction::setCommitScn(tran->commit_scn_);
     conn_.commit();
   }
 
@@ -174,5 +174,11 @@ namespace databus {
       }
     }
     return ApplyStats(restart_scn, commit_scn);
+  }
+
+  void applyMonitor() {
+    ApplierHelper& helper = ApplierHelper::getApplierHelper(
+        streamconf->getString("tarConn").c_str(),
+        streamconf->getString("instId").c_str());
   }
 }

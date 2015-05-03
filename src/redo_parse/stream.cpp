@@ -60,6 +60,7 @@ namespace databus {
         "string for source database, format username/password@vm")(
         "tarConn", po::value<std::string>(),
         "string for target database username/password@vm")(
+        "instId", po::value<std::string>(), "DataStream instance Id")(
         "confFile", po::value<std::string>(), "configure file for data stream")(
         "tableConf", po::value<std::string>(), "tables to capture changes")(
         "startSeq", po::value<uint32_t>(), "the log sequence to start with");
