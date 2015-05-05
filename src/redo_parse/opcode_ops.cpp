@@ -151,7 +151,8 @@ namespace databus {
           part_no = 6 + irp->column_count_;
         }
         if (irp->xtype_ & 0x20) {
-          opsup = (OpCodeSupplemental*)change0501->part(part_no++);
+          OpCodeSupplemental* opsup =
+              (OpCodeSupplemental*)change0501->part(part_no++);
           start_col = opsup->start_column_ - 1;
           Row suplemental_cols = _makeUpNoLenPrefixCols(
               (Ushort*)change0501->part(part_no), opsup->total_cols_,

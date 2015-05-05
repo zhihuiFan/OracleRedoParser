@@ -40,7 +40,7 @@ namespace databus {
     Ushort op_;
     Ushort start_col_;
     Ushort uflag_;
-    Ushort iflag_;
+    Uchar iflag_;
     OrderedPK pk_;
     Row new_data_;
   };
@@ -125,9 +125,8 @@ namespace databus {
   typedef std::map<SCN, TransactionPtr>& SCNTranMap;
 
   void addToTransaction(RecordBufPtr ptr);
-  void makeTranRecord(XID xid, uint32_t object_id, Ushort op,
-                      std::list<Row>& undo, std::list<Row>& redo,
-                      const SCN& scn, Ushort uflag, Ushort iflag);
+  void makeTranRecord(XID xid, RowChangePtr rcp, std::list<Row>& undo,
+                      std::list<Row>& redo);
 
   bool verifyTrans(TransactionPtr trans_ptr);
   Ushort findPk(std::shared_ptr<TabDef> tab_def, const Row& undo,

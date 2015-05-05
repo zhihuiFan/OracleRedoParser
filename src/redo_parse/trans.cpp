@@ -347,13 +347,10 @@ namespace databus {
     DBA dba = 0;
     XID xid = 0;
     std::list<Row> undo, redo;
-    uint32_t object_id;
-    SCN record_scn = record->scn();
     SCN trans_start_scn;
-    OpCodeSupplemental* opsup = NULL;
-    Ushort uflag = 0;
-    Uchar iflag = 0;
-    Ushort op = 0;
+    // OpCodeSupplemental* opsup = NULL;
+    RowChangePtr rcp(new RowChange());
+    rcp->scn_ = record->scn();
     for (auto change : record->change_vectors) {
       switch (change->opCode()) {
         case opcode::kBeginTrans:
@@ -361,7 +358,7 @@ namespace databus {
           {
             if (((OpCode0502*)change->part(1))->sqn_ > 0) {
               // sqn_ == 0 is not a start of transaction
-              trans_start_scn = record_scn;
+              trans_start_scn = rcp->scn_;
               Transaction::setRestartScn(trans_start_scn);
             }
           }
@@ -369,7 +366,7 @@ namespace databus {
         case opcode::kUndo:
           xid = Ops0501::getXID(change);
           if (xid == 0) return;
-          object_id = Ops0501::getObjId(change);
+          rcp->object_id_ = Ops0501::getObjId(change);
           if (dba > 0) {
             Transaction::dba_map_[dba] =
                 ((OpCode0501*)change->part(1))->xid_high_;
@@ -386,16 +383,16 @@ namespace databus {
                 return;
               }
               xidmap[xid] = TransactionPtr(new Transaction());
-              xidmap[xid]->start_scn_ = record_scn;
+              xidmap[xid]->start_scn_ = rcp->scn_;
               xidmap[xid]->xid_ = xid;
             }
           }
           {
-            if (getMetadata().getTabDefFromId(object_id, false) == NULL) {
+            if (getMetadata().getTabDefFromId(rcp->object_id_, false) == NULL) {
               // we don't care about this object id for version 0.1
               return;
             }
-            undo = Ops0501::makeUpUndo(change, uflag, opsup);
+            undo = Ops0501::makeUpUndo(change, rcp->uflag_, rcp->start_col_);
             // opsup only set when  irp->xtype_ & 0x20
             // LOG(INFO) << "Sup start_col_offset " << record->offset() << ":"
             //      << opsup->start_column_ << ":" << opsup->start_column2_
@@ -405,12 +402,12 @@ namespace databus {
         case opcode::kUpdate:
         case opcode::kInsert:
         case opcode::kMultiInsert:
-          op = change->opCode();
-          redo = OpsDML::makeUpRedoCols(change, iflag);
+          rcp->op_ = change->opCode();
+          redo = OpsDML::makeUpRedoCols(change, rcp->iflag_);
           break;
         case opcode::kDelete:
         case opcode::kRowChain:
-          op = change->opCode();
+          rcp->op_ = change->opCode();
           break;
         case opcode::kCommit:
           dba = change->dba();
@@ -433,18 +430,16 @@ namespace databus {
                             "this transaction is started" << std::endl;
               return;
             }
-            xidit->second->commit_scn_ = record_scn;
+            xidit->second->commit_scn_ = rcp->scn_;
             xidit->second->commited_ = ucm->flg_;
           }
       }  // end switch
     }
-    if (op && xid != 0)
-      makeTranRecord(xid, object_id, op, undo, redo, record_scn, uflag, iflag);
+    if (rcp->op_ && xid != 0) makeTranRecord(xid, rcp, undo, redo);
   }
 
-  void makeTranRecord(XID xid, uint32_t object_id, Ushort op,
-                      std::list<Row>& undos, std::list<Row>& redos,
-                      const SCN& scn, Ushort uflag, Ushort iflag) {
+  void makeTranRecord(XID xid, RowChangePtr rcp, std::list<Row>& undos,
+                      std::list<Row>& redos) {
     XIDMap& xidmap = Transaction::xid_map_;
     auto transit = xidmap.find(xid);
     if (transit == xidmap.end()) {
@@ -453,26 +448,25 @@ namespace databus {
                  << std::endl;
       return;
     }
-    auto table_def = getMetadata().getTabDefFromId(object_id);
+    auto table_def = getMetadata().getTabDefFromId(rcp->object_id_);
     if (table_def == NULL) {
-      LOG(DEBUG) << "Can't get table definition for object_id " << object_id
-                 << " ignore this change " << std::endl;
+      LOG(DEBUG) << "Can't get table definition for object_id "
+                 << rcp->object_id_ << " ignore this change " << std::endl;
       return;
     }
-    switch (op) {
+    switch (rcp->op_) {
       case opcode::kDelete:
       case opcode::kRowChain: {
         for (auto row : undos) {
           RowChangePtr rcp(new RowChange());
           OrderedPK pk;
+          for (auto& col : row) {
+            // col->col_id_ += rcp->start_col_;
+            LOG(INFO) << "INSERT " << rcp->start_col_;
+          }
           int ret = findPk(table_def, row, pk);
           if (ret != 0xffff) {
             rcp->pk_ = std::move(pk);
-            rcp->scn_ = scn;
-            rcp->op_ = op;
-            rcp->object_id_ = object_id;
-            rcp->uflag_ = uflag;
-            rcp->iflag_ = iflag;
             transit->second->changes_.insert(std::move(rcp));
           }
         }
@@ -484,13 +478,8 @@ namespace databus {
           for (auto col : row) {
             // if (col->len_ > 0) {
             rcp->new_data_.push_back(col);
-            rcp->uflag_ = uflag;
-            rcp->iflag_ = iflag;
             //  }
           }
-          rcp->scn_ = scn;
-          rcp->op_ = op;
-          rcp->object_id_ = object_id;
           transit->second->changes_.insert(std::move(rcp));
         }
       } break;
@@ -502,20 +491,19 @@ namespace databus {
         auto undo_iter = undos.begin();
         auto redo_iter = redos.begin();
         RowChangePtr rcp(new RowChange());
+        for (auto& col : *undo_iter) {
+          // col->col_id_ += rcp->start_col_;
+          LOG(INFO) << "UPDATE " << rcp->start_col_;
+        }
         int ret = findPk(table_def, *undo_iter, pk);
         if (ret != 0xffff) {
           rcp->pk_ = std::move(pk);
-          rcp->scn_ = scn;
-          rcp->op_ = op;
-          rcp->object_id_ = object_id;
-          rcp->uflag_ = uflag;
-          rcp->iflag_ = iflag;
           rcp->new_data_ = std::move(*redo_iter);
           transit->second->changes_.insert(std::move(rcp));
         }
       } break;
       default:
-        LOG(ERROR) << "Unknown Op " << (int)op << std::endl;
+        LOG(ERROR) << "Unknown Op " << (int)rcp->op_ << std::endl;
         break;
     }
   }
