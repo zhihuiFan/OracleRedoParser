@@ -38,6 +38,7 @@ namespace databus {
     SCN scn_;
     uint32_t object_id_;
     Ushort op_;
+    Ushort start_col_;
     Ushort uflag_;
     Ushort iflag_;
     OrderedPK pk_;

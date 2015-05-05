@@ -22,7 +22,7 @@ namespace databus {
    public:
     // In c++11, return std::list is effective
     static std::list<Row> makeUpUndo(const ChangeHeader* change0501,
-                                     Ushort& uflag_, OpCodeSupplemental*& sup);
+                                     Ushort& uflag_, Ushort& start_col);
     static bool enabledSuppmentalLog(const ChangeHeader* change0501);
 
     static XID getXID(const ChangeHeader* change0501);

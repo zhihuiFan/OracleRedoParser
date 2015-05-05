@@ -196,6 +196,7 @@ namespace databus {
         op_(),
         uflag_(0),
         iflag_(0),
+        start_col_(0),
         pk_{},
         new_data_{} {}
   /*

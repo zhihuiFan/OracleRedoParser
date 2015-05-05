@@ -125,7 +125,7 @@ namespace databus {
 
   std::list<Row> Ops0501::makeUpUndo(const ChangeHeader* change0501,
                                      Ushort& uflag_,
-                                     OpCodeSupplemental*& opsup) {
+                                     Ushort& start_col) {
     std::list<Row> rows;
     Row row;
     OpCodeKdo* opkdo = (OpCodeKdo*)change0501->part(4);
@@ -135,7 +135,8 @@ namespace databus {
     // if there any exception if opkdo->opcode_ = 0501
     switch (opkdo->opcode_ & 0x1f) {
       case opcode::kInsert & 0xff:
-      case opcode::kRowChain & 0xff: {
+      case opcode::kRowChain & 0xff: 
+      case opcode::kLmn: {
         // common delete will go to here
         // LOG(DEBUG) << "Normal Delete " << std::endl;
         OpCodeKdoirp* irp = (OpCodeKdoirp*)opkdo;
@@ -152,6 +153,7 @@ namespace databus {
         }
         if (irp->xtype_ & 0x20) {
           opsup = (OpCodeSupplemental*)change0501->part(part_no++);
+          start_col = opsup->start_column_ - 1;
           Row suplemental_cols = _makeUpNoLenPrefixCols(
               (Ushort*)change0501->part(part_no), opsup->total_cols_,
               change0501, part_no + 2, true);
@@ -180,6 +182,8 @@ namespace databus {
         if (urp->opcode_ & 0x20) {
           OpCodeSupplemental* suplemental_op_header =
               (OpCodeSupplemental*)change0501->part(part_num++);
+          if (suplemental_op_header->start_column_ > 0) 
+              start_col = suplemental_op_header->start_column_ - 1;
           Row suplemental_cols =
               _makeUpNoLenPrefixCols((Ushort*)change0501->part(part_num),
                                      suplemental_op_header->total_cols_,
@@ -188,17 +192,15 @@ namespace databus {
         }
       } break;
       case opcode::kDelete & 0xff: {
-        /*
-         * no need to parse this part
         OpCodeKdodrp* drp = (OpCodeKdodrp*)change0501->part(4);
         if (drp->opcode_ & 0x20) {
           OpCodeSupplemental* sup = (OpCodeSupplemental*)change0501->part(5);
+          start_col = sup->start_column2_ - 1;
           if (sup->total_cols_ > 0) {
             row = _makeUpNoLenPrefixCols((Ushort*)change0501->part(6),
                                          sup->total_cols_, change0501, 8, true);
           }
         }
-        */
       } break;
       case opcode::kMultiDelete & 0xff:
       // mulit_insert will go here, we should be able to find out the pks which

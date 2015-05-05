@@ -14,6 +14,7 @@ namespace databus {
                                  opcode::kUpdate,      opcode::kRowChain,
                                  opcode::kBeginTrans,  opcode::kCommit,
                                  opcode::kMultiInsert, opcode::kMultiDelete,
+                                 opcode::kLmn, // 11.16
                                  opcode::kBeginTrans,  opcode::kCommit};
 
   const std::set<Ushort> kTRANOps{opcode::kUndo};
@@ -58,6 +59,7 @@ namespace databus {
         change_length_(len),
         epoch_(epoch),
         change_buffers_(change_buf),
+        op_(0),
         offset_(offset) {
     initChangeVectors(allop);
   }
@@ -76,6 +78,7 @@ namespace databus {
       if (kDMLOps.find(ch->opCode()) != kDMLOps.end()) {
         change_vectors.push_back(ch);
         keep = true;
+        op_ = ch->opCode();
       } else if (kTRANOps.find(ch->opCode()) != kTRANOps.end()) {
         change_vectors.push_back(ch);
       } else if (allop)

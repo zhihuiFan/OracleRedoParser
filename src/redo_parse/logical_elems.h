@@ -55,6 +55,7 @@ namespace databus {
     SCN scn_;
     uint32_t epoch_;
     uint32_t change_length_;
+    Ushort op_;
     char* change_buffers_;
     size_t offset_;  // debug only
   };                 // RecordBuf
