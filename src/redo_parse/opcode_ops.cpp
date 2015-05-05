@@ -124,8 +124,7 @@ namespace databus {
   }
 
   std::list<Row> Ops0501::makeUpUndo(const ChangeHeader* change0501,
-                                     Ushort& uflag_,
-                                     Ushort& start_col) {
+                                     Ushort& uflag_, Ushort& start_col) {
     std::list<Row> rows;
     Row row;
     OpCodeKdo* opkdo = (OpCodeKdo*)change0501->part(4);
@@ -135,7 +134,7 @@ namespace databus {
     // if there any exception if opkdo->opcode_ = 0501
     switch (opkdo->opcode_ & 0x1f) {
       case opcode::kInsert & 0xff:
-      case opcode::kRowChain & 0xff: 
+      case opcode::kRowChain & 0xff:
       case opcode::kLmn: {
         // common delete will go to here
         // LOG(DEBUG) << "Normal Delete " << std::endl;
@@ -182,8 +181,8 @@ namespace databus {
         if (urp->opcode_ & 0x20) {
           OpCodeSupplemental* suplemental_op_header =
               (OpCodeSupplemental*)change0501->part(part_num++);
-          if (suplemental_op_header->start_column_ > 0) 
-              start_col = suplemental_op_header->start_column_ - 1;
+          if (suplemental_op_header->start_column_ > 0)
+            start_col = suplemental_op_header->start_column_ - 1;
           Row suplemental_cols =
               _makeUpNoLenPrefixCols((Ushort*)change0501->part(part_num),
                                      suplemental_op_header->total_cols_,
