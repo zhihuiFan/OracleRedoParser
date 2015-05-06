@@ -458,12 +458,12 @@ namespace databus {
       case opcode::kDelete:
       case opcode::kRowChain: {
         for (auto row : undos) {
-          RowChangePtr rcp(new RowChange());
           OrderedPK pk;
           for (auto& col : row) {
-            // col->col_id_ += rcp->start_col_;
-            LOG(INFO) << "INSERT " << rcp->start_col_;
+            col->col_id_ += rcp->start_col_;
           }
+          LOG(INFO) << "DELETE " << rcp->scn_.noffset_ << " "
+                    << rcp->start_col_;
           int ret = findPk(table_def, row, pk);
           if (ret != 0xffff) {
             rcp->pk_ = std::move(pk);
@@ -474,12 +474,13 @@ namespace databus {
       case opcode::kMultiInsert:
       case opcode::kInsert: {
         for (auto row : redos) {
-          RowChangePtr rcp(new RowChange());
           for (auto col : row) {
             // if (col->len_ > 0) {
             rcp->new_data_.push_back(col);
             //  }
           }
+          LOG(INFO) << "INSERT " << rcp->scn_.noffset_ << " "
+                    << rcp->start_col_;
           transit->second->changes_.insert(std::move(rcp));
         }
       } break;
@@ -490,11 +491,10 @@ namespace databus {
         OrderedPK pk;
         auto undo_iter = undos.begin();
         auto redo_iter = redos.begin();
-        RowChangePtr rcp(new RowChange());
         for (auto& col : *undo_iter) {
-          // col->col_id_ += rcp->start_col_;
-          LOG(INFO) << "UPDATE " << rcp->start_col_;
+          col->col_id_ += rcp->start_col_;
         }
+        LOG(INFO) << "UPDATE " << rcp->scn_.noffset_ << " " << rcp->start_col_;
         int ret = findPk(table_def, *undo_iter, pk);
         if (ret != 0xffff) {
           rcp->pk_ = std::move(pk);
