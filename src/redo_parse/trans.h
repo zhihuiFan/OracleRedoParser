@@ -31,7 +31,7 @@ namespace databus {
     RowChange(SCN& scn, uint32_t obj_id, Ushort op, Ushort uflag, Ushort iflag,
               Row& undo, Row& redo);
     bool operator<(const RowChange& other) const { return scn_ < other.scn_; }
-    std::string toString(bool scn = false) const;
+    // std::string toString(bool scn = false) const;
     std::string pkToString() const;
     std::vector<std::string> getPk();
 
@@ -41,8 +41,8 @@ namespace databus {
     Ushort start_col_;
     Ushort uflag_;
     Uchar iflag_;
-    OrderedPK pk_;
-    Row new_data_;
+    OrderedPK old_pk_;
+    OrderedPK new_pk_;
   };
 
   struct Less {

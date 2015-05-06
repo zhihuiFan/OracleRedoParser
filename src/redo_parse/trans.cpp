@@ -65,76 +65,7 @@ namespace databus {
     return Transaction::xid_map_.end();
   }
 
-  void Transaction::tidyChanges() {
-    auto temp_changes_ = std::move(changes_);
-    for (auto& rc : temp_changes_) {
-      if (rc->op_ == opcode::kDelete || rc->op_ == opcode::kMultiInsert ||
-          rc->op_ == opcode::kUpdate || rc->op_ == opcode::kLmn) {
-        changes_.insert(rc);
-      } else if (rc->op_ == opcode::kInsert) {
-        if (rc->iflag_ == 0x2c) {
-          // normal insert
-          util::dassert("normal iflag error 0x2c", last_col_no_ == 0);
-          changes_.insert(rc);
-        } else if (rc->iflag_ == 0x04) {
-          util::dassert("row chain iflag error 0x04", last_col_no_ == 0);
-          changes_.insert(rc);
-          last_col_no_ = rc->new_data_.size();
-        } else if (rc->iflag_ == 0x00 || rc->iflag_ == 0x28) {
-          RowChangePtr lastRowPtr = *changes_.rbegin();
-          util::dassert(
-              "row chain middle error",
-              last_col_no_ > 0 && last_col_no_ == lastRowPtr->new_data_.size());
-          Ushort newElemLen = rc->new_data_.size();
-          for (ColumnChangePtr c : lastRowPtr->new_data_) {
-            c->col_id_ += newElemLen;
-          }
-          for (auto c : rc->new_data_) {
-            for (auto cl : lastRowPtr->new_data_) {
-              dassert("col_no_error", cl->col_id_ != c->col_id_);
-            }
-          }
-          lastRowPtr->new_data_.splice(lastRowPtr->new_data_.end(),
-                                       rc->new_data_);
-          if (rc->iflag_ == 0x00) {
-            last_col_no_ += newElemLen;
-          } else {
-            last_col_no_ = 0;
-          }
-        }
-      } else if (rc->op_ == opcode::kRowChain) {
-        // A big insert before 11.6 may be imcompleted
-        // Check https://jirap.corp.ebay.com/browse/DBISTREA-21
-        last_col_no_ = 0;
-        if (changes_.empty()) {
-          LOG(ERROR) << "Row Chain Empty Error " << rc->scn_.toString();
-          for (auto t : temp_changes_) {
-            LOG(ERROR) << t->toString();
-          }
-          std::exit(100);
-        }
-        /// dassert("Row Chain Exception 1", !changes_.empty());
-        auto it = changes_.end();
-        --it;
-        if ((*it)->op_ != opcode::kInsert ||
-            (*it)->object_id_ != rc->object_id_) {
-          LOG(ERROR) << "Row Chain Verify Error op:" << (*it)->op_ << " obj "
-                     << (*it)->object_id_ << " scn " << rc->scn_.toString();
-          LOG(ERROR) << "TEMP_... ";
-          for (auto t : temp_changes_) {
-            LOG(ERROR) << t->toString();
-          }
-          LOG(ERROR) << "CHANGES... ";
-          for (auto t : changes_) {
-            LOG(ERROR) << t->toString();
-          }
-          std::exit(100);
-        }
-        changes_.erase(it);
-        changes_.insert(rc);
-      }
-    }
-  }
+  void Transaction::tidyChanges() {}
 
   void Transaction::apply(TransactionPtr tran) {
     // will write this part later
@@ -197,8 +128,8 @@ namespace databus {
         uflag_(0),
         iflag_(0),
         start_col_(0),
-        pk_{},
-        new_data_{} {}
+        old_pk_{},
+        new_pk_{} {}
   /*
   RowChange::RowChange(SCN& scn, uint32_t obj_id, Ushort op, Ushort uflag,
                        Ushort iflag, Row& undo, Row& redo)
@@ -223,97 +154,19 @@ namespace databus {
       }
     }
   }  */
-  std::string RowChange::toString(bool scn) const {
-    static auto format_insert = boost::format("insert into %s(%s) values(%s)");
-    static auto format_update = boost::format("update %s set %s where %s");
-    static auto format_delete = boost::format("delete from %s where %s");
-    static auto not_empty = [](const std::string& s)
-                                -> bool { return !s.empty(); };
-
-    TabDefPtr tab_def = getMetadata().getTabDefFromId(object_id_);
-    std::stringstream ss;
-    ss << tab_def->owner << "." << tab_def->name;
-    std::string table_name = ss.str();
-
-    switch (op_) {
-      case opcode::kInsert:
-      case opcode::kMultiInsert: {
-        std::vector<std::string> new_data(new_data_.size());
-        std::vector<std::string> col_names(new_data_.size());
-        int i = 0;
-        for (auto col : new_data_) {
-          new_data[i] = std::move(convert(
-              col->content_, tab_def->col_types[col->col_id_ + 1], col->len_));
-          col_names[i++] = tab_def->col_names[col->col_id_ + 1];
-        }
-
-        if (scn) {
-          return scn_.toStr() + " " +
-                 (format_insert % table_name % boost::join(col_names, ", ") %
-                  boost::join_if(new_data, ", ", not_empty)).str();
-        } else {
-          return (format_insert % table_name % boost::join(col_names, ", ") %
-                  boost::join_if(new_data, ", ", not_empty)).str();
-        }
-
-      } break;
-      case opcode::kUpdate: {
-        std::vector<std::string> new_data(new_data_.size());
-        std::vector<std::string> where_conds(new_data_.size());
-        for (auto col : new_data_) {
-          new_data.push_back(std::move(colAsStr(col, tab_def, '=')));
-        }
-        for (auto col : pk_) {
-          where_conds.push_back(std::move(colAsStr(col, tab_def, '=')));
-        }
-        if (scn) {
-          return scn_.toStr() + " " +
-                 (format_update % table_name %
-                  boost::join_if(new_data, ", ", not_empty) %
-                  boost::join_if(where_conds, ", ", not_empty)).str();
-        } else {
-          return (format_update % table_name %
-                  boost::join_if(new_data, ", ", not_empty) %
-                  boost::join_if(where_conds, ", ", not_empty)).str();
-        }
-      } break;
-      case opcode::kDelete: {
-        std::vector<std::string> where_conds(new_data_.size());
-        for (auto col : pk_) {
-          where_conds.push_back(std::move(colAsStr(col, tab_def, '=')));
-        }
-        if (scn) {
-          return scn_.toStr() + " " +
-                 (format_delete % table_name %
-                  boost::join_if(where_conds, ", ", not_empty)).str();
-        } else {
-          return (format_delete % table_name %
-                  boost::join_if(where_conds, ", ", not_empty)).str();
-        }
-      } break;
-      default:
-        LOG(ERROR) << "Unknown Op " << (int)op_ << std::endl;
-    }
-    return "";
-  }
 
   std::string RowChange::pkToString() const {
     std::stringstream ss;
     TabDefPtr tab_def = getMetadata().getTabDefFromId(object_id_);
     ss << tab_def->owner << "." << tab_def->name << "  " << getOpStr(op_);
+    ss << " New PK ";
     // for update, delete, row migration, we store pk into pk_ already
-    if (op_ == opcode::kInsert || op_ == opcode::kMultiInsert) {
-      OrderedPK pk;
-      if (findPk(tab_def, new_data_, pk) == 0xffff) {
-        return std::string("Probably Row Megration");
-      }
-      for (ColumnChangePtr c : pk) {
-        ss << colAsStr(c, tab_def);
-      }
-    } else {
-      for (ColumnChangePtr c : pk_) {
-        ss << colAsStr(c, tab_def);
-      }
+    for (ColumnChangePtr c : new_pk_) {
+      ss << colAsStr(c, tab_def);
+    }
+    ss << " Old PK ";
+    for (ColumnChangePtr c : old_pk_) {
+      ss << colAsStr(c, tab_def);
     }
     return ss.str();
   }
@@ -326,19 +179,11 @@ namespace databus {
     int n = 0;
     pks[n++] = getOpStr(op_);
     pks[n++] = scn_.toString();
-
-    if (op_ == opcode::kInsert || op_ == opcode::kMultiInsert) {
-      OrderedPK pk;
-      if (findPk(tab_def, new_data_, pk) == 0xffff) {
-        return std::vector<std::string>();
-      }
-      for (ColumnChangePtr c : pk) {
-        pks[n++] = std::move(colAsStr2(c, tab_def));
-      }
-    } else {
-      for (ColumnChangePtr c : pk_) {
-        pks[n++] = std::move(colAsStr2(c, tab_def));
-      }
+    for (ColumnChangePtr c : old_pk_) {
+      pks[n++] = std::move(colAsStr2(c, tab_def));
+    }
+    for (ColumnChangePtr c : new_pk_) {
+      pks[n++] = std::move(colAsStr2(c, tab_def));
     }
     return pks;
   }
@@ -455,9 +300,9 @@ namespace databus {
                  << rcp->object_id_ << " ignore this change " << std::endl;
       return;
     }
+
     switch (rcp->op_) {
       case opcode::kDelete:
-      case opcode::kRowChain:
       case opcode::kLmn: {
         for (auto row : undos) {
           OrderedPK pk;
@@ -466,26 +311,27 @@ namespace databus {
           }
           LOG(INFO) << getOpStr(rcp->op_) << " " << rcp->scn_.noffset_
                     << " start_col  " << rcp->start_col_;
-          findPk(table_def, row, rcp->pk_);
-          if (!rcp->pk_.empty())
+          findPk(table_def, row, rcp->old_pk_);
+          if (!rcp->old_pk_.empty())
             transit->second->changes_.insert(std::move(rcp));
         }
       } break;
-      case opcode::kMultiInsert:
-      case opcode::kInsert: {
+      case opcode::kMultiInsert: {
         for (auto row : redos) {
-          for (auto col : row) {
-            // if (col->len_ > 0) {
-            rcp->new_data_.push_back(col);
-            //  }
+          for (auto& col : row) {
+            col->col_id_ += rcp->start_col_;
           }
           LOG(INFO) << getOpStr(rcp->op_) << " " << rcp->scn_.noffset_
                     << " start_col " << rcp->start_col_;
-          transit->second->changes_.insert(std::move(rcp));
+          findPk(table_def, row, rcp->new_pk_);
+          if (!rcp->old_pk_.empty())
+            transit->second->changes_.insert(std::move(rcp));
         }
       } break;
 
-      case opcode::kUpdate: {
+      case opcode::kUpdate:
+      case opcode::kInsert:
+      case opcode::kRowChain: {
         // this is no mulitUpdate, so there is 1 elems in undo and redo at
         // most
         OrderedPK pk;
@@ -494,12 +340,14 @@ namespace databus {
         for (auto& col : *undo_iter) {
           col->col_id_ += rcp->start_col_;
         }
+        for (auto& col : *redo_iter) {
+          col->col_id_ += rcp->start_col_;
+        }
         LOG(INFO) << getOpStr(rcp->op_) << " " << rcp->scn_.noffset_
                   << " start_col " << rcp->start_col_;
-        int ret = findPk(table_def, *undo_iter, pk);
-        if (ret != 0xffff) {
-          rcp->pk_ = std::move(pk);
-          rcp->new_data_ = std::move(*redo_iter);
+        findPk(table_def, *undo_iter, rcp->old_pk_);
+        findPk(table_def, *redo_iter, rcp->new_pk_);
+        if (!rcp->old_pk_.empty() || !rcp->new_pk_.empty()) {
           transit->second->changes_.insert(std::move(rcp));
         }
       } break;
