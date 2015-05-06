@@ -69,7 +69,7 @@ namespace databus {
     auto temp_changes_ = std::move(changes_);
     for (auto& rc : temp_changes_) {
       if (rc->op_ == opcode::kDelete || rc->op_ == opcode::kMultiInsert ||
-          rc->op_ == opcode::kUpdate) {
+          rc->op_ == opcode::kUpdate || rc->op_ == opcode::kLmn) {
         changes_.insert(rc);
       } else if (rc->op_ == opcode::kInsert) {
         if (rc->iflag_ == 0x2c) {
@@ -407,6 +407,7 @@ namespace databus {
           break;
         case opcode::kDelete:
         case opcode::kRowChain:
+        case opcode::kLmn:
           rcp->op_ = change->opCode();
           break;
         case opcode::kCommit:
@@ -456,19 +457,18 @@ namespace databus {
     }
     switch (rcp->op_) {
       case opcode::kDelete:
-      case opcode::kRowChain: {
+      case opcode::kRowChain:
+      case opcode::kLmn: {
         for (auto row : undos) {
           OrderedPK pk;
           for (auto& col : row) {
             col->col_id_ += rcp->start_col_;
           }
-          LOG(INFO) << "DELETE " << rcp->scn_.noffset_ << " "
-                    << rcp->start_col_;
-          int ret = findPk(table_def, row, pk);
-          if (ret != 0xffff) {
-            rcp->pk_ = std::move(pk);
+          LOG(INFO) << getOpStr(rcp->op_) << " " << rcp->scn_.noffset_
+                    << " start_col  " << rcp->start_col_;
+          findPk(table_def, row, rcp->pk_);
+          if (!rcp->pk_.empty())
             transit->second->changes_.insert(std::move(rcp));
-          }
         }
       } break;
       case opcode::kMultiInsert:
@@ -479,8 +479,8 @@ namespace databus {
             rcp->new_data_.push_back(col);
             //  }
           }
-          LOG(INFO) << "INSERT " << rcp->scn_.noffset_ << " "
-                    << rcp->start_col_;
+          LOG(INFO) << getOpStr(rcp->op_) << " " << rcp->scn_.noffset_
+                    << " start_col " << rcp->start_col_;
           transit->second->changes_.insert(std::move(rcp));
         }
       } break;
@@ -494,7 +494,8 @@ namespace databus {
         for (auto& col : *undo_iter) {
           col->col_id_ += rcp->start_col_;
         }
-        LOG(INFO) << "UPDATE " << rcp->scn_.noffset_ << " " << rcp->start_col_;
+        LOG(INFO) << getOpStr(rcp->op_) << " " << rcp->scn_.noffset_
+                  << " start_col " << rcp->start_col_;
         int ret = findPk(table_def, *undo_iter, pk);
         if (ret != 0xffff) {
           rcp->pk_ = std::move(pk);

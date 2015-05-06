@@ -31,7 +31,8 @@ namespace databus {
                                                {kUpdate, "Update"},
                                                {kDelete, "Delete"},
                                                {kMultiInsert, "Insert"},
-                                               {kRowChain, "Update"}};
+                                               {kRowChain, "11.06"},
+                                               {kLmn, "11.16"}};
   };
 
   inline std::string getOpStr(Ushort op) {

@@ -134,8 +134,7 @@ namespace databus {
     // if there any exception if opkdo->opcode_ = 0501
     switch (opkdo->opcode_ & 0x1f) {
       case opcode::kInsert & 0xff:
-      case opcode::kRowChain & 0xff:
-      case opcode::kLmn: {
+      case opcode::kRowChain & 0xff: {
         // common delete will go to here
         // LOG(DEBUG) << "Normal Delete " << std::endl;
         OpCodeKdoirp* irp = (OpCodeKdoirp*)opkdo;
@@ -146,17 +145,31 @@ namespace databus {
         }
         Ushort part_no;
         if (sec->op_major_ == 0x05 && sec->op_minor_ == 0x01) {
-          part_no = 7 + irp->column_count_;
-        } else {
           part_no = 6 + irp->column_count_;
+        } else {
+          part_no = 5 + irp->column_count_;
         }
-        if (irp->xtype_ & 0x20) {
+        if (irp->opcode_ & 0x20) {
           OpCodeSupplemental* opsup =
               (OpCodeSupplemental*)change0501->part(part_no++);
           start_col = opsup->start_column_ - 1;
           Row suplemental_cols = _makeUpNoLenPrefixCols(
               (Ushort*)change0501->part(part_no), opsup->total_cols_,
               change0501, part_no + 2, true);
+
+          if (!suplemental_cols.empty()) {
+            row.splice(row.end(), suplemental_cols);
+          }
+        }
+      } break;
+      case opcode::kLmn & 0xff: {
+        OpCodeKdoirp* irp = (OpCodeKdoirp*)opkdo;
+        if (irp->opcode_ & 0x20) {
+          OpCodeSupplemental* opsup = (OpCodeSupplemental*)change0501->part(5);
+          if (opsup->start_column_ > 0) start_col = opsup->start_column_ - 1;
+          Row suplemental_cols =
+              _makeUpNoLenPrefixCols((Ushort*)change0501->part(6),
+                                     opsup->total_cols_, change0501, 8, true);
 
           if (!suplemental_cols.empty()) {
             row.splice(row.end(), suplemental_cols);
@@ -205,7 +218,6 @@ namespace databus {
       case opcode::kMultiDelete & 0xff:
       // mulit_insert will go here, we should be able to find out the pks which
       // are inserted
-      case opcode::kLmn & 0xff:
       case opcode::kMfc & 0xff:
       case opcode::kCfa & 0xff:
       default:
