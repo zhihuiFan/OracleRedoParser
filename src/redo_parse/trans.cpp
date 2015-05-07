@@ -72,6 +72,15 @@ namespace databus {
     LOG(INFO) << "Apply Transaction " << tran->xid_ << std::endl;
   }
 
+  static void changeColsOffset(Row& row, Ushort start_col) {
+    if (!row.empty() && start_col > 0) {
+      Ushort n = row.front()->col_id_;
+      for (auto& col : row) {
+        col->col_id_ = start_col + (col->col_id_ - n);
+      }
+    }
+  }
+
   std::string Transaction::toString() const {
     std::stringstream ss;
     ss << std::endl << "XID " << std::hex << xid_
@@ -175,7 +184,8 @@ namespace databus {
     // the pk string is order by col_no
     TabDefPtr tab_def = getMetadata().getTabDefFromId(object_id_);
     // this line is super urgly and error prone, will fix it someday
-    std::vector<std::string> pks(tab_def->pk.size() + prefix_cols.size() - 1);
+    std::vector<std::string> pks(new_pk_.size() + old_pk_.size() +
+                                 prefix_cols.size() - 1);
     int n = 0;
     pks[n++] = getOpStr(op_);
     pks[n++] = scn_.toString();
@@ -301,14 +311,18 @@ namespace databus {
       return;
     }
 
+    for (auto& row : undos) {
+      changeColsOffset(row, rcp->start_col_);
+    }
+
+    for (auto& row : redos) {
+      changeColsOffset(row, rcp->start_col_);
+    }
+
     switch (rcp->op_) {
       case opcode::kDelete:
       case opcode::kLmn: {
         for (auto row : undos) {
-          OrderedPK pk;
-          for (auto& col : row) {
-            col->col_id_ += rcp->start_col_;
-          }
           LOG(INFO) << getOpStr(rcp->op_) << " " << rcp->scn_.noffset_
                     << " start_col  " << rcp->start_col_;
           findPk(table_def, row, rcp->old_pk_);
@@ -318,9 +332,6 @@ namespace databus {
       } break;
       case opcode::kMultiInsert: {
         for (auto row : redos) {
-          for (auto& col : row) {
-            col->col_id_ += rcp->start_col_;
-          }
           LOG(INFO) << getOpStr(rcp->op_) << " " << rcp->scn_.noffset_
                     << " start_col " << rcp->start_col_;
           findPk(table_def, row, rcp->new_pk_);
@@ -337,12 +348,6 @@ namespace databus {
         OrderedPK pk;
         auto undo_iter = undos.begin();
         auto redo_iter = redos.begin();
-        for (auto& col : *undo_iter) {
-          col->col_id_ += rcp->start_col_;
-        }
-        for (auto& col : *redo_iter) {
-          col->col_id_ += rcp->start_col_;
-        }
         LOG(INFO) << getOpStr(rcp->op_) << " " << rcp->scn_.noffset_
                   << " start_col " << rcp->start_col_;
         findPk(table_def, *undo_iter, rcp->old_pk_);

@@ -201,6 +201,7 @@ namespace databus {
               _makeUpNoLenPrefixCols((Ushort*)change0501->part(part_num),
                                      suplemental_op_header->total_cols_,
                                      change0501, part_num + 2, true);
+
           row.splice(row.end(), suplemental_cols);
         }
       } break;
@@ -223,7 +224,6 @@ namespace databus {
       default:
         return rows;
     }
-
     rows.push_back(std::move(row));
     return rows;
   }
