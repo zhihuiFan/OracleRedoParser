@@ -65,7 +65,41 @@ namespace databus {
     return Transaction::xid_map_.end();
   }
 
-  void Transaction::tidyChanges() {}
+  bool Transaction::lastCompleted() const {
+    if (changes_.empty()) return true;
+    auto it = changes_.end();
+    --it;
+  }
+
+  void Transaction::tidyChanges() {
+    auto temp_changes = std::move(changes_);
+    for (auto& r : temp_changes) {
+      if (r->iflag_ == 0x2c) {
+        if (!lastCompleted()) {
+          LOG(ERROR) << "Error";
+          std::exit(20);
+        } else {
+          changes_.insert(r);
+          continue;
+        }
+      }
+      switch (r->op_) {
+        case opcode::kMultiInsert:
+          changes.insert(r);
+          break;
+        case opcode::kInsert:
+        case opcode::kUpdate:
+        case opcode::kLmn:
+        case opcode::kRowChain:
+        case opcode::kDelete:
+          if (!lastCompleted())
+            merge(r);
+          else
+            changes_.insert(r);
+          break;
+      }
+    }
+  }
 
   void Transaction::apply(TransactionPtr tran) {
     // will write this part later

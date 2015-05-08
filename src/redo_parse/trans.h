@@ -75,22 +75,28 @@ namespace databus {
     std::string toString() const;
     // for big insert only
     Ushort last_col_no_;
-    static XIDMap xid_map_;
-    static DBAMap dba_map_;
-    static std::map<SCN, std::shared_ptr<Transaction>> commit_trans_;
 
     bool operator<(const Transaction& other) const;
     bool has_rollback() const { return commited_ & 4; }
     bool has_commited() const { return commited_ & 2; }
     bool empty() const { return changes_.empty(); }
     void tidyChanges();
-    static void apply(std::shared_ptr<Transaction> tran);
+
+   private:
+    void merge();
+    bool lastCompleted() const;
+
+   public:
+    static XIDMap xid_map_;
+    static DBAMap dba_map_;
+    static std::map<SCN, std::shared_ptr<Transaction>> commit_trans_;
 
    public:
     static SCN getLastCommitScn();
     static void setCommitScn(const SCN& scn);
     static SCN getRestartScn();
     static void setRestartScn(const SCN& scn);
+    static void apply(std::shared_ptr<Transaction> tran);
 
    private:
     static std::mutex commit_mutex_;
