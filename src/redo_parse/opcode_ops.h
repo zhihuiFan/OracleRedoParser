@@ -9,6 +9,7 @@
 #include "logical_elems.h"
 #include "util/dassert.h"
 #include "util/dtypes.h"
+#include "trans.h"
 
 namespace databus {
   using util::dassert;
@@ -22,7 +23,7 @@ namespace databus {
    public:
     // In c++11, return std::list is effective
     static std::list<Row> makeUpUndo(const ChangeHeader* change0501,
-                                     Ushort& uflag_, Ushort& start_col);
+                                     RowChangePtr rcp);
     static bool enabledSuppmentalLog(const ChangeHeader* change0501);
 
     static XID getXID(const ChangeHeader* change0501);

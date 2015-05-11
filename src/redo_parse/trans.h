@@ -39,6 +39,9 @@ namespace databus {
     uint32_t object_id_;
     Ushort op_;
     Ushort start_col_;
+    // we only care about cc for 11.6
+    // see https://jirap.corp.ebay.com/browse/DBISTREA-37
+    Ushort cc_;
     Ushort uflag_;
     Uchar iflag_;
     OrderedPK old_pk_;
@@ -83,7 +86,7 @@ namespace databus {
     void tidyChanges();
 
    private:
-    void merge();
+    void merge(RowChangePtr r);
     bool lastCompleted() const;
 
    public:

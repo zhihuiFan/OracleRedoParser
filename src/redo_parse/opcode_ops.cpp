@@ -124,12 +124,12 @@ namespace databus {
   }
 
   std::list<Row> Ops0501::makeUpUndo(const ChangeHeader* change0501,
-                                     Ushort& uflag_, Ushort& start_col) {
+                                     RowChangePtr rcp) {
     std::list<Row> rows;
     Row row;
     OpCodeKdo* opkdo = (OpCodeKdo*)change0501->part(4);
     OpCode0501Sec* sec = (OpCode0501Sec*)(change0501->part(2));
-    uflag_ = ((OpCode0501*)(change0501->part(1)))->flag_;
+    rcp->uflag_ = ((OpCode0501*)(change0501->part(1)))->flag_;
     // printTransBase(change0501);
     // if there any exception if opkdo->opcode_ = 0501
     switch (opkdo->opcode_ & 0x1f) {
@@ -138,6 +138,7 @@ namespace databus {
         // common delete will go to here
         // LOG(DEBUG) << "Normal Delete " << std::endl;
         OpCodeKdoirp* irp = (OpCodeKdoirp*)opkdo;
+        rcp->cc_ = irp->column_count_;
         if (irp->column_count_ != 0) {
           Row undo_cols = makeUpCols((Ushort*)NULL, irp->column_count_,
                                      change0501, 5, irp->xtype_, false);
@@ -152,7 +153,8 @@ namespace databus {
         if (irp->opcode_ & 0x20) {
           OpCodeSupplemental* opsup =
               (OpCodeSupplemental*)change0501->part(part_no++);
-          start_col = opsup->start_column_ - 1;
+          if (opsup->start_column_ > 0)
+            rcp->start_col_ = opsup->start_column_ - 1;
           Row suplemental_cols = _makeUpNoLenPrefixCols(
               (Ushort*)change0501->part(part_no), opsup->total_cols_,
               change0501, part_no + 2, true);
@@ -166,7 +168,8 @@ namespace databus {
         OpCodeKdoirp* irp = (OpCodeKdoirp*)opkdo;
         if (irp->opcode_ & 0x20) {
           OpCodeSupplemental* opsup = (OpCodeSupplemental*)change0501->part(5);
-          if (opsup->start_column_ > 0) start_col = opsup->start_column_ - 1;
+          if (opsup->start_column_ > 0)
+            rcp->start_col_ = opsup->start_column_ - 1;
           Row suplemental_cols =
               _makeUpNoLenPrefixCols((Ushort*)change0501->part(6),
                                      opsup->total_cols_, change0501, 8, true);
@@ -196,7 +199,7 @@ namespace databus {
           OpCodeSupplemental* suplemental_op_header =
               (OpCodeSupplemental*)change0501->part(part_num++);
           if (suplemental_op_header->start_column_ > 0)
-            start_col = suplemental_op_header->start_column_ - 1;
+            rcp->start_col_ = suplemental_op_header->start_column_ - 1;
           Row suplemental_cols =
               _makeUpNoLenPrefixCols((Ushort*)change0501->part(part_num),
                                      suplemental_op_header->total_cols_,
@@ -209,7 +212,8 @@ namespace databus {
         OpCodeKdodrp* drp = (OpCodeKdodrp*)change0501->part(4);
         if (drp->opcode_ & 0x20) {
           OpCodeSupplemental* sup = (OpCodeSupplemental*)change0501->part(5);
-          start_col = sup->start_column2_ - 1;
+          if (sup->start_column2_ > 0)
+            rcp->start_col_ = sup->start_column2_ - 1;
           if (sup->total_cols_ > 0) {
             row = _makeUpNoLenPrefixCols((Ushort*)change0501->part(6),
                                          sup->total_cols_, change0501, 8, true);
@@ -234,6 +238,7 @@ namespace databus {
     std::list<Row> redo_rows;
     Row redo_row;
     switch (change->opCode()) {
+      case opcode::kRowChain:
       case opcode::kInsert: {
         // LOG(DEBUG) << "Normal Insert ";
         OpCodeKdoirp* irp = (OpCodeKdoirp*)kdo;
@@ -244,26 +249,8 @@ namespace databus {
         redo_row =
             makeUpCols(NULL, irp->column_count_, change, 3, irp->xtype_, false);
         iflag_ = irp->flag_;
-        /*
-        static Row row_chain_row;
-        if (irp->flag_ != 0x2c) {
-          // std::cout << std::hex << "0x" << (Ushort)irp->flag_ << std::endl;
-          BOOST_LOG_TRIVIAL(debug) << "Run into row chain now";
-          if (!row_chain_row.empty() and irp->column_count_ > 0) {
-            for (auto i : row_chain_row) {
-              i->col_id_ += irp->column_count_;
-            }
-          }
-          // for incompleted row chain, return null list here
-          row_chain_row.splice(row_chain_row.end(), redo_row);
-          if (irp->flag_ == 0x28) {
-            redo_row = std::move(row_chain_row);
-          }
-        }
-        */
       } break;
       case opcode::kUpdate:
-        // LOG(DEBUG) << "Normal Update";
         redo_row = makeUpCols((Ushort*)change->part(3),
                               ((OpCodeKdourp*)kdo)->nchanged_, change, 4,
                               kdo->xtype_, false);

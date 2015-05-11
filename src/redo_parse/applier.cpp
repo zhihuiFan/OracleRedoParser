@@ -28,22 +28,24 @@ namespace databus {
   }
 
   void SimpleApplier::apply(TransactionPtr tran) {
-    int n = 0;
-    for (auto rc : tran->changes_) {
-      auto pk_data = rc->getPk();
-      if (!pk_data.empty()) {
-        auto tab_def = getMetadata().getTabDefFromId(rc->object_id_);
-        auto tab_name = tab_def->getTabName();
-        (*(stmt_dict_[tab_name].get())) << std::to_string(tran->xid_).c_str();
-        for (auto& pk_col : pk_data) {
-          (*(stmt_dict_[tab_name].get())) << pk_col.c_str();
-        }
+    /*
+  int n = 0;
+  for (auto rc : tran->changes_) {
+    auto pk_data = rc->getPk();
+    if (!pk_data.empty()) {
+      auto tab_def = getMetadata().getTabDefFromId(rc->object_id_);
+      auto tab_name = tab_def->getTabName();
+      (*(stmt_dict_[tab_name].get())) << std::to_string(tran->xid_).c_str();
+      for (auto& pk_col : pk_data) {
+        LOG(INFO) << "Primary Key " << pk_col.c_str();
+        (*(stmt_dict_[tab_name].get())) << pk_col.c_str();
       }
-      n++;
     }
-    LOG(INFO) << tran->xid_ << " : " << n;
-    Transaction::setCommitScn(tran->commit_scn_);
-    conn_.commit();
+    n++;
+  }
+  LOG(INFO) << tran->xid_ << " : " << n;
+  Transaction::setCommitScn(tran->commit_scn_);
+  conn_.commit(); */
   }
 
   std::string SimpleApplier::getInsertStmt(TabDefPtr tab_def) {

@@ -69,33 +69,109 @@ namespace databus {
     if (changes_.empty()) return true;
     auto it = changes_.end();
     --it;
+    auto tab_def = getMetadata().getTabDefFromId((*it)->object_id_);
+    switch ((*it)->op_) {
+      case opcode::kInsert:
+        return (*it)->new_pk_.size() == tab_def->pk.size();
+      case opcode::kUpdate:
+      case opcode::kDelete:
+      case opcode::kLmn:
+      case opcode::kRowChain:
+        return (*it)->old_pk_.size() == tab_def->pk.size();
+    }
+    return true;
+  }
+
+  void Transaction::merge(RowChangePtr r) {
+    if (changes_.empty()) {
+      changes_.insert(r);
+      return;
+    }
+    if (lastCompleted() && r->op_ != opcode::kRowChain) {
+      // 11.2 may be completed already, but we still need merge this rowchain to
+      // it if its cc != 0
+      changes_.insert(r);
+      return;
+    }
+    if (r->iflag_ == 0x2c) {
+      if (!lastCompleted()) {
+        LOG(ERROR) << "Error";
+        std::exit(20);
+      } else {
+        changes_.insert(r);
+        return;
+      }
+    }
+
+    auto it = changes_.end();
+    --it;
+    std::stringstream ss;
+    if (r->object_id_ != (*it)->object_id_) {
+      ss << "Object ID mismatched  Previous Object_id " << (*it)->object_id_
+         << " Current Object_id " << r->object_id_;
+    }
+
+    // some pre-check before merge
+    if ((*it)->op_ == opcode::kInsert) {
+      if (r->op_ != opcode::kInsert && r->op_ != opcode::kRowChain) {
+        ss << "opcode miss match, No " << (*it)->op_ << " can be followed by a "
+           << r->op_;
+      }
+    } else if ((*it)->op_ == opcode::kDelete) {
+      if (r->op_ != opcode::kDelete && r->op_ != opcode::kRowChain) {
+        ss << "opcode miss match, No " << (*it)->op_ << " can be followed by a "
+           << r->op_;
+      }
+    } else if ((*it)->op_ == opcode::kUpdate) {
+      if (r->op_ != opcode::kUpdate && r->op_ != opcode::kRowChain &&
+          r->op_ != opcode::kLmn) {
+        ss << "opcode miss match, No " << (*it)->op_ << " can be followed by a "
+           << r->op_;
+      }
+    } else if ((*it)->op_ == opcode::kRowChain) {
+      if (r->op_ != opcode::kDelete) {
+        ss << "opcode miss match, No " << (*it)->op_ << " can be followed by a "
+           << r->op_;
+      }
+    }
+
+    if (!ss.str().empty()) {
+      ss << "Pevious SCN " << (*it)->scn_.toStr() << " Current SCN "
+         << r->scn_.toStr();
+      LOG(ERROR) << ss.str();
+      return;
+    }
+
+    auto new_pk_cnt = (*it)->new_pk_.size();
+    auto old_pk_cnt = (*it)->old_pk_.size();
+    (*it)->new_pk_.insert(r->new_pk_.begin(), r->new_pk_.end());
+    (*it)->old_pk_.insert(r->old_pk_.begin(), r->old_pk_.end());
+    if (new_pk_cnt + r->new_pk_.size() != (*it)->new_pk_.size() ||
+        old_pk_cnt + r->old_pk_.size() != (*it)->old_pk_.size()) {
+      ss << "Found duplicated PK in the 2 changes";
+    }
+
+    if (!ss.str().empty()) {
+      ss << "Pevious SCN " << (*it)->scn_.toStr() << " Current SCN "
+         << r->scn_.toStr();
+      LOG(ERROR) << ss.str();
+      return;
+    }
+
+    if ((*it)->op_ == opcode::kInsert && r->op_ == opcode::kRowChain) {
+      (*it)->op_ = opcode::kUpdate;
+    }
   }
 
   void Transaction::tidyChanges() {
     auto temp_changes = std::move(changes_);
     for (auto& r : temp_changes) {
-      if (r->iflag_ == 0x2c) {
-        if (!lastCompleted()) {
-          LOG(ERROR) << "Error";
-          std::exit(20);
-        } else {
-          changes_.insert(r);
-          continue;
-        }
-      }
       switch (r->op_) {
         case opcode::kMultiInsert:
-          changes.insert(r);
+          changes_.insert(r);
           break;
-        case opcode::kInsert:
-        case opcode::kUpdate:
-        case opcode::kLmn:
-        case opcode::kRowChain:
-        case opcode::kDelete:
-          if (!lastCompleted())
-            merge(r);
-          else
-            changes_.insert(r);
+        default:
+          merge(r);
           break;
       }
     }
@@ -152,16 +228,7 @@ namespace databus {
         pk.insert(col);
       }
     }
-    int npk = pk.size();
-    if (npk == table_def->pk.size()) {
-      return npk;
-    } else {
-      LOG(DEBUG) << "Number of PK Mismatched\n Object Name " << table_def->owner
-                 << "." << table_def->name << " Num of PK "
-                 << table_def->pk.size() << " No. of PK in Redo " << pk.size()
-                 << " This probably a Row Megration 11.2 \n";
-      return 0xffff;
-    }
+    return pk.size();
   }
 
   RowChange::RowChange()
@@ -171,32 +238,9 @@ namespace databus {
         uflag_(0),
         iflag_(0),
         start_col_(0),
+        cc_(0),
         old_pk_{},
         new_pk_{} {}
-  /*
-  RowChange::RowChange(SCN& scn, uint32_t obj_id, Ushort op, Ushort uflag,
-                       Ushort iflag, Row& undo, Row& redo)
-      : scn_(scn), object_id_(obj_id), op_(op), uflag_(uflag), iflag_(iflag) {
-    auto table_def = getMetadata().getTabDefFromId(object_id_);
-    switch (op_) {
-      case opcode::kDelete: {
-        Row pk;
-        int ret = findPk(table_def, undo, pk);
-        if (ret > 0) {
-          pk_ = std::move(pk);
-        }
-      } break;
-      case opcode::kInsert: {
-        for (auto col : redo) {
-          if (col->len_ > 0) {
-            new_data_.push_back(col);
-          }
-        }
-      } break;
-      case opcode::kUpdate: {
-      }
-    }
-  }  */
 
   std::string RowChange::pkToString() const {
     std::stringstream ss;
@@ -281,7 +325,7 @@ namespace databus {
               // we don't care about this object id for version 0.1
               return;
             }
-            undo = Ops0501::makeUpUndo(change, rcp->uflag_, rcp->start_col_);
+            undo = Ops0501::makeUpUndo(change, rcp);
             // opsup only set when  irp->xtype_ & 0x20
             // LOG(INFO) << "Sup start_col_offset " << record->offset() << ":"
             //      << opsup->start_column_ << ":" << opsup->start_column2_
@@ -290,12 +334,12 @@ namespace databus {
           break;
         case opcode::kUpdate:
         case opcode::kInsert:
+        case opcode::kRowChain:
         case opcode::kMultiInsert:
           rcp->op_ = change->opCode();
           redo = OpsDML::makeUpRedoCols(change, rcp->iflag_);
           break;
         case opcode::kDelete:
-        case opcode::kRowChain:
         case opcode::kLmn:
           rcp->op_ = change->opCode();
           break;
@@ -360,8 +404,8 @@ namespace databus {
           LOG(INFO) << getOpStr(rcp->op_) << " " << rcp->scn_.noffset_
                     << " start_col  " << rcp->start_col_;
           findPk(table_def, row, rcp->old_pk_);
-          if (!rcp->old_pk_.empty())
-            transit->second->changes_.insert(std::move(rcp));
+          // even the old_pk_ is null, we still need it to mark a 11.6 completed
+          transit->second->changes_.insert(std::move(rcp));
         }
       } break;
       case opcode::kMultiInsert: {
