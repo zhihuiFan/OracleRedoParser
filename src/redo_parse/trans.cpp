@@ -69,17 +69,7 @@ namespace databus {
     if (changes_.empty()) return true;
     auto it = changes_.end();
     --it;
-    auto tab_def = getMetadata().getTabDefFromId((*it)->object_id_);
-    switch ((*it)->op_) {
-      case opcode::kInsert:
-        return (*it)->new_pk_.size() == tab_def->pk.size();
-      case opcode::kUpdate:
-      case opcode::kDelete:
-      case opcode::kLmn:
-      case opcode::kRowChain:
-        return (*it)->old_pk_.size() == tab_def->pk.size();
-    }
-    return true;
+    return (*it)->completed();
   }
 
   void Transaction::merge(RowChangePtr r) {
@@ -242,6 +232,20 @@ namespace databus {
         old_pk_{},
         new_pk_{} {}
 
+  bool RowChange::completed() const {
+    auto tab_def = getMetadata().getTabDefFromId(object_id_);
+    switch (op_) {
+      case opcode::kInsert:
+        return new_pk_.size() == tab_def->pk.size();
+      case opcode::kUpdate:
+      case opcode::kDelete:
+      case opcode::kLmn:
+      case opcode::kRowChain:
+        return old_pk_.size() == tab_def->pk.size();
+      default:
+        return false;
+    }
+  }
   std::string RowChange::pkToString() const {
     std::stringstream ss;
     TabDefPtr tab_def = getMetadata().getTabDefFromId(object_id_);

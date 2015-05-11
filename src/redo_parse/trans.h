@@ -34,6 +34,7 @@ namespace databus {
     // std::string toString(bool scn = false) const;
     std::string pkToString() const;
     std::vector<std::string> getPk();
+    bool completed() const;
 
     SCN scn_;
     uint32_t object_id_;
