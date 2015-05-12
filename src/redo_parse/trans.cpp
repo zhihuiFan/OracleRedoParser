@@ -212,6 +212,10 @@ namespace databus {
   Ushort findPk(std::shared_ptr<TabDef> table_def, const Row& undo,
                 OrderedPK& pk) {
     for (const auto col : undo) {
+      if (col->col_id_ > 300) {
+        LOG(WARNING) << "Found column ID " << col->col_id_
+                     << " probably there is a program bug";
+      }
       if (col->len_ > 0 &&
           table_def->pk.find(col->col_id_ + 1) != table_def->pk.end()) {
         pk.insert(col);
