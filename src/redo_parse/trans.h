@@ -141,5 +141,6 @@ namespace databus {
   bool verifyTrans(TransactionPtr trans_ptr);
   Ushort findPk(std::shared_ptr<TabDef> tab_def, const Row& undo,
                 OrderedPK& pk);
+  std::string colAsStr2(ColumnChangePtr col, std::shared_ptr<TabDef> tab_def);
 }
 #endif /* ----- #ifndef TRANS_INC  ----- */

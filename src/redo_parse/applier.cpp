@@ -24,28 +24,80 @@ namespace databus {
     auto insert_sql = getInsertStmt(tab_def);
     LOG(INFO) << insert_sql;
     stmt_dict_[tab_name] = std::shared_ptr<otl_stream>(
-        new otl_stream(10, insert_sql.c_str(), conn_));
+        new otl_stream(1, insert_sql.c_str(), conn_));
+  }
+
+  void SimpleApplier::_apply(RowChangePtr rcp, TabDefPtr tab_def, XID xid) {
+    auto tab_name = tab_def->getTabName();
+    (*(stmt_dict_[tab_name].get())) << std::to_string(xid).c_str();
+    (*(stmt_dict_[tab_name].get())) << getOpStr(rcp->op_).c_str();
+    (*(stmt_dict_[tab_name].get())) << rcp->scn_.toString().c_str();
+    switch (rcp->op_) {
+      case opcode::kInsert:
+      case opcode::kMultiInsert:
+        for (auto pk_col : rcp->new_pk_) {
+          (*(stmt_dict_[tab_name].get())) << colAsStr2(pk_col, tab_def).c_str();
+        }
+        break;
+      case opcode::kUpdate:
+      case opcode::kDelete:
+        for (auto pk_col : rcp->old_pk_) {
+          (*(stmt_dict_[tab_name].get())) << colAsStr2(pk_col, tab_def).c_str();
+        }
+        break;
+    }
+    LOG(INFO) << "RPC " << (*(stmt_dict_[tab_name].get())).get_rpc();
+    int int_len;
+    auto desc = stmt_dict_[tab_name]->describe_in_vars(int_len);
+    LOG(INFO) << "Int_len " << int_len;
+    desc = stmt_dict_[tab_name]->describe_next_in_var();
+    if (desc == NULL) {
+      LOG(INFO) << "Next " << 0;
+    } else {
+      LOG(INFO) << "Next " << desc->name;
+    }
   }
 
   void SimpleApplier::apply(TransactionPtr tran) {
-    /*
-  int n = 0;
-  for (auto rc : tran->changes_) {
-    auto pk_data = rc->getPk();
-    if (!pk_data.empty()) {
+    int n = 0;
+    for (auto rc : tran->changes_) {
+      if (!rc->completed()) {
+        LOG(ERROR) << "Incompleted Row Change: SCN " << rc->scn_.toStr();
+        std::exit(21);
+      }
+
+      if (rc->op_ == opcode::kRowChain || rc->op_ == opcode::kLmn) {
+        rc->op_ = opcode::kUpdate;
+      }
+
       auto tab_def = getMetadata().getTabDefFromId(rc->object_id_);
       auto tab_name = tab_def->getTabName();
-      (*(stmt_dict_[tab_name].get())) << std::to_string(tran->xid_).c_str();
-      for (auto& pk_col : pk_data) {
-        LOG(INFO) << "Primary Key " << pk_col.c_str();
-        (*(stmt_dict_[tab_name].get())) << pk_col.c_str();
+      if (rc->op_ == opcode::kUpdate) {
+        bool same = true;
+        for (auto c : rc->old_pk_) {
+          auto ret = rc->new_pk_.insert(c);
+          if (!ret.second) {
+            if (colAsStr2(c, tab_def)
+                    .compare(colAsStr2(*(ret.first), tab_def)) != 0) {
+              same = false;
+            }
+          }
+        }
+        if (!same) {
+          rc->op_ = opcode::kDelete;
+          _apply(rc, tab_def, tran->xid_);
+          rc->op_ = opcode::kInsert;
+          _apply(rc, tab_def, tran->xid_);
+          n++;
+          continue;
+        }
       }
+      _apply(rc, tab_def, tran->xid_);
+      n++;
     }
-    n++;
-  }
-  LOG(INFO) << tran->xid_ << " : " << n;
-  Transaction::setCommitScn(tran->commit_scn_);
-  conn_.commit(); */
+    LOG(INFO) << tran->xid_ << " : " << n;
+    Transaction::setCommitScn(tran->commit_scn_);
+    conn_.commit();
   }
 
   std::string SimpleApplier::getInsertStmt(TabDefPtr tab_def) {
@@ -69,7 +121,7 @@ namespace databus {
       } else if (tab_def->col_types[col_no] == "VARCHAR2" ||
                  tab_def->col_types[col_no] == "CHAR") {
         ss << ":" << tab_def->col_names[col_no] << "<char["
-           << tab_def->col_len[col_no] << "]>";
+           << tab_def->col_len[col_no] + 1 << "]>";
       } else if (tab_def->col_types[col_no] == "DATE") {
         ss << "TO_DATE(:" << tab_def->col_names[col_no]
            << "<char[21]>, 'yyyy-mm-dd hh24:mi:ss')";

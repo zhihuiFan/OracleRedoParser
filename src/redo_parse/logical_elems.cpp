@@ -72,7 +72,7 @@ namespace databus {
     do {
       uint32_t change_size = ch->changeSize();
       if (change_size == 0) {
-        std::cout << "lol is 0, Diag offset ! " << offset_ << std::endl;
+        LOG(DEBUG) << "lol is 0, Diag offset ! " << offset_;
         return;
       }
       if (kDMLOps.find(ch->opCode()) != kDMLOps.end()) {

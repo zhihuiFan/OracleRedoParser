@@ -1,97 +1,76 @@
 --- Purpose:  Gather all the test cases for log mining 
 --- Created:  2014/11/29
 conn andy/andy
-set echo on
+create tablespace tbs_5blocks datafile '/home/oracle/app/oracle/oradata/momo/tbs01.dbf' size 10m uniform size 40k segment space management manual;
 drop table target;
-create table target (b varchar2(4000), a number(38,10) primary key, c date, d varchar2(4000), e varchar2(4000));
-drop table test;
-create table test (a int primary key, b varchar2(40), c date, d varchar2(40), e varchar2(40));
-drop table rc2;
-create table rc2(id int, c1 varchar2(3000), c2 varchar2(3000), c3 varchar2(3000), primary key(id,c2)); 
-drop table rc;
--- in dba_tab_cols, datatype of id : scale:null
-create table rc(id number, c1 varchar2(3000), cdate date, c3 varchar2(3000), primary key(id,cdate)); 
+drop table t1106;
 
--- clear data
-delete from halv.target;
-delete from halv.test;
-delete from halv.rc;
-delete from halv.rc2;
-commit;
+-- setup target table
+drop table halv.target;
+create table halv.target (xid number, scn number, op varchar2(40), b varchar2(4000), a number(38,10), c date);
+drop table halv.t1106;
+create table halv.t1106(xid number, scn number, op varchar2(40), id int);
 
+whenever sqlerror exit
+set echo on
+create table target (b varchar2(4000), d varchar2(4000), e varchar2(4000), f varchar2(4000), g varchar2(4000), h varchar2(4000), a number(38,10) , c date, primary key(a, b, c));
+
+create table t1106(id int primary key, c1 varchar2(2000), c2 varchar2(2000), c3 varchar2(2000), c4 varchar2(2000) ) tablespace tbs_5blocks;
+truncate table t1106;
+begin
+     for i in 1..63 loop
+       insert into t1106 values(i,rpad('A',100,'A'),rpad('B',100,'B'),rpad('C',100,'C'),rpad('D',100,'D'));
+     end loop;
+     commit;
+end;
+/
 
 alter system switch logfile;
 
--- insert part of columns
-whenever sqlerror exit
-insert into rc(id, cdate) values(101, sysdate);
+-- Big Insert, PK located in 2 different blocks
+insert into target values(lpad('a', 4000, 'a'), lpad('b', 4000, 'b'), lpad('c', 4000, 'c'), lpad('d', 4000, 'd'), lpad('g', 4000, 'g'), lpad('h', 4000, 'h'), -1, sysdate);
 commit;
-insert into target(a, b, c) values(1, 'FANZHIHUI',  sysdate);
+
+--- Big Update with touching  1 primary key
+update target set b='b', d='d', e='c' where a = -1;
 commit;
-insert into target(a, b, c)  values(2, 'abcdef',  sysdate);
+
+--- Big Update with touching  2 primary key
+update target set b='b', d='d', e='c', a=1 where a = -1;
 commit;
-update target set b='ABCDEF' where a=1;
-commit;
--- delete rows, which only parts of column have value
-delete from target where a=2;
+
+--- Big delete
 delete from target where a=1;
 commit;
 
-insert into target(a, b, c)  select object_id, object_name, LAST_DDL_TIME from dba_objects where rownum < 3;
+-- for Row megiration
+-- insert into target values('a', 4000, 'a'), lpad('b', 4000, 'b'), lpad('c', 4000, 'c'), lpad('d', 4000, 'd'), lpad('g', 4000, 'g'), lpad('h', 4000, 'h'), -1, sysdate);
+insert into target values('a', 'b', 'c', 'd', 'g', 'h', -1, sysdate);
 commit;
 
--- Mulit-Insert
--- This will not generate Mulit-Insert, row too long?
-insert all
-    into target(a, b, c) values(-100, 'ab', sysdate-1)
-    into target(a, c) values(-102.22, sysdate-2)
-    into target(a, b, c) values(-0.0101, 'ab', sysdate-1)
-    into target(a, b, c) values(100, 'ab', sysdate-1)
-    into target(a, c) values(102.22, sysdate-2)
-    into target(a, b, c) values(0.0101, 'ab', sysdate-1)
-    into target(a) values(0)
-select * from dual;
-commit;
-delete from target where a=-100; 
-delete from target where a=-101;
-rollback;
--- This will generate Mulit-Insert
-insert all
-   into test values(-1, 'a', sysdate, 'a', 'a')
-   into test(a) values(-2)
-   into test(a,c) values(-3, sysdate-1)
-select * from dual;
-commit;
--- all the Test passed @ 9e29ca333d14c799af32ed4d5a69e64449037822
+-- Update Row megiration touch 1 PK.  We need to parse 11.16 and 11.6 correctly for this case
+update target set b=lpad('b', 4000, 'b'), d=lpad('d', 4000, 'd'), f=lpad('f', 4000, 'f') where a = -1;
 
-
--- Row Chaining
-insert into target values(lpad('a', 4000, 'a'), -1, sysdate, lpad('b', 4000, 'b'), lpad('c', 4000, 'c'));
-commit;
--- All the above test are passwd @ 516af28076bfb59e1d3bd415492fcc26606b9501
--- Row Migration
-insert into target(a) values(623);
-update target set b=lpad('9',4000,'9'), d=lpad('1', 4000, '1'), e=lpad('2', 4000, '2') where a=623;
-insert into target(a) values(1623);
-update target set a=2632, b=lpad('9',4000,'9'), d=lpad('1', 4000, '1'), e=lpad('2', 4000, '2') where a=1623;
-insert into target(a) values(1624);
+-- 11.6 + 11.3
+-- Row Megiration
+update t1106 set c1=rpad('A', 500,'A'), c2=rpad('B', 500,'B'), c3=rpad('C', 500,'C') where id=20;
 commit;
 
-insert into rc2 values(1, rpad('A',30,'A'), rpad('B',30,'B'), rpad('C',30,'C')); 
+-- Make room for row 20
+delete t1106 where id between 18 and 19;
+delete t1106 where id between 21 and 34;
 commit;
 
-update rc2 set id=2, c1=rpad('A',3000,'A'), c2=rpad('B',3000,'B'), c3=rpad('C',3000,'C') where id=1; 
+-- Let row 20 megirate back
+update t1106 set c1=rpad('A', 1000,'A'), c2=rpad('B', 2000,'B'), c3=rpad('C', 2000,'C'), id=-100 where id=20;
 commit;
 
----
---- 5.2 -> 5.1 -> 11.2 (pk only)
---- 5.1 -> 11.2 (col_e only)
---- 5.1 -> 11.2 (col_d only)
---- 5.1 -> 11.6 (col_b only) 11.6 is row chained
---- if row_chain is must:  ==> 11.2 ==> (0,e)
----                       pk is first, take 1 11.2
-
+--- Data Tyep Test
+insert into target(a,b,c ) values(0.0001, 'abdef', sysdate);
+insert into target(a,b,c ) values(-0.0001, 'abdef', sysdate);
+insert into target(a,b,c ) values(-1000, 'abdef', sysdate);
+insert into target(a,b,c ) values(-1000.001, 'abdef', sysdate);
+update target set b = 'A' , c= sysdate where a= 0.0001;
+commit;
 
 alter system switch logfile;
-!sleep 5
-select name from (select name from v$archived_log order by sequence# desc) where rownum < 4;

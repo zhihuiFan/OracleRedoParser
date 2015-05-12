@@ -202,8 +202,7 @@ namespace databus {
     return ss.str();
   }
 
-  static std::string colAsStr2(ColumnChangePtr col, TabDefPtr tab_def,
-                               char seperator = ':') {
+  std::string colAsStr2(ColumnChangePtr col, TabDefPtr tab_def) {
     std::stringstream ss;
     ss << convert(col->content_, tab_def->col_types[col->col_id_ + 1],
                   col->len_);
@@ -236,6 +235,7 @@ namespace databus {
     auto tab_def = getMetadata().getTabDefFromId(object_id_);
     switch (op_) {
       case opcode::kInsert:
+      case opcode::kMultiInsert:
         return new_pk_.size() == tab_def->pk.size();
       case opcode::kUpdate:
       case opcode::kDelete:
