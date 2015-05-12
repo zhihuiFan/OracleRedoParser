@@ -38,7 +38,7 @@ namespace databus {
   class OpsDML {
    public:
     static std::list<Row> makeUpRedoCols(const ChangeHeader* change,
-                                         Uchar& iflag);
+                                         RowChangePtr rcp);
   };
 
   // TODO:when to relase the heap memory ??

@@ -345,7 +345,7 @@ namespace databus {
         case opcode::kRowChain:
         case opcode::kMultiInsert:
           rcp->op_ = change->opCode();
-          redo = OpsDML::makeUpRedoCols(change, rcp->iflag_);
+          redo = OpsDML::makeUpRedoCols(change, rcp);
           break;
         case opcode::kDelete:
         case opcode::kLmn:

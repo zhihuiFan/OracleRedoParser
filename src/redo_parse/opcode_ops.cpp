@@ -233,14 +233,13 @@ namespace databus {
   }
 
   std::list<Row> OpsDML::makeUpRedoCols(const ChangeHeader* change,
-                                        Uchar& iflag_) {
+                                        RowChangePtr rcp) {
     OpCodeKdo* kdo = (OpCodeKdo*)change->part(2);
     std::list<Row> redo_rows;
     Row redo_row;
     switch (change->opCode()) {
       case opcode::kRowChain:
       case opcode::kInsert: {
-        // LOG(DEBUG) << "Normal Insert ";
         OpCodeKdoirp* irp = (OpCodeKdoirp*)kdo;
         if (irp->flag_ & 0x80 || irp->flag_ & 0x40) {
           LOG(DEBUG) << "Found cluster op, bypass it";
@@ -248,13 +247,15 @@ namespace databus {
         }
         redo_row =
             makeUpCols(NULL, irp->column_count_, change, 3, irp->xtype_, false);
-        iflag_ = irp->flag_;
+        rcp->iflag_ = irp->flag_;
       } break;
-      case opcode::kUpdate:
+      case opcode::kUpdate: {
+        OpCodeKdourp* urp = (OpCodeKdourp*)kdo;
+        rcp->iflag_ = urp->flag_;
         redo_row = makeUpCols((Ushort*)change->part(3),
                               ((OpCodeKdourp*)kdo)->nchanged_, change, 4,
                               kdo->xtype_, false);
-        break;
+      } break;
       case opcode::kMultiInsert: {
         LOG(DEBUG) << "Mulit Insert" << std::endl;
         OpCodeKdoqm* qm = (OpCodeKdoqm*)change->part(2);
