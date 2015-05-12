@@ -136,9 +136,7 @@ namespace databus {
     // need a NULL here
     if (len == 0) return "";
     if (type == "VARCHAR2") {
-      std::stringstream ss;
-      ss << "'" << input << "'";
-      return ss.str();
+      return std::string(input, len);
     }
     if (type == "NUMBER") {
       return numberAsStr(input, len);
