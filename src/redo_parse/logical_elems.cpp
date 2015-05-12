@@ -6,6 +6,7 @@
 #include "physical_elems.h"
 #include "opcode_ops.h"
 #include "util/dtypes.h"
+#include "util/logger.h"
 #include "opcode.h"
 
 namespace databus {

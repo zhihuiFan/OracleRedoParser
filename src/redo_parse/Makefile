@@ -28,15 +28,19 @@ endif
 ifeq ($(PLATFORM), Linux)
 	CXXFLAGS = ${CXXFLAGS_BASE} -I/home/oracle/instantclient_11_2/sdk/include/ -DBOOST_LOG_DYN_LINK
 	# LDFLAGS=${LDFLAGS_BASE} -L/home/oracle/instantclient_11_2 -L/home/oracle/app/oracle/product/11.2.0/dbhome_1 -lnnz11 -lboost_log -lboost_program_options
-	LDFLAGS=${LDFLAGS_BASE} -L/home/oracle/instantclient_11_2 -L/home/oracle/app/oracle/product/11.2.0/dbhome_1 -lnnz11  -lboost_program_options
+	LDFLAGS=${LDFLAGS_BASE} -L/home/oracle/instantclient_11_2 -L/home/oracle/app/oracle/product/11.2.0/dbhome_1/lib -lboost_program_options -lnnz11
 endif
 
 %.o: %.cpp $(DEPS)
 	$(CC) -c -o $@ $< $(CXXFLAGS)
 
+datastream2: stream.o logical_elems.o physical_elems.o redofile.o worker_test2.o opcode_ops.o stream.o metadata.o tconvert.o trans.o applier.o
+	${CC} ${CXXFLAGS} -o $@ $^ ${LDFLAGS} $(OCI_FLAGS)
+
 datastream: stream.o logical_elems.o physical_elems.o redofile.o worker_test.o opcode_ops.o stream.o metadata.o tconvert.o trans.o applier.o
 	${CC} ${CXXFLAGS} -o $@ $^ ${LDFLAGS} $(OCI_FLAGS)
 
+all: datastream datastream2
 dumpop: logical_elems.o physical_elems.o redofile.o opcode_ops.o dump_op.o
 	${CC} ${CXXFLAGS} -o $@ $^ ${LDFLAGS}
 

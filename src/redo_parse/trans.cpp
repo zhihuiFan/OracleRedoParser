@@ -104,29 +104,29 @@ namespace databus {
     // some pre-check before merge
     if ((*it)->op_ == opcode::kInsert) {
       if (r->op_ != opcode::kInsert && r->op_ != opcode::kRowChain) {
-        ss << "opcode miss match, No " << (*it)->op_ << " can be followed by a "
-           << r->op_;
+        ss << " opcode miss match, No " << (*it)->op_
+           << " can be followed by a " << r->op_;
       }
     } else if ((*it)->op_ == opcode::kDelete) {
       if (r->op_ != opcode::kDelete && r->op_ != opcode::kRowChain) {
-        ss << "opcode miss match, No " << (*it)->op_ << " can be followed by a "
-           << r->op_;
+        ss << " opcode miss match, No " << (*it)->op_
+           << " can be followed by a " << r->op_;
       }
     } else if ((*it)->op_ == opcode::kUpdate) {
       if (r->op_ != opcode::kUpdate && r->op_ != opcode::kRowChain &&
           r->op_ != opcode::kLmn) {
-        ss << "opcode miss match, No " << (*it)->op_ << " can be followed by a "
-           << r->op_;
+        ss << " opcode miss match, No " << (*it)->op_
+           << " can be followed by a " << r->op_;
       }
     } else if ((*it)->op_ == opcode::kRowChain) {
       if (r->op_ != opcode::kDelete) {
-        ss << "opcode miss match, No " << (*it)->op_ << " can be followed by a "
-           << r->op_;
+        ss << " opcode miss match, No " << (*it)->op_
+           << " can be followed by a " << r->op_;
       }
     }
 
     if (!ss.str().empty()) {
-      ss << "Pevious SCN " << (*it)->scn_.toStr() << " Current SCN "
+      ss << " Pevious SCN " << (*it)->scn_.toStr() << " Current SCN "
          << r->scn_.toStr();
       LOG(ERROR) << ss.str();
       return;
@@ -142,7 +142,7 @@ namespace databus {
     }
 
     if (!ss.str().empty()) {
-      ss << "Pevious SCN " << (*it)->scn_.toStr() << " Current SCN "
+      ss << " Pevious SCN " << (*it)->scn_.toStr() << " Current SCN "
          << r->scn_.toStr();
       LOG(ERROR) << ss.str();
       return;
