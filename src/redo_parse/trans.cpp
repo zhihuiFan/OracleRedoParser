@@ -96,8 +96,6 @@ namespace databus {
     auto it = changes_.end();
     --it;
     std::stringstream ss;
-    LOG(INFO) << "Previous " << (*it)->toString();
-    LOG(INFO) << "Current " << r->toString();
     if (r->object_id_ != (*it)->object_id_) {
       ss << "Object ID mismatched  Previous Object_id " << (*it)->object_id_
          << " Current Object_id " << r->object_id_;
