@@ -47,8 +47,14 @@ namespace databus {
 
     if (sign_bit > 128) {
       int int_bit = sign_bit - 192;
+      if (int_bit < 0) {
+        ss << ".";
+        for (int i = 0; i < abs(int_bit); ++i) {
+          ss << "00";
+        }
+      }
       for (Uchar i = 1; i < len || i <= int_bit; ++i) {
-        if (i > int_bit && !floated) {
+        if (i > int_bit && int_bit > 0 && !floated) {
           ss << ".";
           floated = true;
         }
