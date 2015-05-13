@@ -128,7 +128,7 @@ namespace databus {
     }
     if (tab_def->pk.empty()) {
       LOG(ERROR) << "either " << owner << "." << table
-                 << " not exits or hasn't primary key";
+                 << " not exists or hasn't primary key";
       return NULL;
     }
     tab2def_stmt_ << owner << table;

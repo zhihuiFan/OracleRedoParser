@@ -63,7 +63,7 @@ namespace databus {
       auto commit_tran = Transaction::commit_trans_.begin();
       while (commit_tran != Transaction::commit_trans_.end()) {
         if (!commit_tran->second->empty()) {
-          LOG(INFO) << commit_tran->second->toString();
+          // LOG(INFO) << commit_tran->second->toString();
           SimpleApplier::getApplier(streamconf->getString("tarConn").c_str())
               .apply(commit_tran->second);
         }
