@@ -334,7 +334,9 @@ namespace databus {
             }
           }
           {
-            if (getMetadata().getTabDefFromId(rcp->object_id_, false) == NULL) {
+            if (getMetadata()
+                    .getTabDefFromId(rcp->object_id_, false)
+                    ->pk.empty()) {
               // we don't care about this object id for version 0.1
               return;
             }

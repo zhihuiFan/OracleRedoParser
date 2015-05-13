@@ -131,15 +131,6 @@ namespace databus {
                  << " not exits or not primary key" << std::endl;
       return NULL;
     }
-    /*
-    int col_count;
-    otl_columMon Apr 27 14:16:12 2015n_desc* desc =
-    tab2def_stmt_.describe_select(col_count);
-    LOG(INFO) << "total len " << col_count;
-    for (auto i = 0; i < col_count; ++i) {
-      LOG(INFO) << desc[i].name << "--" << desc[i].dbtype << "--"
-                << desc[i].otl_var_dbtype;
-    }  */
     tab2def_stmt_ << owner << table;
     unsigned int col_id;
     char col_name[129], col_type[129];
