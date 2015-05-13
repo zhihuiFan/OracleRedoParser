@@ -189,7 +189,8 @@ namespace databus {
         poid2goid_[object_id] = global_object_id;
       }
     }
-    return oid2def_[object_id];
+    util::dassert("Can't find out global ID ", global_object_id > 0);
+    return oid2def_[global_object_id];
   }
 
   LogManager::LogManager(const char* conn_str)
