@@ -42,6 +42,15 @@ namespace databus {
     return op51sec->data_object_id_;
   }
 
+  std::string rowAsString(const Row& row) {
+    std::stringstream ss;
+    ss << "Col_id dump ";
+    for (auto c : row) {
+      ss << c->col_id_ << "_";
+    }
+    return ss.str();
+  }
+
   Row _makeUpUncommCols(const char* start, int total_cols) {
     Row changes;
     for (int i = 0; i < total_cols; ++i) {
@@ -123,6 +132,15 @@ namespace databus {
               << " data_object_id: " << getDataObjId(change0501) << std::endl;
   }
 
+  static void changeColsOffset(Row& row, Ushort start_col) {
+    if (!row.empty() && start_col > 0) {
+      Ushort n = row.front()->col_id_;
+      for (auto& col : row) {
+        col->col_id_ = start_col + (col->col_id_ - n);
+      }
+    }
+  }
+
   std::list<Row> Ops0501::makeUpUndo(const ChangeHeader* change0501,
                                      RowChangePtr rcp) {
     std::list<Row> rows;
@@ -150,18 +168,22 @@ namespace databus {
         } else {
           part_no = 5 + irp->column_count_;
         }
+        Row suplemental_cols;
         if (irp->opcode_ & 0x20) {
           OpCodeSupplemental* opsup =
               (OpCodeSupplemental*)change0501->part(part_no++);
           if (opsup->start_column_ > 0)
             rcp->start_col_ = opsup->start_column_ - 1;
-          Row suplemental_cols = _makeUpNoLenPrefixCols(
+          suplemental_cols = _makeUpNoLenPrefixCols(
               (Ushort*)change0501->part(part_no), opsup->total_cols_,
               change0501, part_no + 2, true);
-
-          if (!suplemental_cols.empty()) {
-            row.splice(row.end(), suplemental_cols);
-          }
+        }
+        LOG(INFO) << "Header " << rcp->toString();
+        LOG(INFO) << "Undo " << rowAsString(row);
+        LOG(INFO) << "Sup " << rowAsString(suplemental_cols);
+        changeColsOffset(row, rcp->start_col_);
+        if (!suplemental_cols.empty()) {
+          row.splice(row.end(), suplemental_cols);
         }
       } break;
       case opcode::kLmn & 0xff: {
@@ -174,6 +196,8 @@ namespace databus {
               _makeUpNoLenPrefixCols((Ushort*)change0501->part(6),
                                      opsup->total_cols_, change0501, 8, true);
 
+          LOG(INFO) << "Header " << rcp->toString();
+          LOG(INFO) << "Sup " << rowAsString(suplemental_cols);
           if (!suplemental_cols.empty()) {
             row.splice(row.end(), suplemental_cols);
           }
@@ -195,18 +219,22 @@ namespace databus {
         Ushort part_num = 6 + total_changes;
 
         if (urp->opcode_ & 0x40) ++part_num;
+        Row suplemental_cols;
         if (urp->opcode_ & 0x20) {
           OpCodeSupplemental* suplemental_op_header =
               (OpCodeSupplemental*)change0501->part(part_num++);
           if (suplemental_op_header->start_column_ > 0)
             rcp->start_col_ = suplemental_op_header->start_column_ - 1;
-          Row suplemental_cols =
+          suplemental_cols =
               _makeUpNoLenPrefixCols((Ushort*)change0501->part(part_num),
                                      suplemental_op_header->total_cols_,
                                      change0501, part_num + 2, true);
-
-          row.splice(row.end(), suplemental_cols);
+          LOG(INFO) << "Header " << rcp->toString();
+          LOG(INFO) << "Undo " << rowAsString(row);
+          LOG(INFO) << "Sup " << rowAsString(suplemental_cols);
         }
+        changeColsOffset(row, rcp->start_col_);
+        row.splice(row.end(), suplemental_cols);
       } break;
       case opcode::kDelete & 0xff: {
         OpCodeKdodrp* drp = (OpCodeKdodrp*)change0501->part(4);
@@ -218,6 +246,8 @@ namespace databus {
             row = _makeUpNoLenPrefixCols((Ushort*)change0501->part(6),
                                          sup->total_cols_, change0501, 8, true);
           }
+          LOG(INFO) << "Header " << rcp->toString();
+          LOG(INFO) << "Sup " << rowAsString(row);
         }
       } break;
       case opcode::kMultiDelete & 0xff:
@@ -300,8 +330,11 @@ namespace databus {
       default:
         break;
     }
-    if (change->opCode() != opcode::kMultiInsert && !redo_row.empty())
+    if (change->opCode() != opcode::kMultiInsert && !redo_row.empty()) {
+      LOG(INFO) << "Redo " << rowAsString(redo_row);
+      changeColsOffset(redo_row, rcp->start_col_);
       redo_rows.push_back(std::move(redo_row));
+    }
     return redo_rows;
   }
 }

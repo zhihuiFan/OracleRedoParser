@@ -96,6 +96,8 @@ namespace databus {
     auto it = changes_.end();
     --it;
     std::stringstream ss;
+    LOG(INFO) << "Previous " << (*it)->toString();
+    LOG(INFO) << "Current " << r->toString();
     if (r->object_id_ != (*it)->object_id_) {
       ss << "Object ID mismatched  Previous Object_id " << (*it)->object_id_
          << " Current Object_id " << r->object_id_;
@@ -172,15 +174,6 @@ namespace databus {
     LOG(INFO) << "Apply Transaction " << tran->xid_ << std::endl;
   }
 
-  static void changeColsOffset(Row& row, Ushort start_col) {
-    if (!row.empty() && start_col > 0) {
-      Ushort n = row.front()->col_id_;
-      for (auto& col : row) {
-        col->col_id_ = start_col + (col->col_id_ - n);
-      }
-    }
-  }
-
   std::string Transaction::toString() const {
     std::stringstream ss;
     ss << std::endl << "XID " << std::hex << xid_
@@ -212,9 +205,9 @@ namespace databus {
   Ushort findPk(std::shared_ptr<TabDef> table_def, const Row& undo,
                 OrderedPK& pk) {
     for (const auto col : undo) {
-      if (col->col_id_ > 300) {
+      if (col->col_id_ > 256) {
         LOG(WARNING) << "Found column ID " << col->col_id_
-                     << " probably there is a program bug";
+                     << " probably this is a program bug";
       }
       if (col->len_ > 0 &&
           table_def->pk.find(col->col_id_ + 1) != table_def->pk.end()) {
@@ -234,6 +227,20 @@ namespace databus {
         cc_(0),
         old_pk_{},
         new_pk_{} {}
+
+  std::string RowChange::toString() const {
+    std::stringstream ss;
+    ss << " Object_id " << object_id_ << " Op " << op_ << " Start_col "
+       << start_col_ << " Offset " << scn_.noffset_;
+    for (auto c : old_pk_) {
+      ss << " old_pk_c_" << c->col_id_;
+    }
+
+    for (auto c : new_pk_) {
+      ss << " new_pk_c_" << c->col_id_;
+    }
+    return ss.str();
+  }
 
   bool RowChange::completed() const {
     auto tab_def = getMetadata().getTabDefFromId(object_id_);
@@ -396,21 +403,14 @@ namespace databus {
                  << rcp->object_id_ << " ignore this change " << std::endl;
       return;
     }
-
-    for (auto& row : undos) {
-      changeColsOffset(row, rcp->start_col_);
-    }
-
-    for (auto& row : redos) {
-      changeColsOffset(row, rcp->start_col_);
-    }
+    LOG(INFO) << getOpStr(rcp->op_) << " " << rcp->scn_.noffset_
+              << " start_col  " << rcp->start_col_ << " Offset "
+              << rcp->scn_.noffset_ << std::endl;
 
     switch (rcp->op_) {
       case opcode::kDelete:
       case opcode::kLmn: {
         for (auto row : undos) {
-          LOG(INFO) << getOpStr(rcp->op_) << " " << rcp->scn_.noffset_
-                    << " start_col  " << rcp->start_col_;
           findPk(table_def, row, rcp->old_pk_);
           // even the old_pk_ is null, we still need it to mark a 11.6 completed
           transit->second->changes_.insert(std::move(rcp));
@@ -418,8 +418,6 @@ namespace databus {
       } break;
       case opcode::kMultiInsert: {
         for (auto row : redos) {
-          LOG(INFO) << getOpStr(rcp->op_) << " " << rcp->scn_.noffset_
-                    << " start_col " << rcp->start_col_;
           findPk(table_def, row, rcp->new_pk_);
           if (!rcp->old_pk_.empty())
             transit->second->changes_.insert(std::move(rcp));
@@ -432,12 +430,14 @@ namespace databus {
         // this is no mulitUpdate, so there is 1 elems in undo and redo at
         // most
         OrderedPK pk;
-        auto undo_iter = undos.begin();
-        auto redo_iter = redos.begin();
-        LOG(INFO) << getOpStr(rcp->op_) << " " << rcp->scn_.noffset_
-                  << " start_col " << rcp->start_col_;
-        findPk(table_def, *undo_iter, rcp->old_pk_);
-        findPk(table_def, *redo_iter, rcp->new_pk_);
+        if (!undos.empty()) {
+          auto undo_iter = undos.begin();
+          findPk(table_def, *undo_iter, rcp->old_pk_);
+        }
+        if (!redos.empty()) {
+          auto redo_iter = redos.begin();
+          findPk(table_def, *redo_iter, rcp->new_pk_);
+        }
         if (!rcp->old_pk_.empty() || !rcp->new_pk_.empty()) {
           transit->second->changes_.insert(std::move(rcp));
         }

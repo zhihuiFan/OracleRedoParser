@@ -31,7 +31,7 @@ namespace databus {
     RowChange(SCN& scn, uint32_t obj_id, Ushort op, Ushort uflag, Ushort iflag,
               Row& undo, Row& redo);
     bool operator<(const RowChange& other) const { return scn_ < other.scn_; }
-    // std::string toString(bool scn = false) const;
+    std::string toString() const;
     std::string pkToString() const;
     std::vector<std::string> getPk();
     bool completed() const;
