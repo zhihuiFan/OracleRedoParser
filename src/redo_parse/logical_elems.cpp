@@ -11,12 +11,13 @@
 
 namespace databus {
 
-  const std::set<Ushort> kDMLOps{opcode::kInsert,      opcode::kDelete,
-                                 opcode::kUpdate,      opcode::kRowChain,
-                                 opcode::kBeginTrans,  opcode::kCommit,
-                                 opcode::kMultiInsert, opcode::kMultiDelete,
-                                 opcode::kLmn,  // 11.16
-                                 opcode::kBeginTrans,  opcode::kCommit};
+  const std::set<Ushort> kDMLOps{
+      opcode::kInsert,      opcode::kDelete,      opcode::kUpdate,
+      opcode::kRowChain,    opcode::kBeginTrans,  opcode::kCommit,
+      opcode::kMultiInsert, opcode::kMultiDelete,
+      opcode::kLmn,  // 11.16
+      opcode::kBeginTrans,  opcode::kCommit,      opcode::kMultiDelete,
+      opcode::kMfc,         opcode::kCfa};
 
   const std::set<Ushort> kTRANOps{opcode::kUndo};
 

@@ -380,6 +380,12 @@ namespace databus {
             xidit->second->commit_scn_ = rcp->scn_;
             xidit->second->commited_ = ucm->flg_;
           }
+          break;
+        default:
+          rcp->op_ = change->opCode();
+          LOG(WARNING) << "Found Un-popular OpCode in our table "
+                       << rcp->toString();
+          return;
       }  // end switch
     }
     if (rcp->op_ && xid != 0) makeTranRecord(xid, rcp, undo, redo);
