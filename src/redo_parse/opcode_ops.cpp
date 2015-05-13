@@ -178,6 +178,9 @@ namespace databus {
               (Ushort*)change0501->part(part_no), opsup->total_cols_,
               change0501, part_no + 2, true);
         }
+        LOG(DEBUG) << "Header " << rcp->toString();
+        LOG(DEBUG) << "Undo " << rowAsString(row);
+        LOG(DEBUG) << "Sup " << rowAsString(suplemental_cols);
         changeColsOffset(row, rcp->start_col_);
         if (!suplemental_cols.empty()) {
           row.splice(row.end(), suplemental_cols);
@@ -193,6 +196,8 @@ namespace databus {
               _makeUpNoLenPrefixCols((Ushort*)change0501->part(6),
                                      opsup->total_cols_, change0501, 8, true);
 
+          LOG(DEBUG) << "Header " << rcp->toString();
+          LOG(DEBUG) << "Sup " << rowAsString(suplemental_cols);
           if (!suplemental_cols.empty()) {
             row.splice(row.end(), suplemental_cols);
           }
@@ -224,6 +229,9 @@ namespace databus {
               _makeUpNoLenPrefixCols((Ushort*)change0501->part(part_num),
                                      suplemental_op_header->total_cols_,
                                      change0501, part_num + 2, true);
+          LOG(DEBUG) << "Header " << rcp->toString();
+          LOG(DEBUG) << "Undo " << rowAsString(row);
+          LOG(DEBUG) << "Sup " << rowAsString(suplemental_cols);
         }
         changeColsOffset(row, rcp->start_col_);
         row.splice(row.end(), suplemental_cols);
@@ -238,6 +246,8 @@ namespace databus {
             row = _makeUpNoLenPrefixCols((Ushort*)change0501->part(6),
                                          sup->total_cols_, change0501, 8, true);
           }
+          LOG(DEBUG) << "Header " << rcp->toString();
+          LOG(DEBUG) << "Sup " << rowAsString(row);
         }
       } break;
       case opcode::kMultiDelete & 0xff:
@@ -321,6 +331,7 @@ namespace databus {
         break;
     }
     if (change->opCode() != opcode::kMultiInsert && !redo_row.empty()) {
+      LOG(INFO) << "Redo " << rowAsString(redo_row);
       changeColsOffset(redo_row, rcp->start_col_);
       redo_rows.push_back(std::move(redo_row));
     }
