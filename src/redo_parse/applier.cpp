@@ -46,16 +46,6 @@ namespace databus {
         }
         break;
     }
-    LOG(INFO) << "RPC " << (*(stmt_dict_[tab_name].get())).get_rpc();
-    int int_len;
-    auto desc = stmt_dict_[tab_name]->describe_in_vars(int_len);
-    LOG(INFO) << "Int_len " << int_len;
-    desc = stmt_dict_[tab_name]->describe_next_in_var();
-    if (desc == NULL) {
-      LOG(INFO) << "Next " << 0;
-    } else {
-      LOG(INFO) << "Next " << desc->name;
-    }
   }
 
   void SimpleApplier::apply(TransactionPtr tran) {

@@ -127,8 +127,8 @@ namespace databus {
       tab_def->pk.insert(col_no);
     }
     if (tab_def->pk.empty()) {
-      LOG(DEBUG) << "either " << owner << "." << table
-                 << " not exits or not primary key" << std::endl;
+      LOG(ERROR) << "either " << owner << "." << table
+                 << " not exits or hasn't primary key";
       return NULL;
     }
     tab2def_stmt_ << owner << table;

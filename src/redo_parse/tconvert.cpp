@@ -163,7 +163,6 @@ namespace databus {
       return;
     }
     LOG(INFO) << "Transaction ID " << xid << std::endl;
-
     LOG(INFO) << optype << " " << table_def->name << std::endl;
     if (strncmp(optype, "insert", strlen("insert")) != 0) {
       LOG(INFO) << "Primary Keys:" << std::endl;

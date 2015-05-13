@@ -401,9 +401,9 @@ namespace databus {
                  << rcp->object_id_ << " ignore this change " << std::endl;
       return;
     }
-    LOG(INFO) << getOpStr(rcp->op_) << " " << rcp->scn_.noffset_
-              << " start_col  " << rcp->start_col_ << " Offset "
-              << rcp->scn_.noffset_ << std::endl;
+    LOG(DEBUG) << getOpStr(rcp->op_) << " " << rcp->scn_.noffset_
+               << " start_col  " << rcp->start_col_ << " Offset "
+               << rcp->scn_.noffset_ << std::endl;
 
     switch (rcp->op_) {
       case opcode::kDelete:

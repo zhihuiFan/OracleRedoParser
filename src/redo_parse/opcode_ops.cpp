@@ -331,7 +331,7 @@ namespace databus {
         break;
     }
     if (change->opCode() != opcode::kMultiInsert && !redo_row.empty()) {
-      LOG(INFO) << "Redo " << rowAsString(redo_row);
+      LOG(DEBUG) << "Redo " << rowAsString(redo_row);
       changeColsOffset(redo_row, rcp->start_col_);
       redo_rows.push_back(std::move(redo_row));
     }
