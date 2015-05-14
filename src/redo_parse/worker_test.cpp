@@ -78,6 +78,10 @@ namespace databus {
                 << std::endl;  // print out the variable that caused the error
       throw p;
     }
+    LOG(INFO) << "Transaction appliy completed, "
+              << Transaction::xid_map_.size()
+              << " transactions are not pending for appling since they are not "
+                 "rollback/completed";
     return 0;
   }
 }
