@@ -85,7 +85,7 @@ namespace databus {
       _apply(rc, tab_def, tran->xid_);
       n++;
     }
-    LOG(INFO) << tran->xid_ << " : " << n;
+    LOG(DEBUG) << tran->xid_ << " : " << n;
     Transaction::setCommitScn(tran->commit_scn_);
     conn_.commit();
   }
