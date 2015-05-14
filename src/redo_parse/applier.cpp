@@ -49,7 +49,6 @@ namespace databus {
   }
 
   void SimpleApplier::apply(TransactionPtr tran) {
-    int n = 0;
     for (auto rc : tran->changes_) {
       if (!rc->completed()) {
         LOG(ERROR) << "Incompleted Row Change: SCN " << rc->scn_.toStr();
@@ -83,9 +82,7 @@ namespace databus {
         }
       }
       _apply(rc, tab_def, tran->xid_);
-      n++;
     }
-    LOG(DEBUG) << tran->xid_ << " : " << n;
     Transaction::setCommitScn(tran->commit_scn_);
     conn_.commit();
   }

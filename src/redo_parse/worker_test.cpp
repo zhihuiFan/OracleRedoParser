@@ -80,8 +80,8 @@ namespace databus {
     }
     LOG(INFO) << "Transaction appliy completed, "
               << Transaction::xid_map_.size()
-              << " transactions are not pending for appling since they are not "
-                 "rollback/completed";
+              << " transactions are pending for appling since they are not "
+                 "rollback/commit";
     return 0;
   }
 }
