@@ -77,7 +77,6 @@ namespace databus {
           _apply(rc, tab_def, tran->xid_);
           rc->op_ = opcode::kInsert;
           _apply(rc, tab_def, tran->xid_);
-          n++;
           continue;
         }
       }
