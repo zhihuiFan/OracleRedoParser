@@ -46,6 +46,8 @@ namespace databus {
         }
       }
       LOG(INFO) << "total record found  = " << c << std::endl;
+      LOG(INFO) << "Total " << Transaction::commit_trans_.size()
+                << " transactions are build";
 
       LOG(INFO) << "Build Transaction now" << std::endl;
       auto tran = Transaction::xid_map_.begin();
@@ -60,6 +62,8 @@ namespace databus {
 
       LOG(INFO) << "Apply Transaction now " << std::endl;
       // for (auto tran : Transaction::commit_trans_) {
+      LOG(INFO) << "Total " << Transaction::commit_trans_.size()
+                << " transaction were committed";
       auto commit_tran = Transaction::commit_trans_.begin();
       while (commit_tran != Transaction::commit_trans_.end()) {
         if (!commit_tran->second->empty()) {
