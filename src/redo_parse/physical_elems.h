@@ -195,6 +195,7 @@ namespace databus {
   class ChangeHeader {
    public:
     Ushort opCode() const { return op_major_ << 8 | op_minor_; };
+    Uchar major() const { return op_major_; }
 
     uint32_t dba() const { return dba_; }
     Uchar type() const { return type_; }

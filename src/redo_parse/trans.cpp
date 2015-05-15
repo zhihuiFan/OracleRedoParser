@@ -333,7 +333,7 @@ namespace databus {
               xidmap[xid]->xid_ = xid;
             }
           }
-          if ((record->op() & 0xff00) != 11) return;
+          if (change->major() != 11) return;
           {
             if (getMetadata().getTabDefFromId(rcp->object_id_, false) == NULL) {
               // we don't care about this object id for version 0.1
