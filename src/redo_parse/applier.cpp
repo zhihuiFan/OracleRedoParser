@@ -51,7 +51,8 @@ namespace databus {
   void SimpleApplier::apply(TransactionPtr tran) {
     for (auto rc : tran->changes_) {
       if (!rc->completed()) {
-        LOG(ERROR) << "Incompleted Row Change: SCN " << rc->scn_.toStr();
+        LOG(ERROR) << "Transaction ID " << tran->xid_
+                   << " Incompleted Row Change: SCN " << rc->scn_.toStr();
         std::exit(21);
       }
 
