@@ -312,25 +312,18 @@ namespace databus {
         case opcode::kUndo:
           xid = Ops0501::getXID(change);
           if (xid == 0) return;
+          if (Transaction::xid_map_.find(xid) == Transaction::xid_map_.end()) {
+            Transaction::xid_map_[xid] = TransactionPtr(new Transaction());
+            Transaction::xid_map_[xid]->xid_ = xid;
+          }
           rcp->object_id_ = Ops0501::getObjId(change);
           if (dba > 0) {
             Transaction::dba_map_[dba] =
                 ((OpCode0501*)change->part(1))->xid_high_;
             dba = 0;
             if (!trans_start_scn.empty()) {
-              auto& xidmap = Transaction::xid_map_;
-              auto it = xidmap.find(xid);
-              if (it != xidmap.end()) {
-                LOG(DEBUG) << "I think Transaction (xid" << xid
-                           << ") just start here offset: " << record->offset()
-                           << " but it was started before \n"
-                           << "Dump Info\n" << it->second->toString()
-                           << std::endl;
-                return;
-              }
-              xidmap[xid] = TransactionPtr(new Transaction());
-              xidmap[xid]->start_scn_ = rcp->scn_;
-              xidmap[xid]->xid_ = xid;
+              Transaction::xid_map_[xid]->start_scn_ = rcp->scn_;
+              Transaction::xid_map_[xid]->xid_ = xid;
             }
           }
           if ((record->op() & 0xff00) != 0xb00) return;
@@ -397,9 +390,9 @@ namespace databus {
     XIDMap& xidmap = Transaction::xid_map_;
     auto transit = xidmap.find(xid);
     if (transit == xidmap.end()) {
-      LOG(DEBUG) << "XID " << xid
-                 << " info was missed when I want to add a change to it"
-                 << std::endl;
+      LOG(WARNING) << "XID " << xid
+                   << " info was missed when I want to add a change to it"
+                   << std::endl;
       return;
     }
     auto table_def = getMetadata().getTabDefFromId(rcp->object_id_);
