@@ -1,5 +1,6 @@
 #include <sstream>
 #include <cstring>
+#include <unistd.h>
 #include <boost/algorithm/string.hpp>
 
 #define OTL_ORA11G_R2
@@ -212,18 +213,25 @@ namespace databus {
 
   std::string LogManager::getLogfile(uint32_t seq) {
     // prefer archive log
-    arch_log_stmt_ << seq;
-    char filename[514];
-    if (!arch_log_stmt_.eof()) {
-      arch_log_stmt_ >> filename;
-      return std::string(filename);
+    while (true) {
+      arch_log_stmt_ << seq;
+      char filename[514];
+      if (!arch_log_stmt_.eof()) {
+        arch_log_stmt_ >> filename;
+        return std::string(filename);
+      } else {
+        LOG(INFO) << "Seq " << seq << " is not archived, sleep 3 seconds";
+        sleep(3);
+      }
     }
+    // Not consider online log for version 0.1
+    /*
     online_log_stmt_ << seq;
     if (!online_log_stmt_.eof()) {
       online_log_stmt_ >> filename;
       return std::string(filename);
     }
-    return std::string();
+    return std::string();*/
   }
 
   uint32_t LogManager::getOnlineLastBlock(uint32_t seq) {
