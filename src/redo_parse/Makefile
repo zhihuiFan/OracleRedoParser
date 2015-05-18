@@ -34,13 +34,14 @@ endif
 %.o: %.cpp $(DEPS)
 	$(CC) -c -o $@ $< $(CXXFLAGS)
 
+all: datastream datastream2
+
 datastream2: stream.o logical_elems.o physical_elems.o redofile.o worker_test2.o opcode_ops.o stream.o metadata.o tconvert.o trans.o applier.o
 	${CC} ${CXXFLAGS} -o $@ $^ ${LDFLAGS} $(OCI_FLAGS)
 
 datastream: stream.o logical_elems.o physical_elems.o redofile.o worker_test.o opcode_ops.o stream.o metadata.o tconvert.o trans.o applier.o
 	${CC} ${CXXFLAGS} -o $@ $^ ${LDFLAGS} $(OCI_FLAGS)
 
-all: datastream datastream2
 dumpop: logical_elems.o physical_elems.o redofile.o opcode_ops.o dump_op.o
 	${CC} ${CXXFLAGS} -o $@ $^ ${LDFLAGS}
 

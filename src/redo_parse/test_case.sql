@@ -69,6 +69,8 @@ commit;
 insert into target(a,b,c ) values(0.0001, 'abdef', sysdate);
 insert into target(a,b,c ) values(-0.0001, 'abdef', sysdate);
 insert into target(a,b,c ) values(-1000, 'abdef', sysdate);
+-- for https://jirap.corp.ebay.com/browse/DBISTREA-54
+alter system switch logfile;
 insert into target(a,b,c ) values(-1000.001, 'abdef', sysdate);
 update target set b = 'A' , c= sysdate where a= 0.0001;
 commit;

@@ -52,7 +52,6 @@ namespace databus {
     }
 
     LOG(INFO) << "Apply Transaction now " << std::endl;
-    // for (auto tran : Transaction::commit_trans_) {
     auto commit_tran = Transaction::commit_trans_.begin();
     while (commit_tran != Transaction::commit_trans_.end()) {
       if (!commit_tran->second->empty()) {
@@ -64,32 +63,31 @@ namespace databus {
     }
     //    MetadataManager::destoy();
   }
-  catch (otl_exception& p) {
-    std::cerr << p.msg << std::endl;  // print out error message
-    std::cerr << p.stm_text
-              << std::endl;  // print out SQL that caused the error
-    std::cerr << p.var_info
-              << std::endl;  // print out the variable that caused the error
-    throw p;
-  }
-}
 
-int main(int ac, char** av) {
-  putenv(const_cast<char*>("NLS_LANG=.AL32UTF8"));
-  otl_connect::otl_initialize();
-  el::Configurations conf("logging.conf");
-  el::Loggers::reconfigureLogger("default", conf);
-  // el::Loggers::reconfigureAllLoggers(conf);
-  try {
-    initStream(ac, av);
-    uint32_t startSeq = getStreamConf().getUint32("startSeq");
-    while (true) {
-      parseSeq(startSeq);
-      LOG(INFO) << "Transaction appliy completed, "
-                << Transaction::xid_map_.size()
-                << " transactions are pending for appling since they are not "
-                   "rollback/commit";
-      startSeq++;
+  int main(int ac, char** av) {
+    putenv(const_cast<char*>("NLS_LANG=.AL32UTF8"));
+    otl_connect::otl_initialize();
+    el::Configurations conf("logging.conf");
+    el::Loggers::reconfigureLogger("default", conf);
+    // el::Loggers::reconfigureAllLoggers(conf);
+    try {
+      initStream(ac, av);
+      uint32_t startSeq = getStreamConf().getUint32("startSeq");
+      while (true) {
+        parseSeq(startSeq);
+        LOG(INFO) << "Transaction appliy completed, "
+                  << Transaction::xid_map_.size()
+                  << " transactions are pending for appling since they are not "
+                     "rollback/commit";
+        startSeq++;
+      }
+    } catch (otl_exception& p) {
+      std::cerr << p.msg << std::endl;  // print out error message
+      std::cerr << p.stm_text
+                << std::endl;  // print out SQL that caused the error
+      std::cerr << p.var_info
+                << std::endl;  // print out the variable that caused the error
+      throw p;
     }
     return 0;
   }
