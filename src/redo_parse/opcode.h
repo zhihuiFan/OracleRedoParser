@@ -24,6 +24,8 @@ namespace databus {
     const Ushort kCki = 0x0b09;  // Cluster Key Index
     const Ushort kSkl = 0x0b0a;  // Set cluster key pointer
     const Ushort kMultiInsert = 0x0b0b;
+    // we can ingore this, it is a rollback of MultiInsert
+    // see https://jirap.corp.ebay.com/browse/DBISTREA-52
     const Ushort kMultiDelete = 0x0b0c;
     const Ushort kLmn = 0x0b10;
     const Ushort kDdl = 0x1801;
