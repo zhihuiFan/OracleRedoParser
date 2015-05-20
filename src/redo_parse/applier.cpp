@@ -126,24 +126,24 @@ namespace databus {
             boost::join(col_value, ",")).str();
   }
 
-  ApplierHelper::ApplierHelper(const char* conn_str, const std::string& inst_id)
+  ApplierHelper::ApplierHelper(const char* conn_str, uint32_t inst_id)
       : conn_(conn_str),
         inst_id_(inst_id),
         save_progress_stmt_(1,
                             "INSERT INTO stream_progress "
                             " (INST_ID, COMMIT_SCN_MAJOR, COMMIT_SCN_MINOR, "
                             "COMMIT_SUBSCN, COMMIT_OFFSET, "
-                            " START_SCN_MAJOR, START_SCN_MINTOR, START_SUBSCN, "
+                            " START_SCN_MAJOR, START_SCN_MINOR, START_SUBSCN, "
                             "START_OFFSET, CREATION_DATE) "
-                            "VALUES (:INST_ID<char[20]>, "
+                            "VALUES (:INST_ID<unsigned>, "
                             "TO_NUMBER(:COMMIT_SCN_MAJOR<char[39]>), "
                             "TO_NUMBER(:COMMIT_SCN_MINOR<char[39]>), "
                             "TO_NUMBER(:COMMIT_SUBSCN<char[39]>), "
                             "TO_NUMBER(:COMMIT_OFFSET<char[39]>), "
                             "TO_NUMBER(:START_SCN_MAJOR<char[39]>), "
-                            "TO_NUMBER(:START_SCN_MAJOR<char[39]>), "
-                            "TO_NUMBER(:START_SCN_MAJOR<char[39]>), "
-                            "TO_NUMBER(:START_SCN_MAJOR<char[39]>), "
+                            "TO_NUMBER(:START_SCN_MINOR<char[39]>), "
+                            "TO_NUMBER(:START_SUBSCN<char[39]>), "
+                            "TO_NUMBER(:START_OFFSET<char[39]>), "
                             "SYSDATE)",
                             conn_),
         get_progress_stmt_(1,
@@ -157,27 +157,27 @@ namespace databus {
                            " to_char(START_SUBSCN), "
                            " to_char(START_OFFSET) "
                            " FROM  STREAM_PROGRESS "
-                           " WHERE INST_ID = :INST_ID<char[20]> "
+                           " WHERE INST_ID = :INST_ID<unsigned> "
                            " AND CREATION_DATE = (SELECT MAX(CREATION_DATE) "
                            " FROM STREAM_PROGRESS) ",
                            conn_) {}
 
   void ApplierHelper::saveApplyProgress(const SCN& commit_scn,
                                         const SCN& restart_scn) {
-    save_progress_stmt_ << inst_id_.c_str()
-                        << std::to_string(commit_scn.major_).c_str()
-                        << std::to_string(commit_scn.minor_).c_str()
-                        << std::to_string(commit_scn.subscn_).c_str()
-                        << std::to_string(commit_scn.noffset_).c_str()
-                        << std::to_string(restart_scn.major_).c_str()
-                        << std::to_string(restart_scn.minor_).c_str()
-                        << std::to_string(restart_scn.subscn_).c_str()
-                        << std::to_string(restart_scn.noffset_).c_str();
+    save_progress_stmt_ << inst_id_;
+    save_progress_stmt_ << std::to_string(commit_scn.major_).c_str();
+    save_progress_stmt_ << std::to_string(commit_scn.minor_).c_str();
+    save_progress_stmt_ << std::to_string(commit_scn.subscn_).c_str();
+    save_progress_stmt_ << std::to_string(commit_scn.noffset_).c_str();
+    save_progress_stmt_ << std::to_string(restart_scn.major_).c_str();
+    save_progress_stmt_ << std::to_string(restart_scn.minor_).c_str();
+    save_progress_stmt_ << std::to_string(restart_scn.subscn_).c_str();
+    save_progress_stmt_ << std::to_string(restart_scn.noffset_).c_str();
     conn_.commit();
   }
 
   ApplyStats ApplierHelper::getApplyStats() {
-    get_progress_stmt_ << inst_id_.c_str();
+    get_progress_stmt_ << inst_id_;
     if (get_progress_stmt_.eof()) {
       return ApplyStats(SCN(), SCN());
     }
@@ -215,11 +215,5 @@ namespace databus {
       }
     }
     return ApplyStats(restart_scn, commit_scn);
-  }
-
-  void applyMonitor() {
-    ApplierHelper& helper = ApplierHelper::getApplierHelper(
-        streamconf->getString("tarConn").c_str(),
-        streamconf->getString("instId").c_str());
   }
 }

@@ -3,6 +3,7 @@
 #include <list>
 #include <memory>
 #include <stdio.h>
+#include <thread>
 #include "easylogging++.h"
 #include "util/container.h"
 #include "stream.h"
@@ -15,6 +16,7 @@
 #include "trans.h"
 #include "applier.h"
 #include "otlv4.h"
+#include "monitor.h"
 
 INITIALIZE_EASYLOGGINGPP
 namespace databus {
@@ -72,13 +74,15 @@ namespace databus {
     // el::Loggers::reconfigureAllLoggers(conf);
     try {
       initStream(ac, av);
+      Monitor m;
+      std::thread t(std::ref(m));
       uint32_t startSeq = getStreamConf().getUint32("startSeq");
       while (true) {
         parseSeq(startSeq);
         LOG(INFO) << "Transaction appliy completed, "
                   << Transaction::xid_map_.size()
                   << " transactions are pending for appling since they are not "
-                     "rollback/commit";
+                     "rollbacked/committed";
         startSeq++;
       }
     } catch (otl_exception& p) {

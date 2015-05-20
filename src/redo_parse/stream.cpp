@@ -9,6 +9,8 @@
 #include "stream.h"
 #include "metadata.h"
 #include "applier.h"
+#include "monitor.h"
+
 namespace databus {
   StreamConf* streamconf;
   std::list<std::string> captual_tables;
@@ -41,15 +43,6 @@ namespace databus {
       std::cout << desc << std::endl;
       std::exit(1);
     }
-
-    /*
-    if (vm.count("loglevel")) {
-      setLogLevel(vm["loglevel"].as<unsigned short>());
-    } else {
-      setLogLevel(3);
-    }
-    */
-
     po::notify(vm);
     validParams();
   }
@@ -60,7 +53,7 @@ namespace databus {
         "string for source database, format username/password@vm")(
         "tarConn", po::value<std::string>(),
         "string for target database username/password@vm")(
-        "instId", po::value<std::string>(), "DataStream instance Id")(
+        "instId", po::value<uint32_t>(), "DataStream instance Id")(
         "confFile", po::value<std::string>(), "configure file for data stream")(
         "tableConf", po::value<std::string>(), "tables to capture changes")(
         "startSeq", po::value<uint32_t>(), "the log sequence to start with");
@@ -114,13 +107,6 @@ namespace databus {
     streamconf = new StreamConf(ac, av);
     captual_tables =
         initCaptualTable(streamconf->getString("tableConf").c_str());
-    /*
-    for (auto i : captual_tables) {
-      // TODO: Where is the empty captured table
-      // if (i.empty()) std::cout << "emtyt captured " << std::endl;
-      std::cout << i << std::endl;
-    }
-    */
     logmanager = std::shared_ptr<LogManager>(
         new LogManager(streamconf->getString("srcConn").c_str()));
     for (auto table : captual_tables) {
@@ -139,8 +125,8 @@ namespace databus {
         }
         // if (tabdef) tabdef->dump();
       } else {
-        // TODO: why?
-        // std::cout << "[warnings ] invalid table " << table << std::endl;
+        LOG(WARNING) << "Invalid Table format " << table
+                     << ", The correct format is owner.table_name";
       }
     }
   }

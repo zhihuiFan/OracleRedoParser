@@ -45,6 +45,8 @@ namespace databus {
   inline StreamConf& getStreamConf() { return *streamconf; }
 
   void initStream(int ac, char** av);
+
+  void streamMonitor();
 }
 
 #endif /* ----- #ifndef REDO_PARSE_INC  ----- */

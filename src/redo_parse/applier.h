@@ -9,6 +9,7 @@
 #define OTL_ORA_UTF8
 #include "otlv4.h"
 #include "trans.h"
+#include "stream.h"
 
 namespace databus {
   const std::list<std::pair<std::string, std::string>> prefix_cols{
@@ -55,22 +56,21 @@ namespace databus {
    public:
     ApplyStats getApplyStats();
     void saveApplyProgress(const SCN& commit_scn, const SCN& restart_scn);
-    static ApplierHelper& getApplierHelper(const char* conn_str,
-                                           const std::string& inst_id) {
-      static ApplierHelper applierHelper(conn_str, inst_id);
+    static ApplierHelper& getApplierHelper() {
+      static ApplierHelper applierHelper(
+          streamconf->getString("tarConn").c_str(),
+          streamconf->getUint32("instId"));
       return applierHelper;
     }
 
    private:
-    ApplierHelper(const char* conn_str, const std::string& inst_id);
+    ApplierHelper(const char* conn_str, uint32_t inst_id);
 
    private:
-    std::string inst_id_;
+    uint32_t inst_id_;
     otl_connect conn_;
     otl_stream save_progress_stmt_;
     otl_stream get_progress_stmt_;
   };
-
-  void applyMonitor();
 }
 #endif /* ----- #ifndef APPLIER_INC  ----- */

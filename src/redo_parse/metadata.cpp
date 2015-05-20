@@ -220,7 +220,7 @@ namespace databus {
         arch_log_stmt_ >> filename;
         return std::string(filename);
       } else {
-        LOG(INFO) << "Seq " << seq << " is not archived, sleep 3 seconds";
+        LOG(DEBUG) << "Seq " << seq << " is not archived, sleep 3 seconds";
         sleep(3);
       }
     }

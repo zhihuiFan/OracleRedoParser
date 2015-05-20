@@ -40,7 +40,9 @@ namespace databus {
   void Transaction::setCommitScn(const SCN& scn) {
     std::lock_guard<std::mutex> lk(commit_mutex_);
     if (last_commit_scn_ < scn) {
+      LOG(INFO) << "Set Commit SCN " << last_commit_scn_.toStr();
       last_commit_scn_ = scn;
+      LOG(INFO) << "After Set Commit SCN " << last_commit_scn_.toStr();
     }
   }
 

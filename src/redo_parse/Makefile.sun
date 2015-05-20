@@ -9,7 +9,8 @@ DEPS=metadata.h \
 	 stream.h \
 	 stream_error.h \
 	 trans.h \
-	 applier.h
+	 applier.h\
+	 monitor.h 
 
 
 PLATFORM=$(shell uname)
@@ -21,7 +22,7 @@ endif
 %.o: %.cpp $(DEPS)
 	$(CC) -c -o $@ $< $(CXXFLAGS)
 
-datastream: stream.o logical_elems.o physical_elems.o redofile.o worker_test.o opcode_ops.o stream.o metadata.o tconvert.o trans.o applier.o
+datastream: stream.o logical_elems.o physical_elems.o redofile.o worker_test.o opcode_ops.o stream.o metadata.o tconvert.o trans.o applier.o monitor.o
 	${CC} ${CXXFLAGS} -o $@ $^ ${LDFLAGS} $(OCI_FLAGS)
 
 datastream2: stream.o logical_elems.o physical_elems.o redofile.o worker_test2.o opcode_ops.o stream.o metadata.o tconvert.o trans.o applier.o
