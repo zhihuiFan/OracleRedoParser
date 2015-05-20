@@ -15,7 +15,7 @@ namespace databus {
       opcode::kInsert,      opcode::kDelete,     opcode::kUpdate,
       opcode::kRowChain,    opcode::kBeginTrans, opcode::kCommit,
       opcode::kMultiInsert, opcode::kLmn,        opcode::kBeginTrans,
-      opcode::kCommit,      opcode::kMfc,        opcode::kCfa};
+      opcode::kCommit,      opcode::kMfc};
 
   const std::set<Ushort> kTRANOps{opcode::kUndo};
 

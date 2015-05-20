@@ -20,6 +20,7 @@ namespace databus {
     const Ushort kUpdate = 0x0b05;
     const Ushort kRowChain = 0x0b06;
     const Ushort kMfc = 0x0b07;
+    // CFA means change forwarding address we can ingore
     const Ushort kCfa = 0x0b08;
     const Ushort kCki = 0x0b09;  // Cluster Key Index
     const Ushort kSkl = 0x0b0a;  // Set cluster key pointer
@@ -27,6 +28,7 @@ namespace databus {
     // we can ingore this, it is a rollback of MultiInsert
     // see https://jirap.corp.ebay.com/browse/DBISTREA-52
     const Ushort kMultiDelete = 0x0b0c;
+    // 0x0b0e should be generated when dropping table first column
     const Ushort kLmn = 0x0b10;
     const Ushort kDdl = 0x1801;
     const std::map<Ushort, std::string> kOpMap{{kInsert, "Insert"},
