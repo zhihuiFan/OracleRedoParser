@@ -21,37 +21,14 @@ namespace databus {
   }
 
   DBAMap Transaction::dba_map_;
+
   XIDMap Transaction::xid_map_;
-  std::map<SCN, TransactionPtr> Transaction::commit_trans_;
+  std::map<SCN, std::shared_ptr<Transaction>> Transaction::commit_trans_;
+  std::atomic<SCN> Transaction::last_commit_scn_;
+  std::atomic<SCN> Transaction::restart_scn_(-1);
+  std::atomic<char> Transaction::phase_ = 0;
+  std::set<SCN> start_scn_in_commit_q_;
 
-  SCN Transaction::last_commit_scn_;
-  SCN Transaction::restart_scn_;
-  std::mutex Transaction::restart_mutex_;
-  std::mutex Transaction::commit_mutex_;
-
-  SCN Transaction::getLastCommitScn() {
-    std::lock_guard<std::mutex> lk(commit_mutex_);
-    return last_commit_scn_;
-  }
-  SCN Transaction::getRestartScn() {
-    std::lock_guard<std::mutex> lk(restart_mutex_);
-    return restart_scn_;
-  }
-  void Transaction::setCommitScn(const SCN& scn) {
-    std::lock_guard<std::mutex> lk(commit_mutex_);
-    if (last_commit_scn_ < scn) {
-      LOG(INFO) << "Set Commit SCN " << last_commit_scn_.toStr();
-      last_commit_scn_ = scn;
-      LOG(INFO) << "After Set Commit SCN " << last_commit_scn_.toStr();
-    }
-  }
-
-  void Transaction::setRestartScn(const SCN& scn) {
-    std::lock_guard<std::mutex> lk(restart_mutex_);
-    if (scn < restart_scn_) {
-      restart_scn_ = scn;
-    }
-  }
   XIDMap::iterator buildTransaction(XIDMap::iterator it) {
     if (it->second->has_rollback()) {
       return Transaction::xid_map_.erase(it);
@@ -167,11 +144,6 @@ namespace databus {
           break;
       }
     }
-  }
-
-  void Transaction::apply(TransactionPtr tran) {
-    // will write this part later
-    LOG(INFO) << "Apply Transaction " << tran->xid_ << std::endl;
   }
 
   std::string Transaction::toString() const {

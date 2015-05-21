@@ -18,8 +18,17 @@ namespace databus {
     SCN(Ushort maj, uint32_t minor, unsigned int subscn = 0,
         uint32_t noffset = 0)
         : major_(maj), minor_(minor), subscn_(subscn), noffset_(noffset) {}
+    SCN(int i)
+        : major_(0xffff),
+          minor_(0xffffffff),
+          subscn_(0xffffffff),
+          noffset_(0xffffffff) {}
 
     bool operator<(const SCN& other) const;
+    bool operator==(const scn& other) const {
+      return noffset_ == other.noffset_ && minor_ == other.minor_ &&
+             major_ == other.major_ && subscn_ == other.subscn_;
+    }
     std::string toStr() const;
     // To store this data into Database
     std::string toString() const;

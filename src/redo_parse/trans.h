@@ -7,6 +7,7 @@
 #include <string>
 #include <sstream>
 #include <mutex>
+#include <atomic>
 #include "logical_elems.h"
 #include "opcode.h"
 #include "util/dtypes.h"
@@ -63,18 +64,12 @@ namespace databus {
   struct Transaction {
    public:
     Transaction()
-        : commited_(0),
-          xid_(0),
-          start_scn_(),
-          commit_scn_(),
-          ordered(false),
-          last_col_no_(0) {}
+        : commited_(0), xid_(0), start_scn_(), commit_scn_(), last_col_no_(0) {}
     XID xid_;
     SCN start_scn_;
     SCN commit_scn_;
     char commited_;  // 2=commited  4=rollbacked
     // orginize changes, for row-chains, row migration
-    bool ordered;
     std::set<RowChangePtr, Less> changes_;
     std::string toString() const;
     // for big insert only
@@ -86,27 +81,50 @@ namespace databus {
     bool empty() const { return changes_.empty(); }
     void tidyChanges();
 
+    static XIDMap xid_map_;
+    static std::map<SCN, std::shared_ptr<Transaction>> commit_trans_;
+
    private:
     void merge(RowChangePtr r);
     bool lastCompleted() const;
 
    public:
-    static XIDMap xid_map_;
     static DBAMap dba_map_;
-    static std::map<SCN, std::shared_ptr<Transaction>> commit_trans_;
 
    public:
-    static SCN getLastCommitScn();
-    static void setCommitScn(const SCN& scn);
-    static SCN getRestartScn();
+    static SCN getLastCommitScn() { return last_commit_scn_.load(); }
+    static SCN getRestartScn() { return restart_scn_.load(); }
+    static char getPhase() { return phase_.load(); }
+
     static void setRestartScn(const SCN& scn);
-    static void apply(std::shared_ptr<Transaction> tran);
+    static void setCommitScn(const SCN& scn);
+
+    static void setPhase(char c) { phase_ = c; }
+
+    // used when phase 2
+    static void addMinStartScnInCommitQ(SCN& scn) {
+      start_scn_in_commit_q_.insert(scn);
+    }
+
+    // used when phase 3
+    static void setMinStartScnInCommitQ(SCN& scn) {
+      start_scn_in_commit_q_.remove(scn);
+      if (min_start_scn_in_commit_q_.load() == scn) {
+        min_start_scn_in_commit_q_ = *(start_scn_in_commit_q_.begin())
+      }
+    }
 
    private:
-    static std::mutex commit_mutex_;
-    static std::mutex restart_mutex_;
-    static SCN last_commit_scn_;
-    static SCN restart_scn_;
+    static std::atomic<SCN> last_commit_scn_;
+    static std::atomic<SCN> restart_scn_;
+    // 1 means reading recrod buf from logfile to xid_trans_
+    // 2 means applying the committed transaction
+    static std::atomic<char> phase_;
+    // we modify it when phase 2, and change it when in phase 3.
+    // we modify min_start_scn_in_commit_q_ according when a transaction is
+    // applied
+    // So we don't need it to be thread-safe, at least for release 0.1 and 0.2
+    static std::set<SCN> start_scn_in_commit_q_;
   };
   // if this transaction is commit,
   //      build applyable changes
