@@ -32,7 +32,7 @@ namespace databus {
     RedoFile redofile(seq, getLogfile, getOnlineLastBlock);
     RecordBufPtr buf;
     unsigned long c = 0;
-    Transaction::setPhase(1);
+    Transaction::setRestartScn(redofile.getStartScn());
     while ((buf = redofile.nextRecordBuf()).get()) {
       if (buf->change_vectors.empty()) continue;
       addToTransaction(buf);
@@ -44,7 +44,6 @@ namespace databus {
     LOG(INFO) << "total record found  = " << c << std::endl;
 
     LOG(INFO) << "Build Transaction now" << std::endl;
-    Transaction::setPhase(2);
     auto tran = Transaction::xid_map_.begin();
     while (tran != Transaction::xid_map_.end()) {
       auto it = buildTransaction(tran);
@@ -54,10 +53,10 @@ namespace databus {
         tran++;
       }
     }
+    Transaction::setMinXidStartScn();
 
     LOG(INFO) << "Apply Transaction now " << std::endl;
     auto commit_tran = Transaction::commit_trans_.begin();
-    Transaction::setPhase(3);
     while (commit_tran != Transaction::commit_trans_.end()) {
       // LOG(INFO) << commit_tran->second->toString();
       SimpleApplier::getApplier(streamconf->getString("tarConn").c_str())

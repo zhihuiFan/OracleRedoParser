@@ -25,7 +25,7 @@ namespace databus {
           noffset_(0xffffffff) {}
 
     bool operator<(const SCN& other) const;
-    bool operator==(const scn& other) const {
+    bool operator==(const SCN& other) const {
       return noffset_ == other.noffset_ && minor_ == other.minor_ &&
              major_ == other.major_ && subscn_ == other.subscn_;
     }

@@ -56,6 +56,7 @@ namespace databus {
     std::shared_ptr<RecordBuf> nextRecordBuf();
 
     void setStartScn(SCN &scn) { start_scn_ = scn; }
+    SCN getStartScn() const { return start_scn_; }
 
     ~RedoFile();
 

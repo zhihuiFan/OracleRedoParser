@@ -84,6 +84,7 @@ namespace databus {
       _apply(rc, tab_def, tran->xid_);
     }
     Transaction::setCommitScn(tran->commit_scn_);
+    Transaction::setRestartScnWhenCommit(tran->start_scn_);
     conn_.commit();
   }
 
@@ -164,6 +165,7 @@ namespace databus {
 
   void ApplierHelper::saveApplyProgress(const SCN& commit_scn,
                                         const SCN& restart_scn) {
+    if (restart_scn == SCN(-1)) return;
     save_progress_stmt_ << inst_id_;
     save_progress_stmt_ << std::to_string(commit_scn.major_).c_str();
     save_progress_stmt_ << std::to_string(commit_scn.minor_).c_str();

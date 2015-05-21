@@ -25,8 +25,7 @@ namespace databus {
   XIDMap Transaction::xid_map_;
   std::map<SCN, std::shared_ptr<Transaction>> Transaction::commit_trans_;
   std::atomic<SCN> Transaction::last_commit_scn_;
-  std::atomic<SCN> Transaction::restart_scn_(-1);
-  std::atomic<char> Transaction::phase_ = 0;
+  std::atomic<SCN> Transaction::restart_scn_;
   std::set<SCN> start_scn_in_commit_q_;
 
   XIDMap::iterator buildTransaction(XIDMap::iterator it) {
@@ -39,6 +38,7 @@ namespace databus {
       it->second->tidyChanges();
       Transaction::commit_trans_[it->second->commit_scn_] =
           Transaction::xid_map_[it->second->xid_];
+      Transaction::addMinStartScnInCommitQ(it->second->start_scn_);
       return Transaction::xid_map_.erase(it);
     }
     return Transaction::xid_map_.end();
@@ -144,6 +144,14 @@ namespace databus {
           break;
       }
     }
+  }
+
+  void Transaction::setMinXidStartScn() {
+    SCN min_scn(-1);
+    for (auto i : Transaction::xid_map_) {
+      if (i.second->start_scn_ < min_scn) min_scn = i.second->start_scn_;
+    }
+    min_start_scn_in_xid_q_ = min_scn;
   }
 
   std::string Transaction::toString() const {
