@@ -32,7 +32,7 @@ namespace databus {
     RedoFile redofile(seq, getLogfile, getOnlineLastBlock);
     RecordBufPtr buf;
     unsigned long c = 0;
-    Transaction::setRestartScn(redofile.getStartScn());
+    Transaction::setRestartScn(redofile.getFirstScn());
     while ((buf = redofile.nextRecordBuf()).get()) {
       if (buf->change_vectors.empty()) continue;
       addToTransaction(buf);
