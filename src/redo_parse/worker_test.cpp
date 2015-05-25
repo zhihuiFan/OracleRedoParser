@@ -6,6 +6,7 @@
 #include <thread>
 #include "easylogging++.h"
 #include "util/container.h"
+#include "util/utils.h"
 #include "stream.h"
 #include "metadata.h"
 #include "tconvert.h"
@@ -92,7 +93,7 @@ namespace databus {
       Transaction::setRestartScn(stats.restart_scn_);
       Transaction::setCommitScn(stats.commit_scn_);
       Monitor m;
-      std::thread t(std::ref(m));
+      util::guarded_thread t(std::ref(m));
       while (true) {
         parseSeq(startSeq, stats.restart_scn_);
         LOG(INFO) << "Transaction appliy completed, "
