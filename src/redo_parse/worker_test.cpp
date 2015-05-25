@@ -103,9 +103,9 @@ namespace databus {
         startSeq++;
       }
     } catch (otl_exception& p) {
-      std::cerr << p.msg << std::endl;
-      std::cerr << p.stm_text << std::endl;
-      std::cerr << p.var_info << std::endl;
+      LOG(ERROR) << p.msg;
+      LOG(ERROR) << p.stm_text;
+      LOG(ERROR) << p.var_info;
       throw p;
     }
     return 0;

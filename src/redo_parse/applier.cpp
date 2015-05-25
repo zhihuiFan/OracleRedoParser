@@ -25,6 +25,7 @@ namespace databus {
     LOG(INFO) << insert_sql;
     stmt_dict_[tab_name] = std::shared_ptr<otl_stream>(
         new otl_stream(1, insert_sql.c_str(), conn_));
+    stmt_dict_[tab_name]->set_commit(0);
   }
 
   void SimpleApplier::_apply(RowChangePtr rcp, TabDefPtr tab_def, XID xid) {
@@ -161,7 +162,9 @@ namespace databus {
                            " WHERE INST_ID = :INST_ID<unsigned> "
                            " AND CREATION_DATE = (SELECT MAX(CREATION_DATE) "
                            " FROM STREAM_PROGRESS) ",
-                           conn_) {}
+                           conn_) {
+    save_progress_stmt_.set_commit(0);
+  }
 
   void ApplierHelper::saveApplyProgress(const SCN& commit_scn,
                                         const SCN& restart_scn) {
