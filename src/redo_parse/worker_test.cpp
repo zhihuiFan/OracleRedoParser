@@ -89,6 +89,8 @@ namespace databus {
                    << " Can't find out an archived log contains that scn";
         return -10;
       }
+      Transaction::setRestartScn(stats.restart_scn_);
+      Transaction::setCommitScn(stats.commit_scn_);
       Monitor m;
       std::thread t(std::ref(m));
       while (true) {
