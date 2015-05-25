@@ -9,6 +9,7 @@
 #include <mutex>
 #include <atomic>
 #include <algorithm>
+#include "easylogging++.h"
 #include "logical_elems.h"
 #include "opcode.h"
 #include "util/dtypes.h"
@@ -22,6 +23,8 @@ namespace databus {
       return l->col_id_ < r->col_id_;
     }
   };
+
+  const std::set<char> cflag{0x00, 0x10, 0x02, 0x12, 0x04, 0x14};
 
   struct RowChange;
   class TabDef;
@@ -64,21 +67,20 @@ namespace databus {
 
   struct Transaction {
    public:
-    Transaction()
-        : commited_(0), xid_(0), start_scn_(), commit_scn_(), last_col_no_(0) {}
+    Transaction() : cflag_(-1), xid_(0), start_scn_(), commit_scn_() {}
     XID xid_;
     SCN start_scn_;
     SCN commit_scn_;
-    char commited_;  // 2=commited  4=rollbacked
+    char cflag_;
+
     // orginize changes, for row-chains, row migration
     std::set<RowChangePtr, Less> changes_;
     std::string toString() const;
-    // for big insert only
-    Ushort last_col_no_;
 
     bool operator<(const Transaction& other) const;
-    bool has_rollback() const { return commited_ & 4; }
-    bool has_commited() const { return commited_ & 2; }
+    bool has_rollback() const { return cflag_ & 4; }
+    bool has_commited() const { return !(still_pending() || has_rollback()); }
+    bool still_pending() const { return cflag_ == -1; }
     bool empty() const { return changes_.empty(); }
     void tidyChanges();
 
@@ -91,36 +93,49 @@ namespace databus {
 
    public:
     static DBAMap dba_map_;
+    static std::set<SCN> start_scn_q_;
 
    public:
     static SCN getLastCommitScn() { return last_commit_scn_.load(); }
     static SCN getRestartScn() { return restart_scn_.load(); }
 
     static void setRestartScn(const SCN& scn) {
+      LOG(DEBUG) << "SetRestartScn to " << scn.toStr();
       if (scn < restart_scn_.load() || restart_scn_.load().empty())
         restart_scn_ = scn;
-    };
-    static void setCommitScn(const SCN& scn);
-
-    static void addMinStartScnInCommitQ(SCN& scn) {
-      start_scn_in_commit_q_.insert(scn);
+    }
+    static void setCommitScn(const SCN& scn) {
+      if (last_commit_scn_.load() < scn) last_commit_scn_ = scn;
     }
 
-    static void setMinXidStartScn();
-
     static void setRestartScnWhenCommit(SCN& scn) {
-      start_scn_in_commit_q_.erase(scn);
+      start_scn_q_.erase(scn);
       if (restart_scn_.load() == scn) {
-        setRestartScn(std::min(*(start_scn_in_commit_q_.begin()),
-                               min_start_scn_in_xid_q_.load()));
+        if (start_scn_q_.empty()) {
+          setRestartScn(commit_trans_.begin()->second->start_scn_);
+        } else {
+          setRestartScn(*(start_scn_q_.begin()));
+        }
       }
+    }
+
+    static uint32_t removeUncompletedTrans() {
+      uint32_t n = 0;
+      auto it = xid_map_.begin();
+      while (it != xid_map_.end()) {
+        if (it->second->start_scn_.empty()) {
+          it = xid_map_.erase(it);
+          n += 1;
+        } else {
+          ++it;
+        }
+      }
+      return n;
     }
 
    private:
     static std::atomic<SCN> last_commit_scn_;
     static std::atomic<SCN> restart_scn_;
-    static std::set<SCN> start_scn_in_commit_q_;
-    static std::atomic<SCN> min_start_scn_in_xid_q_;
   };
 
   XIDMap::iterator buildTransaction(XIDMap::iterator it);

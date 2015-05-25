@@ -57,6 +57,7 @@ namespace databus {
 
     void setStartScn(SCN &scn) { start_scn_ = scn; }
     SCN getStartScn() const { return start_scn_; }
+    SCN getFirstScn() const { return lowscn_; }
 
     ~RedoFile();
 

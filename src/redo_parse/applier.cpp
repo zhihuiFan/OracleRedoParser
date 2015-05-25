@@ -83,9 +83,9 @@ namespace databus {
       }
       _apply(rc, tab_def, tran->xid_);
     }
+    conn_.commit();
     Transaction::setCommitScn(tran->commit_scn_);
     Transaction::setRestartScnWhenCommit(tran->start_scn_);
-    conn_.commit();
   }
 
   std::string SimpleApplier::getInsertStmt(TabDefPtr tab_def) {

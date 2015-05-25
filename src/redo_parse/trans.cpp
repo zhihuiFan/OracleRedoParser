@@ -21,27 +21,34 @@ namespace databus {
   }
 
   DBAMap Transaction::dba_map_;
-
   XIDMap Transaction::xid_map_;
   std::map<SCN, std::shared_ptr<Transaction>> Transaction::commit_trans_;
   std::atomic<SCN> Transaction::last_commit_scn_;
   std::atomic<SCN> Transaction::restart_scn_;
-  std::set<SCN> start_scn_in_commit_q_;
+  std::set<SCN> Transaction::start_scn_q_;
 
   XIDMap::iterator buildTransaction(XIDMap::iterator it) {
+    if (it->second->still_pending()) {
+      Transaction::start_scn_q_.insert(it->second->start_scn_);
+      return Transaction::xid_map_.end();
+    }
+    if (cflag.find(it->second->cflag_) == cflag.end()) {
+      LOG(ERROR) << "Unexpected cflag " << (int)it->second->cflag_ << " scn "
+                 << it->second->commit_scn_.toStr();
+      std::exit(-22);
+    }
     if (it->second->has_rollback()) {
       return Transaction::xid_map_.erase(it);
-    } else if (it->second->has_commited()) {
+    } else {
+      Transaction::start_scn_q_.insert(it->second->start_scn_);
       if (it->second->commit_scn_ < Transaction::getLastCommitScn()) {
         return Transaction::xid_map_.erase(it);
       }
       it->second->tidyChanges();
       Transaction::commit_trans_[it->second->commit_scn_] =
           Transaction::xid_map_[it->second->xid_];
-      Transaction::addMinStartScnInCommitQ(it->second->start_scn_);
       return Transaction::xid_map_.erase(it);
     }
-    return Transaction::xid_map_.end();
   }
 
   bool Transaction::lastCompleted() const {
@@ -146,20 +153,12 @@ namespace databus {
     }
   }
 
-  void Transaction::setMinXidStartScn() {
-    SCN min_scn(-1);
-    for (auto i : Transaction::xid_map_) {
-      if (i.second->start_scn_ < min_scn) min_scn = i.second->start_scn_;
-    }
-    min_start_scn_in_xid_q_ = min_scn;
-  }
-
   std::string Transaction::toString() const {
     std::stringstream ss;
     ss << std::endl << "XID " << std::hex << xid_
        << " start_scn : " << start_scn_.toStr()
        << " commit_scn: " << commit_scn_.toStr()
-       << " commited  : " << (int)commited_ << std::endl;
+       << " commited  : " << (int)cflag_ << std::endl;
     for (auto& rc : changes_) {
       ss << rc->pkToString() << std::endl;
     }
@@ -287,7 +286,6 @@ namespace databus {
             if (((OpCode0502*)change->part(1))->sqn_ > 0) {
               // sqn_ == 0 is not a start of transaction
               trans_start_scn = rcp->scn_;
-              Transaction::setRestartScn(trans_start_scn);
             }
           }
           break;
@@ -354,7 +352,7 @@ namespace databus {
               return;
             }
             xidit->second->commit_scn_ = rcp->scn_;
-            xidit->second->commited_ = ucm->flg_;
+            xidit->second->cflag_ = ucm->flg_;
           }
           break;
         default:

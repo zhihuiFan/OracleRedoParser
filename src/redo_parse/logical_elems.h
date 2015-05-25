@@ -14,15 +14,16 @@ namespace databus {
   class ChangeHeader;
   class SCN {
    public:
-    SCN() : major_(0), minor_(0), subscn_(0), noffset_(0) {}
+    SCN() noexcept : major_(0), minor_(0), subscn_(0), noffset_(0) {}
     SCN(Ushort maj, uint32_t minor, unsigned int subscn = 0,
-        uint32_t noffset = 0)
-        : major_(maj), minor_(minor), subscn_(subscn), noffset_(noffset) {}
-    SCN(int i)
-        : major_(0xffff),
-          minor_(0xffffffff),
-          subscn_(0xffffffff),
-          noffset_(0xffffffff) {}
+        uint32_t noffset = 0) noexcept : major_(maj),
+                                         minor_(minor),
+                                         subscn_(subscn),
+                                         noffset_(noffset) {}
+    SCN(int i) noexcept : major_(0xffff),
+                          minor_(0xffffffff),
+                          subscn_(0xffffffff),
+                          noffset_(0xffffffff) {}
 
     bool operator<(const SCN& other) const;
     bool operator==(const SCN& other) const {

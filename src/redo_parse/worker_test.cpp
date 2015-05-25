@@ -32,7 +32,6 @@ namespace databus {
     RedoFile redofile(seq, getLogfile, getOnlineLastBlock);
     RecordBufPtr buf;
     unsigned long c = 0;
-    Transaction::setRestartScn(redofile.getFirstScn());
     while ((buf = redofile.nextRecordBuf()).get()) {
       if (buf->change_vectors.empty()) continue;
       addToTransaction(buf);
@@ -42,6 +41,9 @@ namespace databus {
       }
     }
     LOG(INFO) << "total record found  = " << c << std::endl;
+    auto n = Transaction::removeUncompletedTrans();
+    LOG(WARNING) << "removed " << n << " incompleted transaction";
+    Transaction::setRestartScn(*(Transaction::start_scn_q_.begin()));
 
     LOG(INFO) << "Build Transaction now" << std::endl;
     auto tran = Transaction::xid_map_.begin();
@@ -53,17 +55,14 @@ namespace databus {
         tran++;
       }
     }
-    Transaction::setMinXidStartScn();
 
     LOG(INFO) << "Apply Transaction now " << std::endl;
     auto commit_tran = Transaction::commit_trans_.begin();
     while (commit_tran != Transaction::commit_trans_.end()) {
-      // LOG(INFO) << commit_tran->second->toString();
       SimpleApplier::getApplier(streamconf->getString("tarConn").c_str())
           .apply(commit_tran->second);
       commit_tran = Transaction::commit_trans_.erase(commit_tran);
     }
-    //    MetadataManager::destoy();
   }
 
   int main(int ac, char** av) {
