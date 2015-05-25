@@ -64,10 +64,10 @@ namespace databus {
       std::cout << desc << std::endl;
       std::exit(1);
     }
-    util::dassert("srcConn/tarConn/tableConf are must",
-                  vm.count("srcConn") && vm.count("tarConn") &&
-                      vm.count("tableConf") && vm.count("startSeq"));
-  };
+    util::dassert(
+        "srcConn/tarConn/tableConf are must",
+        vm.count("srcConn") && vm.count("tarConn") && vm.count("tableConf"));
+  }
 
   int StreamConf::getInt(const char* para, int default_value) {
     if (vm.count(para)) return vm[para].as<int>();
@@ -125,8 +125,9 @@ namespace databus {
         }
         // if (tabdef) tabdef->dump();
       } else {
-        LOG(WARNING) << "Invalid Table format " << table
-                     << ", The correct format is owner.table_name";
+        if (!table.empty())
+          LOG(WARNING) << "Invalid Table format " << table
+                       << ", The correct format is owner.table_name";
       }
     }
   }

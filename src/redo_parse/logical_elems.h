@@ -42,7 +42,6 @@ namespace databus {
     unsigned int subscn_;
     uint32_t noffset_;
 
-   private:
     uint64_t toNum() const;
   };  // SCN
 

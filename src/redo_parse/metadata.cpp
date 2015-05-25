@@ -209,7 +209,21 @@ namespace databus {
         log_last_blk_stmt_(1,
                            "select LAST_REDO_BLOCK from v$thread where "
                            "LAST_REDO_SEQUENCE# = :seq<unsigned>",
-                           conn_) {}
+                           conn_),
+        log_file_from_scn_stmt_(1,
+                                "select  SEQUENCE# from v$archived_log "
+                                "where to_number(:restart_scn<char[80]>) "
+                                "between FIRST_CHANGE# and NEXT_CHANGE# "
+                                "and STANDBY_DEST='NO'",
+                                conn_) {}
+
+  uint32_t LogManager::getSeqFromScn(const char* restart_scn) {
+    log_file_from_scn_stmt_ << restart_scn;
+    if (log_file_from_scn_stmt_.eof()) return 0;
+    uint32_t seq;
+    log_file_from_scn_stmt_ >> seq;
+    return seq;
+  }
 
   std::string LogManager::getLogfile(uint32_t seq) {
     // prefer archive log

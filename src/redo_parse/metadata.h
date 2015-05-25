@@ -113,6 +113,7 @@ namespace databus {
     ~LogManager();
     std::string getLogfile(uint32_t seq);
     uint32_t getOnlineLastBlock(uint32_t seq);
+    uint32_t getSeqFromScn(const char* restart_scn);
 
    private:
     // for re-connect
@@ -121,6 +122,7 @@ namespace databus {
     otl_stream arch_log_stmt_;
     otl_stream online_log_stmt_;
     otl_stream log_last_blk_stmt_;
+    otl_stream log_file_from_scn_stmt_;
   };
 }
 #endif

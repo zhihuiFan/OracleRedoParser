@@ -55,7 +55,7 @@ namespace databus {
     // a valid RecordBuf with this call!
     std::shared_ptr<RecordBuf> nextRecordBuf();
 
-    void setStartScn(SCN &scn) { start_scn_ = scn; }
+    void setStartScn(const SCN &scn) { start_scn_ = scn; }
     SCN getStartScn() const { return start_scn_; }
     SCN getFirstScn() const { return lowscn_; }
 

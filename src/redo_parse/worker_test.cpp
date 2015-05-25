@@ -28,8 +28,9 @@ namespace databus {
     return logmanager->getOnlineLastBlock(seq);
   }
 
-  void parseSeq(uint32_t seq) {
+  void parseSeq(uint32_t seq, const SCN& restart_scn) {
     RedoFile redofile(seq, getLogfile, getOnlineLastBlock);
+    redofile.setStartScn(restart_scn);
     RecordBufPtr buf;
     unsigned long c = 0;
     while ((buf = redofile.nextRecordBuf()).get()) {
@@ -73,14 +74,25 @@ namespace databus {
     otl_connect::otl_initialize();
     el::Configurations conf("logging.conf");
     el::Loggers::reconfigureLogger("default", conf);
-    // el::Loggers::reconfigureAllLoggers(conf);
     try {
       initStream(ac, av);
+      ApplyStats stats = ApplierHelper::getApplierHelper().getApplyStats();
+      LOG(INFO) << "Got commit scn " << stats.commit_scn_.toStr() << " "
+                << stats.commit_scn_.toNum();
+      LOG(INFO) << "Got restart scn " << stats.restart_scn_.toStr() << " "
+                << stats.restart_scn_.toNum();
+      uint32_t startSeq = logmanager->getSeqFromScn(
+          std::to_string(stats.restart_scn_.toNum()).c_str());
+      Transaction::setCommitScn(stats.commit_scn_);
+      if (startSeq == 0) {
+        LOG(ERROR) << "restart scn is " << stats.restart_scn_.toStr()
+                   << " Can't find out an archived log contains that scn";
+        return -10;
+      }
       Monitor m;
       std::thread t(std::ref(m));
-      uint32_t startSeq = getStreamConf().getUint32("startSeq");
       while (true) {
-        parseSeq(startSeq);
+        parseSeq(startSeq, stats.restart_scn_);
         LOG(INFO) << "Transaction appliy completed, "
                   << Transaction::xid_map_.size()
                   << " transactions are pending for appling since they are not "
@@ -88,11 +100,9 @@ namespace databus {
         startSeq++;
       }
     } catch (otl_exception& p) {
-      std::cerr << p.msg << std::endl;  // print out error message
-      std::cerr << p.stm_text
-                << std::endl;  // print out SQL that caused the error
-      std::cerr << p.var_info
-                << std::endl;  // print out the variable that caused the error
+      std::cerr << p.msg << std::endl;
+      std::cerr << p.stm_text << std::endl;
+      std::cerr << p.var_info << std::endl;
       throw p;
     }
     return 0;
