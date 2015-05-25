@@ -99,18 +99,13 @@ namespace databus {
     static SCN getLastCommitScn() { return last_commit_scn_.load(); }
     static SCN getRestartScn() { return restart_scn_.load(); }
 
-    static void setRestartScn(const SCN& scn) {
-      LOG(DEBUG) << "SetRestartScn to " << scn.toStr();
-      restart_scn_ = scn;
-    }
+    static void setRestartScn(const SCN& scn) { restart_scn_ = scn; }
     static void setCommitScn(const SCN& scn) {
       if (last_commit_scn_.load() < scn) last_commit_scn_ = scn;
     }
 
     static void setRestartScnWhenCommit(SCN& scn) {
       start_scn_q_.erase(scn);
-      LOG(INFO) << "tran_start_scn " << scn.toStr() << " current_start_scn "
-                << restart_scn_.load().toStr();
       if (restart_scn_.load() == scn) {
         if (start_scn_q_.empty()) {
           setRestartScn(commit_trans_.begin()->second->start_scn_);
