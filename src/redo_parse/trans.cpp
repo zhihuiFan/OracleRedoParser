@@ -40,10 +40,10 @@ namespace databus {
     if (it->second->has_rollback()) {
       return Transaction::xid_map_.erase(it);
     } else {
-      Transaction::start_scn_q_.insert(it->second->start_scn_);
       if (it->second->commit_scn_ < Transaction::getLastCommitScn()) {
         return Transaction::xid_map_.erase(it);
       }
+      Transaction::start_scn_q_.insert(it->second->start_scn_);
       it->second->tidyChanges();
       Transaction::commit_trans_[it->second->commit_scn_] =
           Transaction::xid_map_[it->second->xid_];

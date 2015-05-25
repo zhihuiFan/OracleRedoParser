@@ -43,7 +43,6 @@ namespace databus {
     LOG(INFO) << "total record found  = " << c << std::endl;
     auto n = Transaction::removeUncompletedTrans();
     LOG(WARNING) << "removed " << n << " incompleted transaction";
-    Transaction::setRestartScn(*(Transaction::start_scn_q_.begin()));
 
     LOG(INFO) << "Build Transaction now" << std::endl;
     auto tran = Transaction::xid_map_.begin();
@@ -54,6 +53,10 @@ namespace databus {
       } else {
         tran++;
       }
+    }
+
+    if (!Transaction::start_scn_q_.empty()) {
+      Transaction::setRestartScn(*(Transaction::start_scn_q_.begin()));
     }
 
     LOG(INFO) << "Apply Transaction now " << std::endl;
