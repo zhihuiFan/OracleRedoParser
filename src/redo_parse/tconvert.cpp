@@ -130,8 +130,8 @@ namespace databus {
 
       std::stringstream ss;
       ss << year << "-" << (int)ora_date->month_ << "-" << (int)ora_date->day_
-         << " " << (int)ora_date->hour_ << ":" << (int)ora_date->minute_ << ":"
-         << (int)ora_date->second_;
+         << " " << (int)ora_date->hour_ - 1 << ":" << (int)ora_date->minute_ - 1
+         << ":" << (int)ora_date->second_ - 1;
       return ss.str();
     }
     return NULL;
