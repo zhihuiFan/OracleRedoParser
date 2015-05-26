@@ -50,41 +50,45 @@ namespace databus {
   }
 
   void SimpleApplier::apply(TransactionPtr tran) {
-    for (auto rc : tran->changes_) {
-      if (!rc->completed()) {
-        LOG(ERROR) << "Transaction ID " << tran->xid_
-                   << " Incompleted Row Change: SCN " << rc->scn_.toStr();
-        std::exit(21);
-      }
+    try {
+      for (auto rc : tran->changes_) {
+        if (!rc->completed()) {
+          LOG(ERROR) << "Transaction ID " << tran->xid_
+                     << " Incompleted Row Change: SCN " << rc->scn_.toStr();
+          std::exit(21);
+        }
 
-      if (rc->op_ == opcode::kRowChain || rc->op_ == opcode::kLmn) {
-        rc->op_ = opcode::kUpdate;
-      }
+        if (rc->op_ == opcode::kRowChain || rc->op_ == opcode::kLmn) {
+          rc->op_ = opcode::kUpdate;
+        }
 
-      auto tab_def = getMetadata().getTabDefFromId(rc->object_id_);
-      auto tab_name = tab_def->getTabName();
-      if (rc->op_ == opcode::kUpdate) {
-        bool same = true;
-        for (auto c : rc->old_pk_) {
-          auto ret = rc->new_pk_.insert(c);
-          if (!ret.second) {
-            if (colAsStr2(c, tab_def)
-                    .compare(colAsStr2(*(ret.first), tab_def)) != 0) {
-              same = false;
+        auto tab_def = getMetadata().getTabDefFromId(rc->object_id_);
+        auto tab_name = tab_def->getTabName();
+        if (rc->op_ == opcode::kUpdate) {
+          bool same = true;
+          for (auto c : rc->old_pk_) {
+            auto ret = rc->new_pk_.insert(c);
+            if (!ret.second) {
+              if (colAsStr2(c, tab_def)
+                      .compare(colAsStr2(*(ret.first), tab_def)) != 0) {
+                same = false;
+              }
             }
           }
+          if (!same) {
+            rc->op_ = opcode::kDelete;
+            _apply(rc, tab_def, tran->xid_);
+            rc->op_ = opcode::kInsert;
+            _apply(rc, tab_def, tran->xid_);
+            continue;
+          }
         }
-        if (!same) {
-          rc->op_ = opcode::kDelete;
-          _apply(rc, tab_def, tran->xid_);
-          rc->op_ = opcode::kInsert;
-          _apply(rc, tab_def, tran->xid_);
-          continue;
-        }
+        _apply(rc, tab_def, tran->xid_);
       }
-      _apply(rc, tab_def, tran->xid_);
+      conn_.commit();
+    } catch (otl_exception& p) {
+      if (p.code != 1) throw p;
     }
-    conn_.commit();
     Transaction::setCommitScn(tran->commit_scn_);
     Transaction::setRestartScnWhenCommit(tran->start_scn_);
   }
