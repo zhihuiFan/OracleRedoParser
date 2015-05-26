@@ -295,6 +295,8 @@ namespace databus {
           if (Transaction::xid_map_.find(xid) == Transaction::xid_map_.end()) {
             Transaction::xid_map_[xid] = TransactionPtr(new Transaction());
             Transaction::xid_map_[xid]->xid_ = xid;
+            LOG(TRACE) << "5.2 xid " << xid << " dba " << dba << " scn "
+                       << trans_start_scn.toStr();
           }
           rcp->object_id_ = Ops0501::getObjId(change);
           if (dba > 0) {
@@ -353,6 +355,8 @@ namespace databus {
             }
             xidit->second->commit_scn_ = rcp->scn_;
             xidit->second->cflag_ = ucm->flg_;
+            LOG(TRACE) << "5.4 xid " << ixid << " scn " << rcp->scn_.toStr()
+                       << " dba " << dba;
           }
           break;
         default:
