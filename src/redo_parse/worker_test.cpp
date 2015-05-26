@@ -95,6 +95,7 @@ namespace databus {
       }
       Transaction::setRestartScn(stats.restart_scn_);
       Transaction::setCommitScn(stats.commit_scn_);
+      Transaction::start_scn_q_.insert(stats.restart_scn_);
     } catch (otl_exception& p) {
       LOG(ERROR) << p.msg;
       LOG(ERROR) << p.stm_text;
