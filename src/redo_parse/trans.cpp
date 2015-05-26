@@ -295,9 +295,6 @@ namespace databus {
           if (Transaction::xid_map_.find(xid) == Transaction::xid_map_.end()) {
             Transaction::xid_map_[xid] = TransactionPtr(new Transaction());
             Transaction::xid_map_[xid]->xid_ = xid;
-            LOG(TRACE) << "5.2 xid " << xid << " dba " << dba << " scn "
-                       << trans_start_scn.toStr() << " cls "
-                       << change->block_class_ << " high " << (xid >> 48);
           }
           rcp->object_id_ = Ops0501::getObjId(change);
           if (dba > 0) {
@@ -337,16 +334,13 @@ namespace databus {
           dba = change->dba();
           {
             auto it = Transaction::dba_map_.find(dba);
-            if (it == Transaction::dba_map_.end()) {
-              LOG(DEBUG) << "found dba " << dba
-                         << " in commit, but unknow when "
-                            "this transaction is started" << std::endl;
-              return;
+            XID xid_high = (change->block_class_ - 15) / 2;
+            if (it != Transaction::dba_map_.end() && it->second != xid_high) {
+              LOG(ERROR) << "CLS->XID_HIGH Error scn" << rcp->scn_.toStr();
             }
             OpCode0504_ucm* ucm = (OpCode0504_ucm*)(change->part(1));
-            XID ixid =
-                (((XID)it->second) << (sizeof(Ushort) + sizeof(uint32_t)) * 8) |
-                (((XID)ucm->slt_) << sizeof(uint32_t) * 8) | ucm->sqn_;
+            XID ixid = ((xid_high) << (sizeof(Ushort) + sizeof(uint32_t)) * 8) |
+                       (((XID)ucm->slt_) << sizeof(uint32_t) * 8) | ucm->sqn_;
             auto xidit = Transaction::xid_map_.find(ixid);
             if (xidit == Transaction::xid_map_.end()) {
               LOG(DEBUG) << "found xid " << dba
@@ -356,8 +350,6 @@ namespace databus {
             }
             xidit->second->commit_scn_ = rcp->scn_;
             xidit->second->cflag_ = ucm->flg_;
-            LOG(TRACE) << "5.4 xid " << ixid << " scn " << rcp->scn_.toStr()
-                       << " dba " << dba << " cls " << change->block_class_;
           }
           break;
         default:
