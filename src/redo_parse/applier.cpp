@@ -30,20 +30,21 @@ namespace databus {
 
   void SimpleApplier::_apply(RowChangePtr rcp, TabDefPtr tab_def, XID xid) {
     auto tab_name = tab_def->getTabName();
-    (*(stmt_dict_[tab_name].get())) << std::to_string(xid).c_str();
-    (*(stmt_dict_[tab_name].get())) << getOpStr(rcp->op_).c_str();
-    (*(stmt_dict_[tab_name].get())) << rcp->scn_.toString().c_str();
+    otl_stream* this_stream = stmt_dict_[tab_name].get();
+    (*this_stream) << std::to_string(xid).c_str();
+    (*this_stream) << getOpStr(rcp->op_).c_str();
+    (*this_stream) << rcp->scn_.toString().c_str();
     switch (rcp->op_) {
       case opcode::kInsert:
       case opcode::kMultiInsert:
         for (auto pk_col : rcp->new_pk_) {
-          (*(stmt_dict_[tab_name].get())) << colAsStr2(pk_col, tab_def).c_str();
+          (*this_stream) << colAsStr2(pk_col, tab_def).c_str();
         }
         break;
       case opcode::kUpdate:
       case opcode::kDelete:
         for (auto pk_col : rcp->old_pk_) {
-          (*(stmt_dict_[tab_name].get())) << colAsStr2(pk_col, tab_def).c_str();
+          (*this_stream) << colAsStr2(pk_col, tab_def).c_str();
         }
         break;
     }
@@ -207,7 +208,7 @@ namespace databus {
           commit_scn.subscn_ = std::stoul(std::string((char*)buf));
           break;
         case 4:
-          commit_scn.noffset_ = std::stoul(std::string((char*)buf)) + 1;
+          commit_scn.noffset_ = std::stoul(std::string((char*)buf));
           break;
         case 5:
           restart_scn.major_ = std::stoi(std::string((char*)buf));
@@ -219,7 +220,7 @@ namespace databus {
           restart_scn.subscn_ = std::stoul(std::string((char*)buf));
           break;
         case 8:
-          restart_scn.noffset_ = std::stoul(std::string((char*)buf)) + 1;
+          restart_scn.noffset_ = std::stoul(std::string((char*)buf));
           break;
       }
     }
