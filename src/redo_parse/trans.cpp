@@ -343,13 +343,12 @@ namespace databus {
                        (((XID)ucm->slt_) << sizeof(uint32_t) * 8) | ucm->sqn_;
             auto xidit = Transaction::xid_map_.find(ixid);
             if (xidit == Transaction::xid_map_.end()) {
-              LOG(DEBUG) << "found xid " << dba
-                         << " in commit , but unknow when "
-                            "this transaction is started" << std::endl;
-              return;
+              Transaction::xid_map_[ixid] =
+                  std::shared_ptr<Transaction>(new Transaction());
+              Transaction::xid_map_[xid]->xid_ = ixid;
             }
-            xidit->second->commit_scn_ = rcp->scn_;
-            xidit->second->cflag_ = ucm->flg_;
+            Transaction::xid_map_[ixid]->commit_scn_ = rcp->scn_;
+            Transaction::xid_map_[ixid]->cflag_ = ucm->flg_;
           }
           break;
         default:
