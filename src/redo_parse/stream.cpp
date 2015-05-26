@@ -64,9 +64,9 @@ namespace databus {
       std::cout << desc << std::endl;
       std::exit(1);
     }
-    util::dassert(
-        "srcConn/tarConn/tableConf are must",
-        vm.count("srcConn") && vm.count("tarConn") && vm.count("tableConf"));
+    util::dassert("srcConn/tarConn/tableConf are must",
+                  vm.count("srcConn") && vm.count("tarConn") &&
+                      vm.count("tableConf") && vm.count("instId"));
   }
 
   int StreamConf::getInt(const char* para, int default_value) {
