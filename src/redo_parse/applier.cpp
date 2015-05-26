@@ -201,25 +201,25 @@ namespace databus {
           commit_scn.major_ = std::stoi(std::string((char*)buf));
           break;
         case 2:
-          commit_scn.minor_ = std::stoi(std::string((char*)buf));
+          commit_scn.minor_ = std::stoul(std::string((char*)buf));
           break;
         case 3:
-          commit_scn.subscn_ = std::stoi(std::string((char*)buf));
+          commit_scn.subscn_ = std::stoul(std::string((char*)buf));
           break;
         case 4:
-          commit_scn.noffset_ = std::stoi(std::string((char*)buf)) + 1;
+          commit_scn.noffset_ = std::stoul(std::string((char*)buf)) + 1;
           break;
         case 5:
           restart_scn.major_ = std::stoi(std::string((char*)buf));
           break;
         case 6:
-          restart_scn.minor_ = std::stoi(std::string((char*)buf));
+          restart_scn.minor_ = std::stoul(std::string((char*)buf));
           break;
         case 7:
-          restart_scn.subscn_ = std::stoi(std::string((char*)buf));
+          restart_scn.subscn_ = std::stoul(std::string((char*)buf));
           break;
         case 8:
-          restart_scn.noffset_ = std::stoi(std::string((char*)buf)) + 1;
+          restart_scn.noffset_ = std::stoul(std::string((char*)buf)) + 1;
           break;
       }
     }
