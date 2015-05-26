@@ -75,16 +75,18 @@ namespace databus {
     otl_connect::otl_initialize();
     el::Configurations conf("logging.conf");
     el::Loggers::reconfigureLogger("default", conf);
+    util::guarded_thread mt;
+    uint32_t startSeq;
+    ApplyStats stats;
     try {
       initStream(ac, av);
-      ApplyStats stats = ApplierHelper::getApplierHelper().getApplyStats();
+      stats = ApplierHelper::getApplierHelper().getApplyStats();
       LOG(INFO) << "Got commit scn " << stats.commit_scn_.toStr() << " "
                 << stats.commit_scn_.toNum();
       LOG(INFO) << "Got restart scn " << stats.restart_scn_.toStr() << " "
                 << stats.restart_scn_.toNum();
-      uint32_t startSeq = logmanager->getSeqFromScn(
+      startSeq = logmanager->getSeqFromScn(
           std::to_string(stats.restart_scn_.toNum()).c_str());
-      Transaction::setCommitScn(stats.commit_scn_);
       if (startSeq == 0) {
         LOG(ERROR) << "restart scn is " << stats.restart_scn_.toStr()
                    << " Can't find out an archived log contains that scn";
@@ -92,8 +94,15 @@ namespace databus {
       }
       Transaction::setRestartScn(stats.restart_scn_);
       Transaction::setCommitScn(stats.commit_scn_);
-      Monitor m;
-      util::guarded_thread t(std::ref(m));
+    } catch (otl_exception& p) {
+      LOG(ERROR) << p.msg;
+      LOG(ERROR) << p.stm_text;
+      LOG(ERROR) << p.var_info;
+      throw p;
+    }
+    Monitor m;
+    util::guarded_thread t{std::ref(m)};
+    try {
       while (true) {
         parseSeq(startSeq, stats.restart_scn_);
         LOG(INFO) << "Transaction appliy completed, "

@@ -44,6 +44,7 @@ namespace databus {
   };
 
   struct ApplyStats {
+    ApplyStats() {}
     ApplyStats(const SCN& restart_scn, const SCN& commit_scn)
         : restart_scn_(restart_scn), commit_scn_(commit_scn) {}
     SCN restart_scn_;
