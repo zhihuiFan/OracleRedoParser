@@ -345,7 +345,7 @@ namespace databus {
             if (xidit == Transaction::xid_map_.end()) {
               Transaction::xid_map_[ixid] =
                   std::shared_ptr<Transaction>(new Transaction());
-              Transaction::xid_map_[xid]->xid_ = ixid;
+              Transaction::xid_map_[ixid]->xid_ = ixid;
             }
             Transaction::xid_map_[ixid]->commit_scn_ = rcp->scn_;
             Transaction::xid_map_[ixid]->cflag_ = ucm->flg_;
