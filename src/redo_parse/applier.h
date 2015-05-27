@@ -35,7 +35,7 @@ namespace databus {
    private:
     SimpleApplier(const char* conn_str);
     std::string getInsertStmt(TabDefPtr tab_def);
-    void _apply(RowChangePtr rcp, TabDefPtr tab_def, XID xid);
+    void _apply(RowChangePtr rcp, TabDefPtr tab_def, XID xid, char offset);
 
    private:
     std::string conn_str_;

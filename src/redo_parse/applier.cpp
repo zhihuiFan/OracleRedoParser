@@ -28,11 +28,15 @@ namespace databus {
     stmt_dict_[tab_name]->set_commit(0);
   }
 
-  void SimpleApplier::_apply(RowChangePtr rcp, TabDefPtr tab_def, XID xid) {
+  void SimpleApplier::_apply(RowChangePtr rcp, TabDefPtr tab_def, XID xid,
+                             char offset = 0) {
     auto tab_name = tab_def->getTabName();
     otl_stream* this_stream = stmt_dict_[tab_name].get();
     (*this_stream) << std::to_string(xid).c_str();
     (*this_stream) << getOpStr(rcp->op_).c_str();
+    if (offset > 0) {
+      rcp->scn_.noffset_ += 1;
+    }
     (*this_stream) << rcp->scn_.toString().c_str();
     switch (rcp->op_) {
       case opcode::kInsert:
@@ -80,7 +84,7 @@ namespace databus {
             rc->op_ = opcode::kDelete;
             _apply(rc, tab_def, tran->xid_);
             rc->op_ = opcode::kInsert;
-            _apply(rc, tab_def, tran->xid_);
+            _apply(rc, tab_def, tran->xid_, 1);
             continue;
           }
         }
