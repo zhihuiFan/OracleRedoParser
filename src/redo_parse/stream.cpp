@@ -56,7 +56,8 @@ namespace databus {
         "instId", po::value<uint32_t>(), "DataStream instance Id")(
         "confFile", po::value<std::string>(), "configure file for data stream")(
         "tableConf", po::value<std::string>(), "tables to capture changes")(
-        "startSeq", po::value<uint32_t>(), "the log sequence to start with");
+        "startSeq", po::value<uint32_t>(),
+        "the log sequence to start with, will be removed soon");
   }
 
   void StreamConf::validParams() {
@@ -105,6 +106,10 @@ namespace databus {
 
   void initStream(int ac, char** av) {
     streamconf = new StreamConf(ac, av);
+    std::stringstream ss;
+    ss << "logging_" << streamconf->getUint32("instId") << ".conf";
+    el::Configurations conf(ss.str().c_str());
+    el::Loggers::reconfigureLogger("default", conf);
     captual_tables =
         initCaptualTable(streamconf->getString("tableConf").c_str());
     logmanager = std::shared_ptr<LogManager>(

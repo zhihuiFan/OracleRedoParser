@@ -44,7 +44,7 @@ namespace databus {
     }
     LOG(INFO) << "total record found  = " << c << std::endl;
     auto n = Transaction::removeUncompletedTrans();
-    LOG(WARNING) << "removed " << n << " incompleted transaction";
+    if (n > 0) LOG(WARNING) << "removed " << n << " incompleted transaction";
 
     LOG(INFO) << "Build Transaction now" << std::endl;
     auto tran = Transaction::xid_map_.begin();
@@ -74,9 +74,6 @@ namespace databus {
   int main(int ac, char** av) {
     putenv(const_cast<char*>("NLS_LANG=.AL32UTF8"));
     otl_connect::otl_initialize();
-    el::Configurations conf("logging.conf");
-    el::Loggers::reconfigureLogger("default", conf);
-    util::guarded_thread mt;
     uint32_t startSeq;
     ApplyStats stats;
     try {
