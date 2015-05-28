@@ -4,7 +4,6 @@
 #include <sstream>
 #include <string.h>
 #include <cmath>
-// #include <occi.h>
 
 #include "logical_elems.h"
 #include "metadata.h"
@@ -135,6 +134,23 @@ namespace databus {
       return ss.str();
     }
     return NULL;
+  }
+
+  std::string epochToTime(uint32_t epoch) {
+    std::stringstream ss;
+    int yy, mm, dd, hh, mi, sec;
+    const uint32_t secs_one_year = 12 * 31 * 24 * 3600;
+    yy = epoch / secs_one_year + 1988;
+    mm = (epoch % secs_one_year) / (31 * 24 * 3600) + 1;
+    dd = ((epoch % secs_one_year) % (31 * 24 * 3600)) / (24 * 3600) + 1;
+    hh = (((epoch % secs_one_year) % (31 * 24 * 3600)) % (24 * 3600)) / 3600;
+    mi = ((((epoch % secs_one_year) % (31 * 24 * 3600)) % (24 * 3600)) % 3600) /
+         60;
+    sec =
+        ((((epoch % secs_one_year) % (31 * 24 * 3600)) % (24 * 3600)) % 3600) %
+        60;
+    ss << yy << "-" << mm << "-" << dd << " " << hh << ":" << mi << ":" << sec;
+    return ss.str();
   }
 
   std::string convert(const char* input, std::string& type, Ushort len) {

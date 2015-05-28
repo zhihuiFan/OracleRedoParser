@@ -29,7 +29,8 @@ namespace databus {
           file_start_pos_(NULL),
           length_(0),
           start_scn_(),
-          allop_(false) {
+          allop_(false),
+          epoch_(0) {
       std::string filename = log_generator_(log_seq);
       init(filename.c_str());
     };
@@ -41,7 +42,8 @@ namespace databus {
           length_(0),
           log_sequence_(-1),
           start_scn_(),
-          allop_(true) {
+          allop_(true),
+          epoch_(0) {
       log_generator_ = [&filename](uint32_t) { return filename; };
       online_last_blk_ = [](uint32_t) { return 0xFFFFFF; };
       init(filename);
@@ -140,6 +142,7 @@ namespace databus {
     size_t length_;
     uint32_t block_size_;
     uint32_t last_block_id_;
+    uint32_t epoch_;
     Uchar ora_version_;
     bool allop_;  // log all op in RecordBuf, not only 11.x
 

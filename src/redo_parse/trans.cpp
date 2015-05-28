@@ -205,7 +205,8 @@ namespace databus {
         start_col_(0),
         cc_(0),
         old_pk_{},
-        new_pk_{} {}
+        new_pk_{},
+        epoch_(0) {}
 
   std::string RowChange::toString() const {
     std::stringstream ss;
@@ -275,9 +276,9 @@ namespace databus {
     XID xid = 0;
     std::list<Row> undo, redo;
     SCN trans_start_scn;
-    // OpCodeSupplemental* opsup = NULL;
     RowChangePtr rcp(new RowChange());
     rcp->scn_ = record->scn();
+    rcp->epoch_ = record->epoch();
     for (auto change : record->change_vectors) {
       switch (change->opCode()) {
         case opcode::kBeginTrans:

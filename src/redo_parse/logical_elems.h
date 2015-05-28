@@ -56,6 +56,7 @@ namespace databus {
     ~RecordBuf() { delete[] change_buffers_; }
     SCN& scn() { return scn_; }
     Ushort op() { return op_; };
+    uint32_t epoch() const { return epoch_; }
 
    private:
     // allop:  if true, capatural all opocde. or else only captual valid op

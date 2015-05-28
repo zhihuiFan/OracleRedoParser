@@ -13,11 +13,14 @@
 
 namespace databus {
   const std::list<std::pair<std::string, std::string>> prefix_cols{
-      std::make_pair("XID", "to_number(:stream_xid<char[39]>)"),
-      std::make_pair("OP", ":stream_op<char[40]>"),
+      std::make_pair("STREAM_XID", "to_number(:stream_xid<char[39]>)"),
+      std::make_pair("STREAM_OP", ":stream_op<char[40]>"),
       std::make_pair(
-          "SCN",
-          "to_number(:stream_scn<char[29]>, 'XXXXXXXXXXXXXXXXXXXXXXXXXXXX')")};
+          "STREAM_SCN",
+          "to_number(:stream_scn<char[29]>, 'XXXXXXXXXXXXXXXXXXXXXXXXXXXX')"),
+      std::make_pair(
+          "STREAM_TIMESTAMP",
+          "to_date(:stream_timestamp<char[21]>, 'yyyy-mm-dd hh24:mi:ss')")};
   class TabDef;
   typedef std::shared_ptr<TabDef> TabDefPtr;
   class SimpleApplier {

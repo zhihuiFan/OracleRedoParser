@@ -45,6 +45,7 @@ namespace databus {
     uint32_t object_id_;
     Ushort op_;
     Ushort start_col_;
+    uint32_t epoch_;
     // we only care about cc for 11.6
     // see https://jirap.corp.ebay.com/browse/DBISTREA-37
     Ushort cc_;

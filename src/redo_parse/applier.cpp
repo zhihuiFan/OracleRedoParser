@@ -10,6 +10,7 @@
 #include "util/dassert.h"
 #include "metadata.h"
 #include "stream.h"
+#include "tconvert.h"
 
 namespace databus {
   SimpleApplier::SimpleApplier(const char* conn_str)
@@ -38,6 +39,7 @@ namespace databus {
       rcp->scn_.noffset_ += 1;
     }
     (*this_stream) << rcp->scn_.toString().c_str();
+    (*this_stream) << epochToTime(rcp->epoch_).c_str();
     switch (rcp->op_) {
       case opcode::kInsert:
       case opcode::kMultiInsert:
