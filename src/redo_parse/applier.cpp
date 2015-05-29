@@ -141,25 +141,29 @@ namespace databus {
   ApplierHelper::ApplierHelper(const char* conn_str, uint32_t inst_id)
       : conn_(conn_str),
         inst_id_(inst_id),
-        save_progress_stmt_(1,
-                            "INSERT INTO stream_progress "
-                            " (INST_ID, COMMIT_SCN_MAJOR, COMMIT_SCN_MINOR, "
-                            "COMMIT_SUBSCN, COMMIT_OFFSET, COMMIT_EPOCH"
-                            " START_SCN_MAJOR, START_SCN_MINOR, START_SUBSCN, "
-                            "START_OFFSET, START_EPOCH, CREATION_DATE) "
-                            "VALUES (:INST_ID<unsigned>, "
-                            ":COMMIT_SCN_MAJOR<unsigned>, "
-                            ":COMMIT_SCN_MINOR<unsigned>, "
-                            ":COMMIT_SUBSCN<unsigned>, "
-                            ":COMMIT_OFFSET<unsigned>, "
-                            ":COMMIT_EPOCH<unsigned>, "
-                            ":START_SCN_MAJOR<unsigned>, "
-                            ":START_SCN_MINOR<unsigned>, "
-                            ":START_SUBSCN<unsigned>, "
-                            ":START_OFFSET<unsigned>, "
-                            ":START_EPOCH<unsigned>, "
-                            "SYSDATE)",
-                            conn_),
+        save_progress_stmt_(
+            1,
+            "INSERT INTO stream_progress "
+            " (INST_ID, COMMIT_SCN_MAJOR, COMMIT_SCN_MINOR, "
+            "COMMIT_SUBSCN, COMMIT_OFFSET, APPLIED_TIME, "
+            " START_SCN_MAJOR, START_SCN_MINOR, START_SUBSCN, "
+            "START_OFFSET, RESTART_TIME,  COMMIT_EPOCH, RESTART_EPOCH, "
+            "CREATION_DATE) "
+            "VALUES (:INST_ID<unsigned>, "
+            ":COMMIT_SCN_MAJOR<unsigned>, "
+            ":COMMIT_SCN_MINOR<unsigned>, "
+            ":COMMIT_SUBSCN<unsigned>, "
+            ":COMMIT_OFFSET<unsigned>, "
+            "to_date(:APPLIED_TIME<char[30]>, 'yyyy-mm-dd hh24:mi:ss'), "
+            ":START_SCN_MAJOR<unsigned>, "
+            ":START_SCN_MINOR<unsigned>, "
+            ":START_SUBSCN<unsigned>, "
+            ":START_OFFSET<unsigned>, "
+            "to_date(:RESTART_TIME<char[30]>, 'yyyy-mm-dd hh24:mi:ss'), "
+            ":COMMIT_EPOCH<unsigned>, "
+            ":RESTART_EPOCH<unsigned>,"
+            "SYSDATE)",
+            conn_),
         get_progress_stmt_(1,
                            "SELECT "
                            " COMMIT_SCN_MAJOR, "
@@ -171,7 +175,7 @@ namespace databus {
                            " START_SUBSCN, "
                            " START_OFFSET, "
                            " COMMIT_EPOCH, "
-                           " START_EPOCH, "
+                           " RESTART_EPOCH"
                            " FROM  STREAM_PROGRESS "
                            " WHERE INST_ID = :INST_ID<unsigned> "
                            " AND CREATION_DATE = (SELECT MAX(CREATION_DATE) "
@@ -185,16 +189,18 @@ namespace databus {
     if (restart_tp.scn_ == SCN(-1)) return;
     save_progress_stmt_ << inst_id_;
 
-    save_progress_stmt_ << commit_tp.scn_.major_;
+    save_progress_stmt_ << (unsigned)commit_tp.scn_.major_;
     save_progress_stmt_ << commit_tp.scn_.minor_;
     save_progress_stmt_ << commit_tp.scn_.subscn_;
     save_progress_stmt_ << commit_tp.scn_.noffset_;
-    save_progress_stmt_ << commit_tp.epoch_;
+    save_progress_stmt_ << epochToTime(commit_tp.epoch_).c_str();
 
-    save_progress_stmt_ << restart_tp.scn_.major_;
+    save_progress_stmt_ << (unsigned)restart_tp.scn_.major_;
     save_progress_stmt_ << restart_tp.scn_.minor_;
     save_progress_stmt_ << restart_tp.scn_.subscn_;
     save_progress_stmt_ << restart_tp.scn_.noffset_;
+    save_progress_stmt_ << epochToTime(restart_tp.epoch_).c_str();
+    save_progress_stmt_ << restart_tp.epoch_;
     save_progress_stmt_ << restart_tp.epoch_;
 
     conn_.commit();
@@ -207,10 +213,9 @@ namespace databus {
     }
     TimePoint commit_tp, restart_tp;
     unsigned val;
-    int n = 0;
-    while (n < 9) {
+    int n = 1;
+    while (n < 11) {
       get_progress_stmt_ >> val;
-      ++n;
       switch (n) {
         case 1:
           commit_tp.scn_.major_ = val;
@@ -243,6 +248,7 @@ namespace databus {
           restart_tp.epoch_ = val;
           break;
       }
+      n++;
     }
     return ApplyStats(restart_tp, commit_tp);
   }

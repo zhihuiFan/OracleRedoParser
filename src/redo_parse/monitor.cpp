@@ -10,8 +10,14 @@ namespace databus {
   void Monitor::operator()() {
     while (true) {
       ApplierHelper& ah = ApplierHelper::getApplierHelper();
-      ah.saveApplyProgress(Transaction::getLastCommitTimePoint(),
-                           Transaction::getRestartTimePoint());
+      try {
+        ah.saveApplyProgress(Transaction::getLastCommitTimePoint(),
+                             Transaction::getRestartTimePoint());
+      } catch (otl_exception& p) {
+        LOG(ERROR) << p.msg;
+        LOG(ERROR) << p.stm_text;
+        LOG(ERROR) << p.var_info;
+      }
       sleep(3);
     }
   }
