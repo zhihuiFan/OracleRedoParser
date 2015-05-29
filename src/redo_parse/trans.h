@@ -66,13 +66,30 @@ namespace databus {
   typedef std::map<XID, std::shared_ptr<Transaction>> XIDMap;
   typedef std::map<DBA, USN> DBAMap;
 
+  struct TimePoint {
+    TimePoint() : epoch_(0), scn_() {}
+    TimePoint(const SCN& scn, const uint32_t epoch)
+        : epoch_(epoch), scn_(scn) {}
+    uint32_t epoch_;
+    SCN scn_;
+    std::string toString() const;
+  };
+
   struct Transaction {
    public:
-    Transaction() : cflag_(-1), xid_(0), start_scn_(), commit_scn_() {}
+    Transaction()
+        : cflag_(-1),
+          xid_(0),
+          start_scn_(),
+          commit_scn_(),
+          end_epoch_(0),
+          start_epoch_(0) {}
     XID xid_;
     SCN start_scn_;
     SCN commit_scn_;
     char cflag_;
+    uint32_t start_epoch_;
+    uint32_t end_epoch_;
 
     // orginize changes, for row-chains, row migration
     std::set<RowChangePtr, Less> changes_;
@@ -94,24 +111,44 @@ namespace databus {
 
    public:
     static DBAMap dba_map_;
-    static std::set<SCN> start_scn_q_;
+    static std::map<SCN, uint32_t> start_scn_q_;
 
    public:
-    static SCN getLastCommitScn() { return last_commit_scn_.load(); }
-    static SCN getRestartScn() { return restart_scn_.load(); }
-
-    static void setRestartScn(const SCN& scn) { restart_scn_ = scn; }
-    static void setCommitScn(const SCN& scn) {
-      if (last_commit_scn_.load() < scn) last_commit_scn_ = scn;
+    static TimePoint getLastCommitTimePoint() {
+      std::lock_guard<std::mutex> lk(commit_mutex_);
+      return TimePoint(last_commit_scn_, last_commit_epoch_);
     }
 
-    static void setRestartScnWhenCommit(SCN& scn) {
-      start_scn_q_.erase(scn);
-      if (restart_scn_.load() == scn) {
+    static TimePoint getRestartTimePoint() {
+      std::lock_guard<std::mutex> lk(commit_mutex_);
+      return TimePoint(restart_scn_, restart_epoch_);
+    }
+
+    static void setRestartTimePoint(const SCN& scn, uint32_t epoch) {
+      std::lock_guard<std::mutex> lk(restart_mutex_);
+      restart_scn_ = scn;
+      restart_epoch_ = epoch;
+    }
+
+    static void setLastCommitTimePoint(const SCN& scn, uint32_t epoch) {
+      std::lock_guard<std::mutex> lk(commit_mutex_);
+      last_commit_scn_ = scn;
+      last_commit_epoch_ = epoch;
+    }
+
+    static void setTimePointWhenCommit(
+        const std::shared_ptr<Transaction> tran) {
+      if (last_commit_scn_ < tran->commit_scn_) {
+        std::lock_guard<std::mutex> lk(commit_mutex_);
+        last_commit_scn_ = tran->commit_scn_;
+      }
+      start_scn_q_.erase(tran->start_scn_);
+      if (tran->start_scn_ == restart_scn_) {
         if (start_scn_q_.empty()) {
-          setRestartScn(commit_trans_.begin()->second->start_scn_);
+          setRestartTimePoint(tran->start_scn_, tran->start_epoch_);
         } else {
-          setRestartScn(*(start_scn_q_.begin()));
+          auto it = start_scn_q_.begin();
+          setRestartTimePoint(it->first, it->second);
         }
       }
     }
@@ -131,8 +168,12 @@ namespace databus {
     }
 
    private:
-    static std::atomic<SCN> last_commit_scn_;
-    static std::atomic<SCN> restart_scn_;
+    static std::mutex restart_mutex_;
+    static std::mutex commit_mutex_;
+    static uint32_t restart_epoch_;
+    static uint32_t last_commit_epoch_;
+    static SCN last_commit_scn_;
+    static SCN restart_scn_;
   };
 
   XIDMap::iterator buildTransaction(XIDMap::iterator it);

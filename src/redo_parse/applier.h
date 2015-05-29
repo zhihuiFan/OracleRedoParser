@@ -48,10 +48,10 @@ namespace databus {
 
   struct ApplyStats {
     ApplyStats() {}
-    ApplyStats(const SCN& restart_scn, const SCN& commit_scn)
-        : restart_scn_(restart_scn), commit_scn_(commit_scn) {}
-    SCN restart_scn_;
-    SCN commit_scn_;
+    ApplyStats(const TimePoint& restart_tp, const TimePoint& commit_tp)
+        : restart_tp_(restart_tp), commit_tp_(commit_tp) {}
+    TimePoint restart_tp_;
+    TimePoint commit_tp_;
   };
 
   class ApplierHelper {
@@ -59,7 +59,8 @@ namespace databus {
 
    public:
     ApplyStats getApplyStats();
-    void saveApplyProgress(const SCN& commit_scn, const SCN& restart_scn);
+    void saveApplyProgress(const TimePoint& commit_tp,
+                           const TimePoint& restart_tp);
     static ApplierHelper& getApplierHelper() {
       static ApplierHelper applierHelper(
           streamconf->getString("tarConn").c_str(),

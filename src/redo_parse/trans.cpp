@@ -23,13 +23,20 @@ namespace databus {
   DBAMap Transaction::dba_map_;
   XIDMap Transaction::xid_map_;
   std::map<SCN, std::shared_ptr<Transaction>> Transaction::commit_trans_;
-  std::atomic<SCN> Transaction::last_commit_scn_;
-  std::atomic<SCN> Transaction::restart_scn_;
-  std::set<SCN> Transaction::start_scn_q_;
+
+  std::mutex Transaction::restart_mutex_;
+  std::mutex Transaction::commit_mutex_;
+  uint32_t Transaction::restart_epoch_;
+  uint32_t Transaction::last_commit_epoch_;
+  SCN Transaction::last_commit_scn_(-1);
+  SCN Transaction::restart_scn_(-1);
+
+  std::map<SCN, uint32_t> Transaction::start_scn_q_;
 
   XIDMap::iterator buildTransaction(XIDMap::iterator it) {
     if (it->second->still_pending()) {
-      Transaction::start_scn_q_.insert(it->second->start_scn_);
+      Transaction::start_scn_q_[it->second->start_scn_] =
+          it->second->start_epoch_;
       return Transaction::xid_map_.end();
     }
     if (cflag.find(it->second->cflag_) == cflag.end()) {
@@ -40,10 +47,12 @@ namespace databus {
     if (it->second->has_rollback()) {
       return Transaction::xid_map_.erase(it);
     } else {
-      if (it->second->commit_scn_ < Transaction::getLastCommitScn()) {
+      if (it->second->commit_scn_ <
+          Transaction::getLastCommitTimePoint().scn_) {
         return Transaction::xid_map_.erase(it);
       }
-      Transaction::start_scn_q_.insert(it->second->start_scn_);
+      Transaction::start_scn_q_[it->second->start_scn_] =
+          it->second->start_epoch_;
       it->second->tidyChanges();
       Transaction::commit_trans_[it->second->commit_scn_] =
           Transaction::xid_map_[it->second->xid_];
@@ -162,6 +171,12 @@ namespace databus {
     for (auto& rc : changes_) {
       ss << rc->pkToString() << std::endl;
     }
+    return ss.str();
+  }
+
+  std::string TimePoint::toString() const {
+    std::stringstream ss;
+    ss << " SCN " << scn_.toStr() << " time " << epochToTime(epoch_);
     return ss.str();
   }
 

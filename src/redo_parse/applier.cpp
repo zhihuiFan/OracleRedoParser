@@ -96,8 +96,7 @@ namespace databus {
     } catch (otl_exception& p) {
       if (p.code != 1) throw p;
     }
-    Transaction::setCommitScn(tran->commit_scn_);
-    Transaction::setRestartScnWhenCommit(tran->start_scn_);
+    Transaction::setTimePointWhenCommit(tran);
   }
 
   std::string SimpleApplier::getInsertStmt(TabDefPtr tab_def) {
@@ -145,30 +144,34 @@ namespace databus {
         save_progress_stmt_(1,
                             "INSERT INTO stream_progress "
                             " (INST_ID, COMMIT_SCN_MAJOR, COMMIT_SCN_MINOR, "
-                            "COMMIT_SUBSCN, COMMIT_OFFSET, "
+                            "COMMIT_SUBSCN, COMMIT_OFFSET, COMMIT_EPOCH"
                             " START_SCN_MAJOR, START_SCN_MINOR, START_SUBSCN, "
-                            "START_OFFSET, CREATION_DATE) "
+                            "START_OFFSET, START_EPOCH, CREATION_DATE) "
                             "VALUES (:INST_ID<unsigned>, "
-                            "TO_NUMBER(:COMMIT_SCN_MAJOR<char[39]>), "
-                            "TO_NUMBER(:COMMIT_SCN_MINOR<char[39]>), "
-                            "TO_NUMBER(:COMMIT_SUBSCN<char[39]>), "
-                            "TO_NUMBER(:COMMIT_OFFSET<char[39]>), "
-                            "TO_NUMBER(:START_SCN_MAJOR<char[39]>), "
-                            "TO_NUMBER(:START_SCN_MINOR<char[39]>), "
-                            "TO_NUMBER(:START_SUBSCN<char[39]>), "
-                            "TO_NUMBER(:START_OFFSET<char[39]>), "
+                            ":COMMIT_SCN_MAJOR<unsigned>, "
+                            ":COMMIT_SCN_MINOR<unsigned>, "
+                            ":COMMIT_SUBSCN<unsigned>, "
+                            ":COMMIT_OFFSET<unsigned>, "
+                            ":COMMIT_EPOCH<unsigned>, "
+                            ":START_SCN_MAJOR<unsigned>, "
+                            ":START_SCN_MINOR<unsigned>, "
+                            ":START_SUBSCN<unsigned>, "
+                            ":START_OFFSET<unsigned>, "
+                            ":START_EPOCH<unsigned>, "
                             "SYSDATE)",
                             conn_),
         get_progress_stmt_(1,
                            "SELECT "
-                           " to_char(COMMIT_SCN_MAJOR), "
-                           " to_char(COMMIT_SCN_MINOR), "
-                           " to_char(COMMIT_SUBSCN), "
-                           " to_char(COMMIT_OFFSET), "
-                           " to_char(START_SCN_MAJOR), "
-                           " to_char(START_SCN_MINOR), "
-                           " to_char(START_SUBSCN), "
-                           " to_char(START_OFFSET) "
+                           " COMMIT_SCN_MAJOR, "
+                           " COMMIT_SCN_MINOR, "
+                           " COMMIT_SUBSCN, "
+                           " COMMIT_OFFSET, "
+                           " START_SCN_MAJOR, "
+                           " START_SCN_MINOR, "
+                           " START_SUBSCN, "
+                           " START_OFFSET, "
+                           " COMMIT_EPOCH, "
+                           " START_EPOCH, "
                            " FROM  STREAM_PROGRESS "
                            " WHERE INST_ID = :INST_ID<unsigned> "
                            " AND CREATION_DATE = (SELECT MAX(CREATION_DATE) "
@@ -177,59 +180,70 @@ namespace databus {
     save_progress_stmt_.set_commit(0);
   }
 
-  void ApplierHelper::saveApplyProgress(const SCN& commit_scn,
-                                        const SCN& restart_scn) {
-    if (restart_scn == SCN(-1)) return;
+  void ApplierHelper::saveApplyProgress(const TimePoint& commit_tp,
+                                        const TimePoint& restart_tp) {
+    if (restart_tp.scn_ == SCN(-1)) return;
     save_progress_stmt_ << inst_id_;
-    save_progress_stmt_ << std::to_string(commit_scn.major_).c_str();
-    save_progress_stmt_ << std::to_string(commit_scn.minor_).c_str();
-    save_progress_stmt_ << std::to_string(commit_scn.subscn_).c_str();
-    save_progress_stmt_ << std::to_string(commit_scn.noffset_).c_str();
-    save_progress_stmt_ << std::to_string(restart_scn.major_).c_str();
-    save_progress_stmt_ << std::to_string(restart_scn.minor_).c_str();
-    save_progress_stmt_ << std::to_string(restart_scn.subscn_).c_str();
-    save_progress_stmt_ << std::to_string(restart_scn.noffset_).c_str();
+
+    save_progress_stmt_ << commit_tp.scn_.major_;
+    save_progress_stmt_ << commit_tp.scn_.minor_;
+    save_progress_stmt_ << commit_tp.scn_.subscn_;
+    save_progress_stmt_ << commit_tp.scn_.noffset_;
+    save_progress_stmt_ << commit_tp.epoch_;
+
+    save_progress_stmt_ << restart_tp.scn_.major_;
+    save_progress_stmt_ << restart_tp.scn_.minor_;
+    save_progress_stmt_ << restart_tp.scn_.subscn_;
+    save_progress_stmt_ << restart_tp.scn_.noffset_;
+    save_progress_stmt_ << restart_tp.epoch_;
+
     conn_.commit();
   }
 
   ApplyStats ApplierHelper::getApplyStats() {
     get_progress_stmt_ << inst_id_;
     if (get_progress_stmt_.eof()) {
-      return ApplyStats(SCN(), SCN());
+      return ApplyStats();
     }
-    SCN commit_scn, restart_scn;
-    unsigned char buf[39];
+    TimePoint commit_tp, restart_tp;
+    unsigned val;
     int n = 0;
     while (n < 9) {
-      get_progress_stmt_ >> buf;
+      get_progress_stmt_ >> val;
       ++n;
       switch (n) {
         case 1:
-          commit_scn.major_ = std::stoi(std::string((char*)buf));
+          commit_tp.scn_.major_ = val;
           break;
         case 2:
-          commit_scn.minor_ = std::stoul(std::string((char*)buf));
+          commit_tp.scn_.minor_ = val;
           break;
         case 3:
-          commit_scn.subscn_ = std::stoul(std::string((char*)buf));
+          commit_tp.scn_.subscn_ = val;
           break;
         case 4:
-          commit_scn.noffset_ = std::stoul(std::string((char*)buf));
+          commit_tp.scn_.noffset_ = val;
           break;
         case 5:
-          restart_scn.major_ = std::stoi(std::string((char*)buf));
+          restart_tp.scn_.major_ = val;
           break;
         case 6:
-          restart_scn.minor_ = std::stoul(std::string((char*)buf));
+          restart_tp.scn_.minor_ = val;
           break;
         case 7:
-          restart_scn.subscn_ = std::stoul(std::string((char*)buf));
+          restart_tp.scn_.subscn_ = val;
           break;
         case 8:
-          restart_scn.noffset_ = std::stoul(std::string((char*)buf));
+          restart_tp.scn_.noffset_ = val;
+          break;
+        case 9:
+          commit_tp.epoch_ = val;
+          break;
+        case 10:
+          restart_tp.epoch_ = val;
           break;
       }
     }
-    return ApplyStats(restart_scn, commit_scn);
+    return ApplyStats(restart_tp, commit_tp);
   }
 }

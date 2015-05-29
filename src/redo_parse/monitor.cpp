@@ -10,8 +10,8 @@ namespace databus {
   void Monitor::operator()() {
     while (true) {
       ApplierHelper& ah = ApplierHelper::getApplierHelper();
-      ah.saveApplyProgress(Transaction::getLastCommitScn(),
-                           Transaction::getRestartScn());
+      ah.saveApplyProgress(Transaction::getLastCommitTimePoint(),
+                           Transaction::getRestartTimePoint());
       sleep(3);
     }
   }

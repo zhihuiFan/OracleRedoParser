@@ -29,16 +29,16 @@ namespace databus {
     return logmanager->getOnlineLastBlock(seq);
   }
 
-  void parseSeq(uint32_t seq, const SCN& restart_scn) {
+  void parseSeq(uint32_t seq, const TimePoint& restart_tp) {
     RedoFile redofile(seq, getLogfile, getOnlineLastBlock);
-    redofile.setStartScn(restart_scn);
+    redofile.setStartScn(restart_tp.scn_);
     RecordBufPtr buf;
     unsigned long c = 0;
     while ((buf = redofile.nextRecordBuf()).get()) {
       if (buf->change_vectors.empty()) continue;
       addToTransaction(buf);
       ++c;
-      if (c % 1000 == 0) {
+      if (c % 10000 == 0) {
         LOG(DEBUG) << "Parsed " << c << " Records ";
       }
     }
@@ -58,7 +58,8 @@ namespace databus {
     }
 
     if (!Transaction::start_scn_q_.empty()) {
-      Transaction::setRestartScn(*(Transaction::start_scn_q_.begin()));
+      auto it = Transaction::start_scn_q_.begin();
+      Transaction::setRestartTimePoint(it->first, it->second);
     }
 
     LOG(INFO) << "Apply Transaction now, Total  "
@@ -79,20 +80,21 @@ namespace databus {
     try {
       initStream(ac, av);
       stats = ApplierHelper::getApplierHelper().getApplyStats();
-      LOG(INFO) << "Got commit scn " << stats.commit_scn_.toStr() << " "
-                << stats.commit_scn_.toNum();
-      LOG(INFO) << "Got restart scn " << stats.restart_scn_.toStr() << " "
-                << stats.restart_scn_.toNum();
+      LOG(INFO) << "Last commit Timepoint " << stats.commit_tp_.toString();
+      LOG(INFO) << "Restart Timepoint " << stats.restart_tp_.toString();
       startSeq = logmanager->getSeqFromScn(
-          std::to_string(stats.restart_scn_.toNum()).c_str());
+          std::to_string(stats.restart_tp_.scn_.toNum()).c_str());
       if (startSeq == 0) {
-        LOG(ERROR) << "restart scn is " << stats.restart_scn_.toStr()
+        LOG(ERROR) << "restart scn is " << stats.restart_tp_.scn_.toStr()
                    << " Can't find out an archived log contains that scn";
         return -10;
       }
-      Transaction::setRestartScn(stats.restart_scn_);
-      Transaction::setCommitScn(stats.commit_scn_);
-      Transaction::start_scn_q_.insert(stats.restart_scn_);
+      Transaction::setRestartTimePoint(stats.restart_tp_.scn_,
+                                       stats.restart_tp_.epoch_);
+      Transaction::setLastCommitTimePoint(stats.commit_tp_.scn_,
+                                          stats.commit_tp_.epoch_);
+      Transaction::start_scn_q_[stats.restart_tp_.scn_] =
+          stats.restart_tp_.epoch_;
     } catch (otl_exception& p) {
       LOG(ERROR) << p.msg;
       LOG(ERROR) << p.stm_text;
@@ -103,7 +105,7 @@ namespace databus {
     util::guarded_thread t{std::ref(m)};
     try {
       while (true) {
-        parseSeq(startSeq, stats.restart_scn_);
+        parseSeq(startSeq, stats.restart_tp_);
         LOG(INFO) << "Transaction appliy completed, "
                   << Transaction::xid_map_.size()
                   << " transactions are pending for appling since they are not "
