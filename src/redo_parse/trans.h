@@ -139,8 +139,7 @@ namespace databus {
     static void setTimePointWhenCommit(
         const std::shared_ptr<Transaction> tran) {
       if (last_commit_scn_ < tran->commit_scn_) {
-        std::lock_guard<std::mutex> lk(commit_mutex_);
-        last_commit_scn_ = tran->commit_scn_;
+        setLastCommitTimePoint(tran->commit_scn_, tran->end_epoch_);
       }
       start_scn_q_.erase(tran->start_scn_);
       if (tran->start_scn_ == restart_scn_) {

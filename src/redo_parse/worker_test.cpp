@@ -93,8 +93,6 @@ namespace databus {
                                        stats.restart_tp_.epoch_);
       Transaction::setLastCommitTimePoint(stats.commit_tp_.scn_,
                                           stats.commit_tp_.epoch_);
-      Transaction::start_scn_q_[stats.restart_tp_.scn_] =
-          stats.restart_tp_.epoch_;
     } catch (otl_exception& p) {
       LOG(ERROR) << p.msg;
       LOG(ERROR) << p.stm_text;

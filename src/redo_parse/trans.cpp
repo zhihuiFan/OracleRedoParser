@@ -320,6 +320,7 @@ namespace databus {
             if (!trans_start_scn.empty()) {
               Transaction::xid_map_[xid]->start_scn_ = rcp->scn_;
               Transaction::xid_map_[xid]->xid_ = xid;
+              Transaction::xid_map_[xid]->start_epoch_ = rcp->epoch_;
             }
           }
           if ((record->op() & 0xff00) != 0xb00) return;
@@ -365,6 +366,7 @@ namespace databus {
             }
             Transaction::xid_map_[ixid]->commit_scn_ = rcp->scn_;
             Transaction::xid_map_[ixid]->cflag_ = ucm->flg_;
+            Transaction::xid_map_[ixid]->end_epoch_ = rcp->epoch_;
           }
           break;
         default:
