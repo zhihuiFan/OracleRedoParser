@@ -4,6 +4,9 @@
 #include <sstream>
 #include <string>
 
+#define OTL_ORA11G_R2
+#define OTL_ORA_UTF8
+#include "otlv4.h"
 #include "applier.h"
 #include "trans.h"
 #include "util/logger.h"
@@ -14,7 +17,11 @@
 
 namespace databus {
   SimpleApplier::SimpleApplier(const char* conn_str)
-      : conn_str_(conn_str), conn_(conn_str) {}
+      : conn_str_(conn_str),
+        conn_(conn_str),
+        table_exist_stmt_(
+            1, "SELECT 1 FROM USER_TABLES WHERE TABLE_NAME=upper(:x<char[31]>)",
+            conn_) {}
 
   void SimpleApplier::addTable(TabDefPtr tab_def, bool force) {
     auto tab_name = tab_def->getTabName();
@@ -99,8 +106,49 @@ namespace databus {
     Transaction::setTimePointWhenCommit(tran);
   }
 
+  void SimpleApplier::ensureLogTableCreated(TabDefPtr tab_def) {
+    table_exist_stmt_ << tab_def->name.c_str();
+    if (table_exist_stmt_.eof()) {
+      // create the table
+      std::stringstream ss;
+      ss << "create table " << tab_def->name << " ( "
+         << gen_prefix_cols_string() << gen_pk_string(tab_def) << ")";
+      otl_cursor::direct_exec(conn_, ss.str().c_str());
+      ss.clear();
+      ss.str(std::string());
+      ss << "alter table " << tab_def->name << " add primary key(STREAM_SCN)";
+      otl_cursor::direct_exec(conn_, ss.str().c_str());
+    }
+  }
+
+  std::string SimpleApplier::gen_pk_string(TabDefPtr tab_def) {
+    std::stringstream ss;
+    for (auto col_no : tab_def->pk) {
+      auto col_type = tab_def->col_types[col_no];
+      ss << tab_def->col_names[col_no] << " " << col_type;
+      if (col_type == "NUMBER") {
+        if (tab_def->col_len[col_no] != 9999) {
+          ss << "(" << tab_def->col_len[col_no];
+          if (tab_def->col_scale[col_no] != 9999) {
+            ss << "," << tab_def->col_scale[col_no];
+          }
+          ss << ")";
+        }
+      } else if (col_type == "VARCHAR2" || col_type == "CHAR") {
+        if (tab_def->col_len[col_no] != 9999) {
+          ss << "(" << tab_def->col_len[col_no] << ")";
+        }
+      }
+      ss << ",";
+    }
+    std::string s = ss.str();
+    s.pop_back();
+    return s;
+  }
+
   std::string SimpleApplier::getInsertStmt(TabDefPtr tab_def) {
     // the statement is order by col_no of pk
+    ensureLogTableCreated(tab_def);
     static auto insert_template =
         boost::format("insert into %s(%s) values(%s)");
 
