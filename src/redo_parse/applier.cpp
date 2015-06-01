@@ -21,7 +21,29 @@ namespace databus {
         conn_(conn_str),
         table_exist_stmt_(
             1, "SELECT 1 FROM USER_TABLES WHERE TABLE_NAME=upper(:x<char[31]>)",
-            conn_) {}
+            conn_) {
+    table_exist_stmt_ << "stream_progress";
+    if (table_exist_stmt_.eof()) {
+      otl_cursor::direct_exec(conn_,
+                              "CREATE TABLE STREAM_PROGRESS "
+                              "(INST_ID  NUMBER(38) NOT NULL,"
+                              "COMMIT_SCN_MAJOR  NUMBER(38) NOT NULL,"
+                              "COMMIT_SCN_MINOR  NUMBER(38) NOT NULL,"
+                              "COMMIT_SUBSCN  NUMBER(38) NOT NULL,"
+                              "COMMIT_OFFSET  NUMBER(38) NOT NULL,"
+                              "START_SCN_MAJOR  NUMBER(38) NOT NULL,"
+                              "START_SCN_MINOR  NUMBER(38) NOT NULL,"
+                              "START_SUBSCN  NUMBER(38) NOT NULL,"
+                              "START_OFFSET  NUMBER(38) NOT NULL,"
+                              "CREATION_DATE  DATE NOT NULL,"
+                              "APPLIED_TIME  DATE NOT NULL,"
+                              "RESTART_TIME  DATE NOT NULL,"
+                              "COMMIT_EPOCH  NUMBER(38) NOT NULL,"
+                              "RESTART_EPOCH  NUMBER(38) NOT NULL)");
+      otl_cursor::direct_exec(
+          conn_, "CREATE INDEX STREAM_CD ON STREAM_PROGRESS (CREATION_DATE)");
+    }
+  }
 
   void SimpleApplier::addTable(TabDefPtr tab_def, bool force) {
     auto tab_name = tab_def->getTabName();
