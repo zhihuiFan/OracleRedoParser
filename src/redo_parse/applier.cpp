@@ -270,7 +270,7 @@ namespace databus {
     save_progress_stmt_ << restart_tp.scn_.subscn_;
     save_progress_stmt_ << restart_tp.scn_.noffset_;
     save_progress_stmt_ << epochToTime(restart_tp.epoch_).c_str();
-    save_progress_stmt_ << restart_tp.epoch_;
+    save_progress_stmt_ << commit_tp.epoch_;
     save_progress_stmt_ << restart_tp.epoch_;
 
     conn_.commit();
