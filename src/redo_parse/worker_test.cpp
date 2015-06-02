@@ -74,7 +74,7 @@ namespace databus {
 
   int main(int ac, char** av) {
     putenv(const_cast<char*>("NLS_LANG=.AL32UTF8"));
-    otl_connect::otl_initialize();
+    otl_connect::otl_initialize(1);
     uint32_t startSeq;
     ApplyStats stats;
     try {
