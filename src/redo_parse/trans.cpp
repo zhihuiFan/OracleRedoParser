@@ -45,6 +45,9 @@ namespace databus {
       std::exit(-22);
     }
     if (it->second->has_rollback()) {
+      if (Transaction::start_scn_q_.find(it->second->start_scn_) !=
+          Transaction::start_scn_q_.end())
+        Transaction::start_scn_q_.erase(it->second->start_scn_);
       return Transaction::xid_map_.erase(it);
     } else {
       if (it->second->commit_scn_ <
