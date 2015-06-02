@@ -136,20 +136,22 @@ namespace databus {
       last_commit_epoch_ = epoch;
     }
 
+    static void eraseStartScn(const SCN& scn) {
+      start_scn_q_.erase(scn);
+      if (scn == restart_scn_) {
+        if (!start_scn_q_.empty()) {
+          auto it = start_scn_q_.begin();
+          setRestartTimePoint(it->first, it->second);
+        }
+      }
+    }
+
     static void setTimePointWhenCommit(
         const std::shared_ptr<Transaction> tran) {
       if (last_commit_scn_ < tran->commit_scn_) {
         setLastCommitTimePoint(tran->commit_scn_, tran->end_epoch_);
       }
-      start_scn_q_.erase(tran->start_scn_);
-      if (tran->start_scn_ == restart_scn_) {
-        if (start_scn_q_.empty()) {
-          setRestartTimePoint(tran->start_scn_, tran->start_epoch_);
-        } else {
-          auto it = start_scn_q_.begin();
-          setRestartTimePoint(it->first, it->second);
-        }
-      }
+      eraseStartScn(tran->start_scn_);
     }
 
     static uint32_t removeUncompletedTrans() {
