@@ -3,6 +3,7 @@
 #include <vector>
 #include <sstream>
 #include <string>
+#include <unistd.h>
 
 #define OTL_ORA11G_R2
 #define OTL_ORA_UTF8
@@ -42,6 +43,34 @@ namespace databus {
                               "RESTART_EPOCH  NUMBER(38) NOT NULL)");
       otl_cursor::direct_exec(
           conn_, "CREATE INDEX STREAM_CD ON STREAM_PROGRESS (CREATION_DATE)");
+    }
+    ApplyStats tp = ApplierHelper::getApplierHelper().getApplyStats();
+    if (tp.restart_tp_.empty()) {
+      LOG(INFO) << "This is the your first time to run stream for this "
+                   "instance, set the current timepoint for you";
+      otl_stream current_scn_st(
+          1, "select to_char(current_scn) from v$database where 1=:n<int>",
+          conn_);
+      current_scn_st << 1;
+      char current_scn[50];
+      current_scn_st >> current_scn;
+      otl_stream init_tm(
+          1,
+          "insert into stream_progress "
+          " (inst_id,  "
+          " commit_scn_major, commit_scn_minor, commit_subscn, commit_offset, "
+          " start_scn_major, start_scn_minor, start_subscn, start_offset, "
+          " creation_date, applied_time, restart_time, commit_epoch, "
+          "restart_epoch) "
+          "values(1, 0, 0, 0, 0, "
+          "trunc(to_number(:scn<char[50]>)/power(2,32)), "
+          "mod(to_number(:scn<char[50]>), power(2,32)), 0, 0, sysdate, "
+          "sysdate, sysdate, 0, 0)",
+          conn_);
+      init_tm << current_scn;
+      conn_.commit();
+      otl_cursor::direct_exec(conn_, "alter system switch logfile");
+      sleep(3);
     }
   }
 

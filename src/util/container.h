@@ -10,7 +10,7 @@ namespace databus {
   template <typename T>
   class List {
    public:
-    List() {};
+    List() {}
     void push_back(const T& val) {
       std::lock_guard<std::mutex> lk(mutex_);
       list_.push_back(val);

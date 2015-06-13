@@ -73,6 +73,7 @@ namespace databus {
     uint32_t epoch_;
     SCN scn_;
     std::string toString() const;
+    bool empty() const { return epoch_ == 0 and scn_.empty(); }
   };
 
   struct Transaction {
