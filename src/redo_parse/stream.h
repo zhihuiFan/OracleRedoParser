@@ -33,9 +33,14 @@ namespace databus {
     po::variables_map vm;
   };
 
+  struct TabConf {
+    std::string tab_name;
+    std::string tbs_name;
+    TabConf(const std::string& tab, const std::string& tbs = "")
+        : tab_name(tab), tbs_name(tbs) {}
+  };
   extern StreamConf* streamconf;
   extern std::shared_ptr<LogManager> logmanager;
-  extern std::list<std::string> captual_tables;
 
   inline MetadataManager& getMetadata() {
     static MetadataManager metadata(streamconf->getString("srcConn").c_str());

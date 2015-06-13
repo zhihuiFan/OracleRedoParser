@@ -46,7 +46,8 @@ namespace databus {
    public:
     // add table statement into stmt_dict_,
     // if false == true, it will overwrite the the previous data
-    void addTable(TabDefPtr tab_def, bool force = false);
+    void addTable(TabDefPtr tab_def, const TabConf& tab_conf,
+                  bool force = false);
     void apply(TransactionPtr tran_ptr);
     static SimpleApplier& getApplier(const char* conn_str) {
       static SimpleApplier applier(conn_str);
@@ -55,7 +56,7 @@ namespace databus {
 
    private:
     SimpleApplier(const char* conn_str);
-    void ensureLogTableCreated(TabDefPtr tab_def);
+    void ensureLogTableCreated(TabDefPtr, const TabConf&);
     std::string gen_pk_string(TabDefPtr tab_def);
     std::string getInsertStmt(TabDefPtr tab_def);
     void _apply(RowChangePtr rcp, TabDefPtr tab_def, XID xid, char offset);

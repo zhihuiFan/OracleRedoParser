@@ -74,12 +74,14 @@ namespace databus {
     }
   }
 
-  void SimpleApplier::addTable(TabDefPtr tab_def, bool force) {
+  void SimpleApplier::addTable(TabDefPtr tab_def, const TabConf& tab_conf,
+                               bool force) {
     auto tab_name = tab_def->getTabName();
     if (stmt_dict_.find(tab_name) != stmt_dict_.end() and !force) {
       LOG(WARNING) << " statment for " << tab_name << " exists already";
       return;
     }
+    ensureLogTableCreated(tab_def, tab_conf);
     auto insert_sql = getInsertStmt(tab_def);
     LOG(INFO) << insert_sql;
     stmt_dict_[tab_name] = std::shared_ptr<otl_stream>(
@@ -157,17 +159,32 @@ namespace databus {
     Transaction::setTimePointWhenCommit(tran);
   }
 
-  void SimpleApplier::ensureLogTableCreated(TabDefPtr tab_def) {
+  void SimpleApplier::ensureLogTableCreated(TabDefPtr tab_def,
+                                            const TabConf& tab_conf) {
     table_exist_stmt_ << tab_def->name.c_str();
     if (table_exist_stmt_.eof()) {
       // create the table
       std::stringstream ss;
       ss << "create table " << tab_def->name << " ( "
          << gen_prefix_cols_string() << gen_pk_string(tab_def) << ")";
+      if (!tab_conf.tbs_name.empty()) {
+        ss << " tablespace " << tab_conf.tbs_name;
+      }
       otl_cursor::direct_exec(conn_, ss.str().c_str());
+
       ss.clear();
       ss.str(std::string());
-      ss << "alter table " << tab_def->name << " add primary key(STREAM_SCN)";
+      ss << "create unique index " << tab_def->name << "_stream_pk on "
+         << tab_def->name << "(stream_scn)";
+      if (!tab_conf.tbs_name.empty()) {
+        ss << " tablespace " << tab_conf.tbs_name;
+      }
+      otl_cursor::direct_exec(conn_, ss.str().c_str());
+
+      ss.clear();
+      ss.str(std::string());
+      ss << "alter table " << tab_def->name
+         << " add primary key(STREAM_SCN) using index";
       otl_cursor::direct_exec(conn_, ss.str().c_str());
     }
   }
@@ -199,7 +216,6 @@ namespace databus {
 
   std::string SimpleApplier::getInsertStmt(TabDefPtr tab_def) {
     // the statement is order by col_no of pk
-    ensureLogTableCreated(tab_def);
     static auto insert_template =
         boost::format("insert into %s(%s) values(%s)");
 
