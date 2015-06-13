@@ -54,12 +54,14 @@ namespace databus {
     return ss.str();
   }
   RecordBuf::RecordBuf(const SCN& scn, uint32_t len, uint32_t epoch,
-                       char* change_buf, size_t offset, bool allop)
+                       char* change_buf, size_t offset, uint32_t seq,
+                       bool allop)
       : scn_(scn),
         change_length_(len),
         epoch_(epoch),
         change_buffers_(change_buf),
         op_(0),
+        seq_(seq),
         offset_(offset) {
     initChangeVectors(allop);
   }
