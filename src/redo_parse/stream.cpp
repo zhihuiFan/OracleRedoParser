@@ -183,11 +183,14 @@ namespace databus {
 
   void applyRecordBuf() {
     uint32_t curr_seq = GlobalStream::getGlobalStream().getAppliedSeq();
+    LOG(DEBUG) << "Last applied seq " << curr_seq;
     RecordBufPtr buf;
     while ((buf = getRecordBufList().pop_front()) != NULL) {
       if (curr_seq == buf->seq_) {
         addToTransaction(buf);
       } else {
+        LOG(DEBUG) << "Bug seq " << buf->seq_ << " Last applied seq "
+                   << curr_seq;
         auto n = Transaction::removeUncompletedTrans();
         if (n > 0)
           LOG(WARNING) << "removed " << n
@@ -217,6 +220,7 @@ namespace databus {
               .apply(commit_tran->second);
           commit_tran = Transaction::commit_trans_.erase(commit_tran);
         }
+        GlobalStream::getGlobalStream().setAppliedSeq(++curr_seq);
       }
     }
   }

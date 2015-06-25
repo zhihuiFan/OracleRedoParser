@@ -226,26 +226,23 @@ namespace databus {
   }
 
   std::string LogManager::getLogfile(uint32_t seq) {
-    // prefer archive log
-    while (true) {
-      arch_log_stmt_ << seq;
-      char filename[514];
-      if (!arch_log_stmt_.eof()) {
-        arch_log_stmt_ >> filename;
-        return std::string(filename);
-      } else {
-        LOG(DEBUG) << "Seq " << seq << " is not archived, sleep 3 seconds";
-        sleep(3);
-      }
+  // prefer archive log
+  tryagain:
+    arch_log_stmt_ << seq;
+    char filename[514];
+    if (!arch_log_stmt_.eof()) {
+      arch_log_stmt_ >> filename;
+      return std::string(filename);
     }
-    // Not consider online log for version 0.1
-    /*
     online_log_stmt_ << seq;
     if (!online_log_stmt_.eof()) {
       online_log_stmt_ >> filename;
       return std::string(filename);
     }
-    return std::string();*/
+    LOG(DEBUG) << "Seems a software bug, request seq " << seq
+               << " but it is not there, sleep 3 sconds and try again";
+    sleep(3);
+    goto tryagain;
   }
 
   uint32_t LogManager::getOnlineLastBlock(uint32_t seq) {
