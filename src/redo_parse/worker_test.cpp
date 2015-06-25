@@ -4,6 +4,7 @@
 #include <memory>
 #include <stdio.h>
 #include <thread>
+#include <signal.h>
 #include "easylogging++.h"
 #include "util/container.h"
 #include "util/utils.h"
@@ -22,51 +23,13 @@
 INITIALIZE_EASYLOGGINGPP
 namespace databus {
 
-  /*
-void parseSeq(uint32_t seq, const TimePoint& restart_tp) {
-  RedoFile redofile(seq, getLogfile, getOnlineLastBlock);
-  redofile.setStartScn(restart_tp.scn_);
-  RecordBufPtr buf;
-  unsigned long c = 0;
-  while ((buf = redofile.nextRecordBuf()).get()) {
-    if (buf->change_vectors.empty()) continue;
-    addToTransaction(buf);
-    ++c;
-    if (c % 10000 == 0) {
-      LOG(DEBUG) << "Parsed " << c << " Records ";
-    }
+  void shutdown(int signum) {
+    LOG(INFO) << std::endl << "Shutdowning datastream now.. ";
+    std::exit(0);
   }
-  LOG(INFO) << "total record found  = " << c << std::endl;
-  auto n = Transaction::removeUncompletedTrans();
-  if (n > 0) LOG(WARNING) << "removed " << n << " incompleted transaction";
-
-  LOG(INFO) << "Build Transaction now" << std::endl;
-  auto tran = Transaction::xid_map_.begin();
-  while (tran != Transaction::xid_map_.end()) {
-    auto it = buildTransaction(tran);
-    if (it != Transaction::xid_map_.end()) {
-      tran = it;
-    } else {
-      tran++;
-    }
-  }
-
-  if (!Transaction::start_scn_q_.empty()) {
-    auto it = Transaction::start_scn_q_.begin();
-    Transaction::setRestartTimePoint(it->first, it->second);
-  }
-
-  LOG(INFO) << "Apply Transaction now, Total  "
-            << Transaction::commit_trans_.size() << " to apply " << std::endl;
-  auto commit_tran = Transaction::commit_trans_.begin();
-  while (commit_tran != Transaction::commit_trans_.end()) {
-    SimpleApplier::getApplier(streamconf->getString("tarConn").c_str())
-        .apply(commit_tran->second);
-    commit_tran = Transaction::commit_trans_.erase(commit_tran);
-  }
-}*/
 
   int main(int ac, char** av) {
+    signal(SIGINT, shutdown);
     putenv(const_cast<char*>("NLS_LANG=.AL32UTF8"));
     otl_connect::otl_initialize(1);
     uint32_t startSeq;
@@ -97,23 +60,6 @@ void parseSeq(uint32_t seq, const TimePoint& restart_tp) {
     Monitor m;
     util::guarded_thread t{std::ref(m)};
     startStream(startSeq, stats.restart_tp_);
-    /*
-    try {
-      while (true) {
-        parseSeq(startSeq, stats.restart_tp_);
-        LOG(INFO) << "Transaction appliy completed, "
-                  << Transaction::xid_map_.size()
-                  << " transactions are pending for appling since they are not "
-                     "rollbacked/committed";
-        startSeq++;
-      }
-    } catch (otl_exception& p) {
-      LOG(ERROR) << p.msg;
-      LOG(ERROR) << p.stm_text;
-      LOG(ERROR) << p.var_info;
-      throw p;
-    }
-    */
     return 0;
   }
 }

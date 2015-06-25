@@ -227,8 +227,8 @@ namespace databus {
 
   void startStream(uint32_t seq, const TimePoint& tm) {
     std::thread mining{startMining, seq, tm};
-    getGlobalThreads().push_back(std::move(mining));
+    mining.detach();
     std::thread applier{applyRecordBuf};
-    getGlobalThreads().push_back(std::move(applier));
+    applier.detach();
   }
 }
