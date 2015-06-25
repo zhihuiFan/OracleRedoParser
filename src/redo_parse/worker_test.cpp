@@ -21,56 +21,50 @@
 
 INITIALIZE_EASYLOGGINGPP
 namespace databus {
-  std::shared_ptr<LogManager> logmanager = NULL;
 
-  std::string getLogfile(uint32_t seq) { return logmanager->getLogfile(seq); }
-
-  uint32_t getOnlineLastBlock(uint32_t seq) {
-    return logmanager->getOnlineLastBlock(seq);
-  }
-
-  void parseSeq(uint32_t seq, const TimePoint& restart_tp) {
-    RedoFile redofile(seq, getLogfile, getOnlineLastBlock);
-    redofile.setStartScn(restart_tp.scn_);
-    RecordBufPtr buf;
-    unsigned long c = 0;
-    while ((buf = redofile.nextRecordBuf()).get()) {
-      if (buf->change_vectors.empty()) continue;
-      addToTransaction(buf);
-      ++c;
-      if (c % 10000 == 0) {
-        LOG(DEBUG) << "Parsed " << c << " Records ";
-      }
-    }
-    LOG(INFO) << "total record found  = " << c << std::endl;
-    auto n = Transaction::removeUncompletedTrans();
-    if (n > 0) LOG(WARNING) << "removed " << n << " incompleted transaction";
-
-    LOG(INFO) << "Build Transaction now" << std::endl;
-    auto tran = Transaction::xid_map_.begin();
-    while (tran != Transaction::xid_map_.end()) {
-      auto it = buildTransaction(tran);
-      if (it != Transaction::xid_map_.end()) {
-        tran = it;
-      } else {
-        tran++;
-      }
-    }
-
-    if (!Transaction::start_scn_q_.empty()) {
-      auto it = Transaction::start_scn_q_.begin();
-      Transaction::setRestartTimePoint(it->first, it->second);
-    }
-
-    LOG(INFO) << "Apply Transaction now, Total  "
-              << Transaction::commit_trans_.size() << " to apply " << std::endl;
-    auto commit_tran = Transaction::commit_trans_.begin();
-    while (commit_tran != Transaction::commit_trans_.end()) {
-      SimpleApplier::getApplier(streamconf->getString("tarConn").c_str())
-          .apply(commit_tran->second);
-      commit_tran = Transaction::commit_trans_.erase(commit_tran);
+  /*
+void parseSeq(uint32_t seq, const TimePoint& restart_tp) {
+  RedoFile redofile(seq, getLogfile, getOnlineLastBlock);
+  redofile.setStartScn(restart_tp.scn_);
+  RecordBufPtr buf;
+  unsigned long c = 0;
+  while ((buf = redofile.nextRecordBuf()).get()) {
+    if (buf->change_vectors.empty()) continue;
+    addToTransaction(buf);
+    ++c;
+    if (c % 10000 == 0) {
+      LOG(DEBUG) << "Parsed " << c << " Records ";
     }
   }
+  LOG(INFO) << "total record found  = " << c << std::endl;
+  auto n = Transaction::removeUncompletedTrans();
+  if (n > 0) LOG(WARNING) << "removed " << n << " incompleted transaction";
+
+  LOG(INFO) << "Build Transaction now" << std::endl;
+  auto tran = Transaction::xid_map_.begin();
+  while (tran != Transaction::xid_map_.end()) {
+    auto it = buildTransaction(tran);
+    if (it != Transaction::xid_map_.end()) {
+      tran = it;
+    } else {
+      tran++;
+    }
+  }
+
+  if (!Transaction::start_scn_q_.empty()) {
+    auto it = Transaction::start_scn_q_.begin();
+    Transaction::setRestartTimePoint(it->first, it->second);
+  }
+
+  LOG(INFO) << "Apply Transaction now, Total  "
+            << Transaction::commit_trans_.size() << " to apply " << std::endl;
+  auto commit_tran = Transaction::commit_trans_.begin();
+  while (commit_tran != Transaction::commit_trans_.end()) {
+    SimpleApplier::getApplier(streamconf->getString("tarConn").c_str())
+        .apply(commit_tran->second);
+    commit_tran = Transaction::commit_trans_.erase(commit_tran);
+  }
+}*/
 
   int main(int ac, char** av) {
     putenv(const_cast<char*>("NLS_LANG=.AL32UTF8"));
@@ -82,13 +76,14 @@ namespace databus {
       stats = ApplierHelper::getApplierHelper().getApplyStats();
       LOG(INFO) << "Last commit Timepoint " << stats.commit_tp_.toString();
       LOG(INFO) << "Restart Timepoint " << stats.restart_tp_.toString();
-      startSeq = logmanager->getSeqFromScn(
+      startSeq = getLogManager().getSeqFromScn(
           std::to_string(stats.restart_tp_.scn_.toNum()).c_str());
       if (startSeq == 0) {
         LOG(ERROR) << "restart scn is " << stats.restart_tp_.scn_.toStr()
                    << " Can't find out an archived log contains that scn";
         return -10;
       }
+      GlobalStream::getGlobalStream().setAppliedSeq(startSeq);
       Transaction::setRestartTimePoint(stats.restart_tp_.scn_,
                                        stats.restart_tp_.epoch_);
       Transaction::setLastCommitTimePoint(stats.commit_tp_.scn_,
@@ -101,6 +96,8 @@ namespace databus {
     }
     Monitor m;
     util::guarded_thread t{std::ref(m)};
+    startStream(startSeq, stats.restart_tp_);
+    /*
     try {
       while (true) {
         parseSeq(startSeq, stats.restart_tp_);
@@ -116,6 +113,7 @@ namespace databus {
       LOG(ERROR) << p.var_info;
       throw p;
     }
+    */
     return 0;
   }
 }

@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <memory>
 #include <iostream>
+#include <unistd.h>
 
 #include "util/dassert.h"
 #include "util/logger.h"
@@ -11,6 +12,7 @@
 #include "metadata.h"
 #include "applier.h"
 #include "monitor.h"
+#include "redofile.h"
 
 namespace databus {
   StreamConf* streamconf;
@@ -127,8 +129,6 @@ namespace databus {
     el::Loggers::reconfigureLogger("default", conf);
     auto captual_tables =
         initCaptualTable(streamconf->getString("tableConf").c_str());
-    logmanager = std::shared_ptr<LogManager>(
-        new LogManager(streamconf->getString("srcConn").c_str()));
     for (auto table_conf : captual_tables) {
       auto first = table_conf.tab_name.find_first_of('.');
       auto last = table_conf.tab_name.find_last_of('.');
@@ -151,5 +151,78 @@ namespace databus {
                        << ", The correct format is owner.table_name";
       }
     }
+  }
+
+  std::string getLogfile(uint32_t seq) {
+    return getLogManager().getLogfile(seq);
+  }
+
+  uint32_t getOnlineLastBlock(uint32_t seq) {
+    return getLogManager().getOnlineLastBlock(seq);
+  }
+
+  void startMining(uint32_t seq, const TimePoint& tm) {
+    while (true) {
+      if (seq - GlobalStream::getGlobalStream().getAppliedSeq() > 2) {
+        sleep(3);
+        continue;
+      }
+      RedoFile redofile(seq, getLogfile, getOnlineLastBlock);
+      redofile.setStartScn(tm.scn_);
+      RecordBufPtr buf;
+      unsigned long c = 0;
+      while ((buf = redofile.nextRecordBuf()).get()) {
+        if (buf->change_vectors.empty()) continue;
+        getRecordBufList().push_back(buf);
+      }
+      ++seq;
+    }
+  }
+
+  void applyRecordBuf() {
+    uint32_t curr_seq = GlobalStream::getGlobalStream().getAppliedSeq();
+    RecordBufPtr buf;
+    while ((buf = getRecordBufList().pop_front()) != NULL) {
+      if (curr_seq == buf->seq_) {
+        addToTransaction(buf);
+      } else {
+        auto n = Transaction::removeUncompletedTrans();
+        if (n > 0)
+          LOG(WARNING) << "removed " << n
+                       << " incompleted transaction in log seq " << curr_seq;
+        LOG(INFO) << "Build Transaction now" << std::endl;
+        auto tran = Transaction::xid_map_.begin();
+        while (tran != Transaction::xid_map_.end()) {
+          auto it = buildTransaction(tran);
+          if (it != Transaction::xid_map_.end()) {
+            tran = it;
+          } else {
+            tran++;
+          }
+        }
+
+        if (!Transaction::start_scn_q_.empty()) {
+          auto it = Transaction::start_scn_q_.begin();
+          Transaction::setRestartTimePoint(it->first, it->second);
+        }
+
+        LOG(INFO) << "Apply Transaction now, Total  "
+                  << Transaction::commit_trans_.size() << " to apply "
+                  << std::endl;
+        auto commit_tran = Transaction::commit_trans_.begin();
+        while (commit_tran != Transaction::commit_trans_.end()) {
+          SimpleApplier::getApplier(streamconf->getString("tarConn").c_str())
+              .apply(commit_tran->second);
+          commit_tran = Transaction::commit_trans_.erase(commit_tran);
+        }
+      }
+    }
+  }
+
+  void startStream(uint32_t seq, const TimePoint& tm) {
+    std::thread mining{startMining, seq, tm};
+    getGlobalThreads().push_back(std::move(mining));
+    std::thread applier{applyRecordBuf};
+    getGlobalThreads().push_back(std::move(applier));
   }
 }
