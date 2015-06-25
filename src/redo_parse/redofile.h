@@ -76,7 +76,6 @@ namespace databus {
       return file_start_pos_ + offset;
     }
 
-    char *nextValid(char *, char *);
     char *firstRecord();
     // NULL if the end of file
     // switch to archive log file if overwrited

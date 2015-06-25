@@ -164,6 +164,8 @@ namespace databus {
   void startMining(uint32_t seq, const TimePoint& tm) {
     while (true) {
       if (seq - GlobalStream::getGlobalStream().getAppliedSeq() > 2) {
+        LOG(DEBUG) << "Sleep 3 seconds, applied seq is "
+                   << GlobalStream::getGlobalStream().getAppliedSeq();
         sleep(3);
         continue;
       }

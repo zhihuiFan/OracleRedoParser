@@ -168,27 +168,19 @@ namespace databus {
 
     uint32_t left = spaceLeft((char*)p_record);
     if (left < constants::kMinRecordLen) {
-      // std::cout << "Invalid :left " << left
-      //        << " bytes, can't hold Record_Header_Mintor, size"
-      //        << constants::kMinRecordLen << "\t";
       return false;
     }
 
     if (immature::recordLength(p_record, ora_version_) <
         constants::kMinRecordLen) {
-      // std::cout << "Invalid len: "
-      //          << immature::recordLength(p_record, ora_version_)
-      //           << " Record_header will take " << constants::kMinRecordLen
-      //          << " bytes at least \t ";
       return false;
     }
 
     SCN scn = immature::recordSCN(p_record, ora_version_);
     if (!(scn < p_redo_header_->nextScn()) || scn < lowscn_) {
-      std::cout << "Invalid scn " << scn.toStr() << std::endl;
+      LOG(DEBUG) << "Invalid scn " << scn.toStr();
       return false;
     }
-
     return true;
   }
 
@@ -201,10 +193,13 @@ namespace databus {
     return offset;
   }
 
-  char* RedoFile::nextValid(char* pos, char* from) {
+  // changed after 61d61dbd1b016888952a7c7c2a5fa834713b2d4c
+  char* RedoFile::nextRecord(char* curr_valid_rec) {
     bool online_log = false;
+    char* pos;
   tryagain:
-    pos = realAdvanceNBytes(from, immature::recordLength(from, ora_version_));
+    pos = realAdvanceNBytes(
+        curr_valid_rec, immature::recordLength(curr_valid_rec, ora_version_));
     if (isOverWrite()) {
       pos = resetPosition(pos);
     }
@@ -226,26 +221,18 @@ namespace databus {
                      << "blk_id " << blk_id << " latest_blk " << latest_blk_
                      << std::endl;
           sleep(3);
-          pos = from;
+          pos = curr_valid_rec;
           goto tryagain;
         }
       } else {
         if (online_log) {
           pos = resetPosition(pos);
           blk_id = getBlockNo(pos);
+          online_log = false;
         }
       }
 
       if (blk_id > last_block_id_) {
-        /*
-         std::cout
-             << "impossible!!! the end of last record is out of this file, "
-             << "last record information " << std::endl
-             << "block : " << getBlockNo(curr_record_pos_)
-             << " offset : " << block_size_ - spaceLeft(p_record)
-             << "length : " << immature::recordLength(p_record, ora_version_)
-             << std::endl;
-        */
         return NULL;
       }
 
@@ -281,9 +268,10 @@ namespace databus {
   }
 
   // p_record is a valid record
+  /*
   char* RedoFile::nextRecord(char* p_record) {
     char* pos = realAdvanceNBytes(
         p_record, immature::recordLength(p_record, ora_version_));
     return nextValid(pos, p_record);
-  }
+  }  */
 }
