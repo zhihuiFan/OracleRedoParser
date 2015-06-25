@@ -33,7 +33,7 @@ namespace databus {
     dassert("Redo file is larger than 4G, exiting..", stats.st_size <= l);
     // we need to change scn offset_ if this happened
     length_ = stats.st_size;
-    file_start_pos_ = (char*)mmap(0, length_, PROT_READ, MAP_SHARED, fd, 0);
+    file_start_pos_ = (char*)mmap(0, length_, PROT_READ, MAP_PRIVATE, fd, 0);
     dassert(strerror(errno), file_start_pos_ != NULL, errno);
     close(fd);
 
