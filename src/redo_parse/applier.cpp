@@ -376,8 +376,8 @@ namespace databus {
     while ((curr_record_ = getRecordBufList().pop_front()) != NULL) {
       if (canApply()) {
         applyAllBuf();
-        addToTransaction(curr_record_);
       }
+      addToTransaction(curr_record_);
       if (curr_record_->seq_ != curr_applying_seq_) {
         GlobalStream::getGlobalStream().setAppliedSeq(++curr_applying_seq_);
       }
