@@ -107,13 +107,14 @@ namespace databus {
     uint32_t change_length = 0;
     char* change_pos = NULL;
     SCN record_scn;
+    Uchar vld;
 
     if (ora_version_ == 9) {
       change_length = record_len - constants::kMinRecordLen;
       change_pos = curr_record_pos_ + constants::kMinRecordLen;
       record_scn = As<RecordHeaderV9>(curr_record_pos_)->scn();
     } else {
-      Uchar vld = immature::recordVld(curr_record_pos_, ora_version_);
+      vld = immature::recordVld(curr_record_pos_, ora_version_);
 
       if (immature::isMajor(vld)) {
         change_length = record_len - constants::kMinMajRecordLen;
@@ -157,7 +158,7 @@ namespace databus {
     // TODO: remove noffset in record_buf since we can knows this from SCN
     RecordBufPtr record_buf(new RecordBuf(record_scn, change_length, epoch_,
                                           change_buf, offset, log_sequence_,
-                                          allop_));
+                                          vld, allop_));
 
     curr_record_pos_ = nextRecord(curr_record_pos_);  // for next round
     return record_buf;

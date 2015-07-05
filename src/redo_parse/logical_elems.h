@@ -48,7 +48,7 @@ namespace databus {
   class RecordBuf {
    public:
     RecordBuf(const SCN& scn, uint32_t len, uint32_t epoch, char* change_buf,
-              size_t offset, uint32_t seq, bool allop = false);
+              size_t offset, uint32_t seq, Uchar vld, bool allop = false);
 
     std::list<ChangeHeader*> change_vectors;
     size_t offset() const { return offset_; }
@@ -71,7 +71,9 @@ namespace databus {
     size_t offset_;  // debug only
    public:
     uint32_t seq_;  // logfile.seq#
-  };                // RecordBuf
+    Uchar vld_;
+
+  };  // RecordBuf
 
   typedef std::shared_ptr<RecordBuf> RecordBufPtr;
 

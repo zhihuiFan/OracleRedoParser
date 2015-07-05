@@ -367,4 +367,52 @@ namespace databus {
     }
     return ApplyStats(restart_tp, commit_tp);
   }
+
+  ApplierManager::ApplierManager()
+      : curr_applying_seq_(GlobalStream::getGlobalStream().getAppliedSeq()),
+        curr_record_(NULL) {}
+
+  void ApplierManager::operator()() {
+    while ((curr_record_ = getRecordBufList().pop_front()) != NULL) {
+      if (canApply()) {
+        applyAllBuf();
+        addToTransaction(curr_record_);
+      }
+      if (curr_record_->seq_ != curr_applying_seq_) {
+        GlobalStream::getGlobalStream().setAppliedSeq(++curr_applying_seq_);
+      }
+    }
+  }
+
+  void ApplierManager::applyAllBuf() {
+    auto n = Transaction::removeUncompletedTrans();
+    if (n > 0)
+      LOG(INFO) << "removed " << n << " incompleted transaction in log seq "
+                << curr_applying_seq_;
+    LOG(DEBUG) << "Build Transaction now" << std::endl;
+    auto tran = Transaction::xid_map_.begin();
+    while (tran != Transaction::xid_map_.end()) {
+      auto it = buildTransaction(tran);
+      if (it != Transaction::xid_map_.end()) {
+        tran = it;
+      } else {
+        tran++;
+      }
+    }
+    if (!Transaction::start_scn_q_.empty()) {
+      auto it = Transaction::start_scn_q_.begin();
+      Transaction::setRestartTimePoint(it->first, it->second);
+    }
+    LOG(DEBUG) << "Apply Transaction now, Total  "
+               << Transaction::commit_trans_.size() << " to apply "
+               << std::endl;
+    auto commit_tran = Transaction::commit_trans_.begin();
+    while (commit_tran != Transaction::commit_trans_.end()) {
+      SimpleApplier::getApplier(streamconf->getString("tarConn").c_str())
+          .apply(commit_tran->second);
+      commit_tran = Transaction::commit_trans_.erase(commit_tran);
+    }
+  }
+
+  bool ApplierManager::canApply() { return curr_record_->vld_ == 0x05; }
 }

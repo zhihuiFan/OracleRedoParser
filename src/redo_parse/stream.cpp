@@ -181,13 +181,13 @@ namespace databus {
     }
   }
 
+  /*
   void applyRecordBuf() {
     uint32_t curr_seq = GlobalStream::getGlobalStream().getAppliedSeq();
     LOG(DEBUG) << "Last applied seq " << curr_seq;
-    RecordBufPtr buf;
-    while ((buf = getRecordBufList().pop_front()) != NULL) {
-      if (curr_seq == buf->seq_) {
-        addToTransaction(buf);
+    while ((curr_record_ = getRecordBufList().pop_front()) != NULL) {
+      if (curr_seq == curr_record_->seq_) {
+        addToTransaction(curr_record_);
       } else {
         LOG(DEBUG) << "Bug seq " << buf->seq_ << " Last applied seq "
                    << curr_seq;
@@ -223,12 +223,12 @@ namespace databus {
         GlobalStream::getGlobalStream().setAppliedSeq(++curr_seq);
       }
     }
-  }
+  }  */
 
   void startStream(uint32_t seq, const TimePoint& tm) {
     std::thread mining{startMining, seq, tm};
     mining.detach();
-    std::thread applier{applyRecordBuf};
+    std::thread applier{ApplierManager::getApplierManager()};
     applier.detach();
   }
 }

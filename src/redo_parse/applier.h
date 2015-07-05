@@ -11,6 +11,7 @@
 #include "otlv4.h"
 #include "trans.h"
 #include "stream.h"
+#include "logical_elems.h"
 
 namespace databus {
   // Please DO read gen_prefix_cols_string before add a new element to
@@ -98,6 +99,26 @@ namespace databus {
     otl_connect conn_;
     otl_stream save_progress_stmt_;
     otl_stream get_progress_stmt_;
+  };
+
+  class ApplierManager {
+   public:
+    static ApplierManager& getApplierManager() {
+      static ApplierManager applier_manager;
+      return applier_manager;
+    }
+
+   public:
+    void operator()();
+
+   private:
+    ApplierManager();
+    bool canApply();
+    void applyAllBuf();
+
+   private:
+    uint32_t curr_applying_seq_;
+    RecordBufPtr curr_record_;
   };
 }
 #endif /* ----- #ifndef APPLIER_INC  ----- */

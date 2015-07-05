@@ -54,7 +54,7 @@ namespace databus {
     return ss.str();
   }
   RecordBuf::RecordBuf(const SCN& scn, uint32_t len, uint32_t epoch,
-                       char* change_buf, size_t offset, uint32_t seq,
+                       char* change_buf, size_t offset, uint32_t seq, Uchar vld,
                        bool allop)
       : scn_(scn),
         change_length_(len),
@@ -62,7 +62,8 @@ namespace databus {
         change_buffers_(change_buf),
         op_(0),
         seq_(seq),
-        offset_(offset) {
+        offset_(offset),
+        vld_(vld) {
     initChangeVectors(allop);
   }
 
