@@ -179,12 +179,6 @@ namespace databus {
         ss << "using index tablespace " << tab_conf.tbs_name;
       }
       otl_cursor::direct_exec(conn_, ss.str().c_str());
-
-      ss.clear();
-      ss.str(std::string());
-      ss << "alter table " << tab_def->name
-         << " add primary key(STREAM_SCN) using index";
-      otl_cursor::direct_exec(conn_, ss.str().c_str());
     }
   }
 
