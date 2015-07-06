@@ -174,10 +174,9 @@ namespace databus {
 
       ss.clear();
       ss.str(std::string());
-      ss << "create unique index " << tab_def->name << "_stream_pk on "
-         << tab_def->name << "(stream_scn)";
+      ss << "alter table " << tab_def->name << " add primary key(stream_scn)";
       if (!tab_conf.tbs_name.empty()) {
-        ss << " tablespace " << tab_conf.tbs_name;
+        ss << "using index tablespace " << tab_conf.tbs_name;
       }
       otl_cursor::direct_exec(conn_, ss.str().c_str());
 
