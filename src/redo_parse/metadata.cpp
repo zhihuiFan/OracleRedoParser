@@ -219,7 +219,7 @@ namespace databus {
         online_log_seq_from_scn_stmt_(1,
                                       "select sequenc# from v$log where "
                                       "to_number(:restart_scn<char[80]>) "
-                                      "between FIRST_CHANGE# and NEXT_CHANGE#)",
+                                      "between FIRST_CHANGE# and NEXT_CHANGE#",
                                       conn_) {}
 
   uint32_t LogManager::getSeqFromScn(const char* restart_scn) {
