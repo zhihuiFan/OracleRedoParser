@@ -141,7 +141,8 @@ namespace databus {
             getMetadata().initTabDefFromName(owner.c_str(), tablename.c_str());
         if (tab_def != NULL) {
           LOG(DEBUG) << " init tab def " << tab_def->toString();
-          SimpleApplier::getApplier(streamconf->getString("tarConn").c_str())
+          SimpleApplier::getApplier(streamconf->getString("tarConn").c_str(),
+                                    streamconf->getString("srcConn").c_str())
               .addTable(tab_def, table_conf);
         }
         // if (tabdef) tabdef->dump();

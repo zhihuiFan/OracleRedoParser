@@ -17,7 +17,8 @@
 #include "tconvert.h"
 
 namespace databus {
-  SimpleApplier::SimpleApplier(const char* conn_str)
+  SimpleApplier::SimpleApplier(const char* conn_str,
+                               const char* primary_conn_str)
       : conn_str_(conn_str),
         conn_(conn_str),
         table_exist_stmt_(
@@ -48,12 +49,14 @@ namespace databus {
     if (tp.restart_tp_.empty()) {
       LOG(INFO) << "This is the your first time to run stream for this "
                    "instance, set the current timepoint for you";
+      otl_connect primary_conn(primary_conn_str);
       otl_stream current_scn_st(
           1, "select to_char(current_scn) from v$database where 1=:n<int>",
-          conn_);
+          primary_conn);
       current_scn_st << 1;
       char current_scn[50];
       current_scn_st >> current_scn;
+      primary_conn.logoff();
       otl_stream init_tm(
           1,
           "insert into stream_progress "
@@ -401,7 +404,8 @@ namespace databus {
                << std::endl;
     auto commit_tran = Transaction::commit_trans_.begin();
     while (commit_tran != Transaction::commit_trans_.end()) {
-      SimpleApplier::getApplier(streamconf->getString("tarConn").c_str())
+      SimpleApplier::getApplier(streamconf->getString("tarConn").c_str(),
+                                streamconf->getString("srcConn").c_str())
           .apply(commit_tran->second);
       commit_tran = Transaction::commit_trans_.erase(commit_tran);
     }

@@ -50,13 +50,14 @@ namespace databus {
     void addTable(TabDefPtr tab_def, const TabConf& tab_conf,
                   bool force = false);
     void apply(TransactionPtr tran_ptr);
-    static SimpleApplier& getApplier(const char* conn_str) {
-      static SimpleApplier applier(conn_str);
+    static SimpleApplier& getApplier(const char* conn_str,
+                                     const char* primary_con_str) {
+      static SimpleApplier applier(conn_str, primary_con_str);
       return applier;
     }
 
    private:
-    SimpleApplier(const char* conn_str);
+    SimpleApplier(const char* conn_str, const char* primary_con_str);
     void ensureLogTableCreated(TabDefPtr, const TabConf&);
     std::string gen_pk_string(TabDefPtr tab_def);
     std::string getInsertStmt(TabDefPtr tab_def);
