@@ -123,6 +123,7 @@ namespace databus {
     otl_stream online_log_stmt_;
     otl_stream log_last_blk_stmt_;
     otl_stream log_file_from_scn_stmt_;
+    otl_stream online_log_seq_from_scn_stmt_;
   };
 }
 #endif
