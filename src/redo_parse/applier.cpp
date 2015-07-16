@@ -400,8 +400,7 @@ namespace databus {
       Transaction::setRestartTimePoint(it->first, it->second);
     }
     LOG(DEBUG) << "Apply Transaction now, Total  "
-               << Transaction::commit_trans_.size() << " to apply "
-               << std::endl;
+               << Transaction::commit_trans_.size() << " to apply ";
     auto commit_tran = Transaction::commit_trans_.begin();
     while (commit_tran != Transaction::commit_trans_.end()) {
       SimpleApplier::getApplier(streamconf->getString("tarConn").c_str(),
