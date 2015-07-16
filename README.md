@@ -8,13 +8,13 @@ DataStream 0.0.1 has been relased at 27/May/15.
 
 ### Release note of v0.0.1.
 
-1. Supports
+##### Supports
 
 * DataStream can parse archive log directly and store the changed PK into another database.  
 * Data type char, varchar2, date, number as primary key are support
 * Mulit Instances for single source are supported.  Datastream is running with single thread in this release, so it has some performance issue.  Mining a 2G archive log needs 2 minutes, applying it needs 3 ~ 6 minutes. 
 
-2. Limitations
+##### Limitations
 
 * The table must has primary key.  The data type of primary key must be in [NUMBER, CHAR, VARCHAR2, DATE].  Or else Datastream will give warning and ignore this table. 
 * Support common add/drop columns, but primary key definition change is not supported
