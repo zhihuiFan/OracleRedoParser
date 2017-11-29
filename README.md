@@ -11,7 +11,7 @@ DataStream 0.0.1 has been relased at 27/May/15.
 ##### Supports
 
 * DataStream can parse archive log directly and store the changed PK into another database.  
-* Data type char, varchar2, date, number as primary key are support
+* Data type char, varchar2, date, number as primary key are supported
 * Mulit Instances for single source are supported.  Datastream is running with single thread in this release, so it has some performance issue.  Mining a 2G archive log needs 2 minutes, applying it needs 3 ~ 6 minutes. 
 
 ##### Limitations
@@ -22,6 +22,6 @@ DataStream 0.0.1 has been relased at 27/May/15.
 * If the table have more than 250 columns, program will exit. If we run into this in real case, we will verify it more before using it. why
 * Performance issue. Normally Single instance can handle 300+ tps, if we set the commit_logging to batch, the performance can increased by 1.5x. 
 
-### More Informations:
-* See [User guide](https://wiki.vip.corp.ebay.com/display/mpdba/Oracle+DataStream) to know how to use it
-* See [Jira system](https://jirap.corp.ebay.com/browse/DBISTREA/?selectedTab=com.atlassian.jira.jira-projects-plugin:versions-panel) to know our roadmap. You can also open new request if needed
+### Notes:
+* This is an internal/dead project and we do not support it anymore
+* Put it here just in case it may helpful for any peoples
