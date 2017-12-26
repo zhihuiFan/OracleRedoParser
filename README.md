@@ -24,4 +24,4 @@ DataStream 0.0.1 has been relased at 27/May/15.
 
 ### Notes:
 * This is an internal/dead project and we do not support it anymore
-* Put it here just in case it may helpful for any peoples
+* Put it here just in case it may helpful for any people
